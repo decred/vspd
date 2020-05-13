@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"decred.org/dcrwallet/wallet/txrules"
+	"github.com/decred/dcrd/blockchain/stake/v3"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil/v3"
@@ -48,6 +50,120 @@ func fee(c *gin.Context) {
 	sendJSONResponse(feeResponse{
 		Timestamp: time.Now().Unix(),
 		Fee:       cfg.poolFees,
+	}, http.StatusOK, c)
+}
+
+func feeAddress(c *gin.Context) {
+	// HTTP GET Params required
+	// ticketHash - hash of ticket
+	// signature - signmessage signature using the ticket commitment address
+	//           - message = "vsp v3 getfeeaddress ticketHash"
+
+	// ticketHash
+	ticketHashStr := c.Param("ticketHash")
+	if len(ticketHashStr) != chainhash.MaxHashStringSize {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket hash"))
+		return
+	}
+	txHash, err := chainhash.NewHashFromStr(ticketHashStr)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket hash"))
+		return
+	}
+
+	// signature - sanity check signature is in base64 encoding
+	signature := c.Param("signature")
+	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
+		return
+	}
+
+	// check DB for cached response
+	// TODO: check db
+
+	ctx := c.Request.Context()
+
+	var resp dcrdtypes.TxRawResult
+	err = nodeConnection.Call(ctx, "getrawtransaction", &resp, txHash.String(), true)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("unknown transaction"))
+		return
+	}
+	if resp.Confirmations < 2 || resp.BlockHeight < 0 {
+		c.AbortWithError(http.StatusBadRequest, errors.New("transaction does not have minimum confirmations"))
+		return
+	}
+	if resp.Confirmations > int64(uint32(cfg.netParams.TicketMaturity)+cfg.netParams.TicketExpiry) {
+		c.AbortWithError(http.StatusBadRequest, errors.New("ticket has expired"))
+		return
+	}
+
+	msgHex, err := hex.DecodeString(resp.Hex)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("unable to decode transaction"))
+		return
+	}
+
+	msgTx := wire.NewMsgTx()
+	if err = msgTx.FromBytes(msgHex); err != nil {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("failed to deserialize transaction"))
+		return
+	}
+	if !stake.IsSStx(msgTx) {
+		c.AbortWithError(http.StatusBadRequest, errors.New("transaction is not a ticket"))
+		return
+	}
+	if len(msgTx.TxOut) != 3 {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket"))
+		return
+	}
+
+	// Get commitment address
+	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, cfg.netParams)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("failed to get commitment address"))
+		return
+	}
+
+	// verify message
+	message := fmt.Sprintf("vsp v3 getfeeaddress %s", msgTx.TxHash())
+	var valid bool
+	err = nodeConnection.Call(ctx, "verifymessage", &valid, addr.Address(), signature, message)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
+		return
+	}
+	if !valid {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
+		return
+	}
+
+	// get blockheight and sdiff which is required by
+	// txrules.StakePoolTicketFee, and store them in the database
+	// for processing by payfee
+	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
+	err = nodeConnection.Call(ctx, "getblockheader", &blockHeader, resp.BlockHash, true)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
+		return
+	}
+	sDiff := blockHeader.SBits
+
+	var newAddress string
+	err = nodeConnection.Call(ctx, "getnewaddress", &newAddress, "fees")
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("unable to generate fee address"))
+		return
+	}
+
+	// TODO: Insert into DB
+	_ = sDiff
+
+	sendJSONResponse(feeAddressResponse{
+		Timestamp:           time.Now().Unix(),
+		TicketHash:          txHash.String(),
+		CommitmentSignature: signature,
+		FeeAddress:          newAddress,
 	}, http.StatusOK, c)
 }
 
@@ -193,7 +309,7 @@ findAddress:
 // PayFee2 is copied from the stakepoold implementation in #625
 func PayFee2(ctx context.Context, ticketHash *chainhash.Hash, votingWIF *dcrutil.WIF, feeTx *wire.MsgTx) (string, error) {
 	var resp dcrdtypes.TxRawResult
-	err := nodeConnection.Call(ctx, "getrawtransaction", &resp, ticketHash.String())
+	err := nodeConnection.Call(ctx, "getrawtransaction", &resp, ticketHash.String(), true)
 	if err != nil {
 		fmt.Errorf("PayFee: getrawtransaction: %v", err)
 		return "", errors.New("RPC server error")
