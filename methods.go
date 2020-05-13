@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"crypto/ed25519"
 	"encoding/binary"
 	"encoding/hex"
@@ -15,6 +17,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil/v3"
+	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/gin-gonic/gin"
@@ -145,7 +148,7 @@ findAddress:
 	}
 
 	// Get vote tx to give to wallet
-	ticketHash, err := chainhash.NewHashFromStr(feeEntry.TicketHash)
+	ticketHash, err := chainhash.NewHashFromStr(feeEntry.Hash)
 	if err != nil {
 		fmt.Errorf("PayFee: NewHashFromStr: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("internal error"))
@@ -153,7 +156,7 @@ findAddress:
 	}
 
 	now := time.Now()
-	resp, err := PayFee2(ticketHash, votingWIF, feeTx)
+	resp, err := PayFee2(c.Request.Context(), ticketHash, votingWIF, feeTx)
 	if err != nil {
 		fmt.Errorf("PayFee: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
@@ -174,38 +177,39 @@ findAddress:
 }
 
 // PayFee2 is copied from the stakepoold implementation in #625
-func PayFee2(ticketHash *chainhash.Hash, votingWIF *dcrutil.WIF, feeTx *wire.MsgTx) (string, error) {
-
-	resp, err := nodeConnection.GetRawTransactionVerbose(ticketHash)
+func PayFee2(ctx context.Context, ticketHash *chainhash.Hash, votingWIF *dcrutil.WIF, feeTx *wire.MsgTx) (string, error) {
+	var resp dcrdtypes.TxRawResult
+	err := nodeConnection.Call(ctx, "getrawtransaction", &resp, ticketHash.String())
 	if err != nil {
 		fmt.Errorf("PayFee: getrawtransaction: %v", err)
 		return "", errors.New("RPC server error")
 	}
-	msgHex, err := hex.DecodeString(resp.Hex)
-	if err != nil {
-		return "", err
-	}
-	msgTx := wire.NewMsgTx()
-	if err = msgTx.FromBytes(msgHex); err != nil {
-		return "", errors.New("failed to deserialize tx")
-	}
 
-	err = walletConnection.AddTicket(dcrutil.NewTx(msgTx))
+	err = nodeConnection.Call(ctx, "addticket", nil, resp.Hex)
 	if err != nil {
 		fmt.Errorf("PayFee: addticket: %v", err)
 		return "", errors.New("RPC server error")
 	}
 
-	err = walletConnection.ImportPrivKeyRescanFrom(votingWIF, "", false, 0)
+	err = nodeConnection.Call(ctx, "importprivkey", nil, votingWIF.String(), "imported", false, 0)
 	if err != nil {
 		fmt.Errorf("PayFee: importprivkey: %v", err)
 		return "", errors.New("RPC server error")
 	}
 
-	res, err := nodeConnection.SendRawTransaction(feeTx, false)
+	feeTxBuf := new(bytes.Buffer)
+	feeTxBuf.Grow(feeTx.SerializeSize())
+	err = feeTx.Serialize(feeTxBuf)
+	if err != nil {
+		fmt.Errorf("PayFee: failed to serialize fee transaction: %v", err)
+		return "", errors.New("serialization error")
+	}
+
+	var res string
+	err = nodeConnection.Call(ctx, "sendrawtransaction", &res, hex.NewEncoder(feeTxBuf), false)
 	if err != nil {
 		fmt.Errorf("PayFee: sendrawtransaction: %v", err)
 		return "", errors.New("transaction failed to send")
 	}
-	return res.String(), nil
+	return res, nil
 }

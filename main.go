@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 
 	"github.com/decred/dcrd/chaincfg/v3"
-	"github.com/decred/dcrd/rpcclient"
 	"github.com/jholdstock/dcrvsp/database"
+	"github.com/jrick/wsrpc/v2"
 )
 
 const listen = ":3000"
@@ -30,9 +30,7 @@ var cfg Config
 // Database with stubbed methods
 var db *database.VspDatabase
 
-// RPC clients
-var nodeConnection *rpcclient.Client
-var walletConnection *WalletClient
+var nodeConnection *wsrpc.Client
 
 func initConfig() (*Config, error) {
 	homePath := "~/.dcrvsp"
