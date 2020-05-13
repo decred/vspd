@@ -28,7 +28,7 @@ func sendJSONResponse(resp interface{}, code int, c *gin.Context) {
 		return
 	}
 
-	sig := ed25519.Sign(signKey, dec)
+	sig := ed25519.Sign(cfg.signKey, dec)
 	c.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	c.Writer.Header().Set("VSP-Signature", hex.EncodeToString(sig))
 	c.Writer.Write(dec)
@@ -41,7 +41,7 @@ func payFee(c *gin.Context) {
 	// voteBits - voting preferences in little endian
 
 	votingKey := c.Param("votingKey")
-	votingWIF, err := dcrutil.DecodeWIF(votingKey, netParams.PrivateKeyID)
+	votingWIF, err := dcrutil.DecodeWIF(votingKey, cfg.netParams.PrivateKeyID)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -84,7 +84,7 @@ func payFee(c *gin.Context) {
 findAddress:
 	for _, txOut := range feeTx.TxOut {
 		_, addresses, _, err := txscript.ExtractPkScriptAddrs(scriptVersion,
-			txOut.PkScript, netParams)
+			txOut.PkScript, cfg.netParams)
 		if err != nil {
 			fmt.Printf("Extract: %v", err)
 			c.AbortWithError(http.StatusInternalServerError, err)
@@ -113,13 +113,13 @@ findAddress:
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 		return
 	}
-	voteAddr, err := dcrutil.DecodeAddress(feeEntry.Address, netParams)
+	voteAddr, err := dcrutil.DecodeAddress(feeEntry.Address, cfg.netParams)
 	if err != nil {
 		fmt.Errorf("PayFee: DecodeAddress: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 		return
 	}
-	_, err = dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), netParams,
+	_, err = dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), cfg.netParams,
 		dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		fmt.Errorf("PayFee: NewAddressPubKeyHash: %v", err)
@@ -137,7 +137,7 @@ findAddress:
 		return
 	}
 
-	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(feeEntry.BlockHeight), poolFees, netParams)
+	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(feeEntry.BlockHeight), cfg.poolFees, cfg.netParams)
 	if feeAmount < minFee {
 		fmt.Printf("too cheap: %v %v", feeAmount, minFee)
 		c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("dont get cheap on me, dodgson (sent:%v required:%v)", feeAmount, minFee))

@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/ed25519"
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -10,39 +12,46 @@ import (
 
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/rpcclient"
+	"github.com/jholdstock/dcrvsp/database"
 )
 
 const listen = ":3000"
 
-// Config vars
-var (
+type Config struct {
 	signKey   ed25519.PrivateKey
 	pubKey    ed25519.PublicKey
 	poolFees  float64
 	netParams *chaincfg.Params
-)
+	dbFile    string
+}
+
+var cfg Config
 
 // Database with stubbed methods
-var db Database
+var db *database.VspDatabase
 
+// RPC clients
 var nodeConnection *rpcclient.Client
 var walletConnection *WalletClient
 
-func initConfig() {
-	seedPath := filepath.Join("dcrvsp", "sign.seed")
+func initConfig() (*Config, error) {
+	homePath := "~/.dcrvsp"
+
+	seedPath := filepath.Join(homePath, "sign.seed")
 	seed, err := ioutil.ReadFile(seedPath)
+	var signKey ed25519.PrivateKey
 	if err != nil {
 		if !os.IsNotExist(err) {
-			log.Fatal("seedPath does not exist")
+			return nil, errors.New("seedPath does not exist")
 		}
 
 		_, signKey, err = ed25519.GenerateKey(rand.Reader)
 		if err != nil {
-			log.Fatalf("failed to generate signing key: %v", err)
+			return nil, fmt.Errorf("failed to generate signing key: %v", err)
 		}
 		err = ioutil.WriteFile(seedPath, signKey.Seed(), 0400)
 		if err != nil {
-			log.Fatalf("failed to save signing key: %v", err)
+			return nil, fmt.Errorf("failed to save signing key: %v", err)
 		}
 	} else {
 		signKey = ed25519.NewKeyFromSeed(seed)
@@ -50,15 +59,29 @@ func initConfig() {
 
 	pubKey, ok := signKey.Public().(ed25519.PublicKey)
 	if !ok {
-		log.Fatalf("failed to cast signing key: %T", pubKey)
+		return nil, fmt.Errorf("failed to cast signing key: %T", pubKey)
 	}
 
-	netParams = chaincfg.TestNet3Params()
+	return &Config{
+		netParams: chaincfg.TestNet3Params(),
+		dbFile:    filepath.Join(homePath, "database.db"),
+		pubKey:    pubKey,
+		poolFees:  0.1,
+		signKey:   signKey,
+	}, nil
 }
 
 func main() {
 
-	initConfig()
+	cfg, err := initConfig()
+	if err != nil {
+		log.Fatalf("config error: %v", err)
+	}
+
+	db, err = database.New(cfg.dbFile)
+	if err != nil {
+		log.Fatalf("database error: %v", err)
+	}
 
 	// Start HTTP server
 	log.Printf("Listening on %s", listen)

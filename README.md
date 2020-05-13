@@ -1,8 +1,25 @@
 # dcrvsp
 
-- `main.go` initialises the program with hard-coded config.
-- `responses.go` contains the API response types copied from #625.
-- `router.go` contains the webserver init and config.
-- `methods.go` contains an implementation of payfee, copied from #625.
-- `database.go` contains stubbed database methods.
-- `wallet.go` contains stubbed dcrwallet calls.
+## Design decisions
+
+- [gin-gonic](https://github.com/gin-gonic/gin) webserver
+- [bbolt](https://github.com/etcd-io/bbolt) database
+
+## MVP features
+
+- VSP API "v3" as described in [dcrstakepool #574](https://github.com/decred/dcrstakepool/issues/574)
+and implemented in [dcrstakepool #625](https://github.com/decred/dcrstakepool/pull/625)
+  - Request fee amount
+  - Request fee address
+  - Pay fee
+  - Set voting preferences
+- A minimal, static, web front-end providing pool stats and basic connection instructions.
+
+## Future features
+
+- Write database backups to disk periodically.
+- Backup over http.
+- Status check API call as described in [dcrstakepool #628](https://github.com/decred/dcrstakepool/issues/628).
+- Accountability for both client and server changes to voting preferences.
+- Consistency checking across connected wallets.
+- Validate votebits provided in PayFee request are valid per current agendas.
