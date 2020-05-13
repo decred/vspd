@@ -1,7 +1,7 @@
 package database
 
-type Fees struct {
-	TicketHash          string
+type Ticket struct {
+	Hash                string
 	CommitmentSignature string
 	FeeAddress          string
 	Address             string
@@ -15,7 +15,7 @@ func (db *VspDatabase) InsertFeeAddressVotingKey(address, votingKey string, vote
 	return nil
 }
 
-func (db *VspDatabase) InsertFeeAddress() error {
+func (db *VspDatabase) InsertFeeAddress(t Ticket) error {
 	return nil
 }
 
@@ -23,10 +23,10 @@ func (db *VspDatabase) GetInactiveFeeAddresses() ([]string, error) {
 	return []string{""}, nil
 }
 
-func (db *VspDatabase) GetFeesByFeeAddress(feeAddr string) (Fees, error) {
-	return Fees{}, nil
+func (db *VspDatabase) GetFeesByFeeAddress(feeAddr string) (Ticket, error) {
+	return Ticket{}, nil
 }
 
-func (db *VspDatabase) GetFeeAddressByTicketHash() (Fees, error) {
-	return Fees{}, nil
+func (db *VspDatabase) GetFeeAddressByTicketHash() (Ticket, error) {
+	return Ticket{}, nil
 }

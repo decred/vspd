@@ -18,7 +18,7 @@ var (
 	// vspBkt is the main parent bucket of the VSP. All values and other buckets
 	// are nested within it.
 	vspBkt     = []byte("vspbkt")
-	feesBkt    = []byte("feesbkt")
+	ticketsBkt = []byte("ticketsbkt")
 	versionK   = []byte("version")
 	backupFile = "backup.kv"
 	version    = 1
@@ -41,21 +41,26 @@ func New(dbFile string) (*VspDatabase, error) {
 	return &VspDatabase{db: db}, nil
 }
 
-// createBuckets creates all storage buckets of the VSP.
+// createBuckets creates all storage buckets of the VSP if they don't already
+// exist.
 func createBuckets(db *bolt.DB) error {
 	return db.Update(func(tx *bolt.Tx) error {
-		pbkt := tx.Bucket(feesBkt)
-		if pbkt == nil {
-			pbkt, err := tx.CreateBucket(feesBkt)
+		if tx.Bucket(vspBkt) == nil {
+			parentBkt, err := tx.CreateBucket(vspBkt)
 			if err != nil {
-				return fmt.Errorf("failed to create %s bucket: %v", string(feesBkt), err)
+				return fmt.Errorf("failed to create %s bucket: %v", string(vspBkt), err)
 			}
 
 			vbytes := make([]byte, 4)
 			binary.LittleEndian.PutUint32(vbytes, uint32(version))
-			err = pbkt.Put(versionK, vbytes)
+			err = parentBkt.Put(versionK, vbytes)
 			if err != nil {
 				return err
+			}
+
+			_, err = parentBkt.CreateBucket(ticketsBkt)
+			if err != nil {
+				return fmt.Errorf("failed to create %s bucket: %v", string(ticketsBkt), err)
 			}
 		}
 
