@@ -15,6 +15,7 @@ func newRouter() *gin.Engine {
 		router.POST("/feeaddress", feeAddress)
 		router.GET("/pubkey", pubKey)
 		router.POST("/payfee", payFee)
+		router.POST("/ticketstatus", ticketStatus)
 	}
 
 	return router

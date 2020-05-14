@@ -36,3 +36,16 @@ type payFeeResponse struct {
 	TxHash    string        `json:"txHash"`
 	Request   PayFeeRequest `json:"request"`
 }
+
+type TicketStatusRequest struct {
+	Timestamp  int64  `json:"timestamp"`
+	TicketHash string `json:"ticketHash"`
+	Signature  string `json:"signature"`
+}
+
+type ticketStatusResponse struct {
+	Timestamp int64               `json:"timestamp"`
+	Request   TicketStatusRequest `json:"request"`
+	Status    string              `json:"status"`
+	VoteBits  uint16              `json:"votebits"`
+}
