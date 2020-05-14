@@ -11,6 +11,8 @@ func newRouter() *gin.Engine {
 
 	api.Use()
 	{
+		router.GET("/fee", fee)
+		router.GET("/pubkey", pubKey)
 		router.GET("/payfee", payFee)
 	}
 

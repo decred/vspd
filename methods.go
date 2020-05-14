@@ -37,6 +37,20 @@ func sendJSONResponse(resp interface{}, code int, c *gin.Context) {
 	c.Writer.Write(dec)
 }
 
+func pubKey(c *gin.Context) {
+	sendJSONResponse(pubKeyResponse{
+		Timestamp: time.Now().Unix(),
+		PubKey:    cfg.pubKey,
+	}, http.StatusOK, c)
+}
+
+func fee(c *gin.Context) {
+	sendJSONResponse(feeResponse{
+		Timestamp: time.Now().Unix(),
+		Fee:       cfg.poolFees,
+	}, http.StatusOK, c)
+}
+
 func payFee(c *gin.Context) {
 	// HTTP GET Params required
 	// feeTx - serialized wire.MsgTx

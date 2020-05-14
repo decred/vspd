@@ -1,11 +1,11 @@
 package main
 
-type getPubKeyResponse struct {
+type pubKeyResponse struct {
 	Timestamp int64  `json:"timestamp"`
 	PubKey    []byte `json:"pubKey"`
 }
 
-type getFeeResponse struct {
+type feeResponse struct {
 	Timestamp int64   `json:"timestamp"`
 	Fee       float64 `json:"fee"`
 }
