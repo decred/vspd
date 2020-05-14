@@ -70,7 +70,6 @@ func initConfig() (*Config, error) {
 }
 
 func main() {
-
 	cfg, err := initConfig()
 	if err != nil {
 		log.Fatalf("config error: %v", err)
@@ -80,6 +79,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("database error: %v", err)
 	}
+
+	defer db.Close()
 
 	// Start HTTP server
 	log.Printf("Listening on %s", listen)
