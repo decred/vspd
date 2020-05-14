@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jrick/wsrpc/v2"
@@ -23,8 +24,8 @@ func main() {
 	db, err = database.New(cfg.dbPath)
 	if err != nil {
 		log.Fatalf("database error: %v", err)
+		os.Exit(1)
 	}
-
 	defer db.Close()
 
 	// Start HTTP server
