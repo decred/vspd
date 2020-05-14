@@ -32,4 +32,5 @@ type PayFeeRequest struct {
 type payFeeResponse struct {
 	Timestamp int64  `json:"timestamp"`
 	TxHash    string `json:"txHash"`
+	VoteBits  uint16 `json:"voteBits"`
 }
