@@ -20,7 +20,6 @@ var (
 	vspBkt     = []byte("vspbkt")
 	ticketsBkt = []byte("ticketsbkt")
 	versionK   = []byte("version")
-	backupFile = "backup.kv"
 	version    = 1
 )
 

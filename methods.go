@@ -34,6 +34,7 @@ func sendJSONResponse(resp interface{}, code int, c *gin.Context) {
 	sig := ed25519.Sign(cfg.signKey, dec)
 	c.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	c.Writer.Header().Set("VSP-Signature", hex.EncodeToString(sig))
+	c.Writer.WriteHeader(code)
 	c.Writer.Write(dec)
 }
 
@@ -132,14 +133,14 @@ findAddress:
 	}
 	voteAddr, err := dcrutil.DecodeAddress(feeEntry.Address, cfg.netParams)
 	if err != nil {
-		fmt.Errorf("PayFee: DecodeAddress: %v", err)
+		fmt.Printf("PayFee: DecodeAddress: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 		return
 	}
 	_, err = dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), cfg.netParams,
 		dcrec.STEcdsaSecp256k1)
 	if err != nil {
-		fmt.Errorf("PayFee: NewAddressPubKeyHash: %v", err)
+		fmt.Printf("PayFee: NewAddressPubKeyHash: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("failed to deserialize voting wif"))
 		return
 	}
@@ -149,7 +150,7 @@ findAddress:
 	// TODO - wallet relayfee
 	relayFee, err := dcrutil.NewAmount(0.0001)
 	if err != nil {
-		fmt.Errorf("PayFee: failed to NewAmount: %v", err)
+		fmt.Printf("PayFee: failed to NewAmount: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("internal error"))
 		return
 	}
@@ -164,7 +165,7 @@ findAddress:
 	// Get vote tx to give to wallet
 	ticketHash, err := chainhash.NewHashFromStr(feeEntry.Hash)
 	if err != nil {
-		fmt.Errorf("PayFee: NewHashFromStr: %v", err)
+		fmt.Printf("PayFee: NewHashFromStr: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("internal error"))
 		return
 	}
@@ -172,14 +173,14 @@ findAddress:
 	now := time.Now()
 	resp, err := PayFee2(c.Request.Context(), ticketHash, votingWIF, feeTx)
 	if err != nil {
-		fmt.Errorf("PayFee: %v", err)
+		fmt.Printf("PayFee: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
 		return
 	}
 
 	err = db.InsertFeeAddressVotingKey(voteAddr.Address(), votingWIF.String(), voteBits)
 	if err != nil {
-		fmt.Errorf("PayFee: InsertVotingKey failed: %v", err)
+		fmt.Printf("PayFee: InsertVotingKey failed: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("internal error"))
 		return
 	}
@@ -195,19 +196,19 @@ func PayFee2(ctx context.Context, ticketHash *chainhash.Hash, votingWIF *dcrutil
 	var resp dcrdtypes.TxRawResult
 	err := nodeConnection.Call(ctx, "getrawtransaction", &resp, ticketHash.String())
 	if err != nil {
-		fmt.Errorf("PayFee: getrawtransaction: %v", err)
+		fmt.Printf("PayFee: getrawtransaction: %v", err)
 		return "", errors.New("RPC server error")
 	}
 
 	err = nodeConnection.Call(ctx, "addticket", nil, resp.Hex)
 	if err != nil {
-		fmt.Errorf("PayFee: addticket: %v", err)
+		fmt.Printf("PayFee: addticket: %v", err)
 		return "", errors.New("RPC server error")
 	}
 
 	err = nodeConnection.Call(ctx, "importprivkey", nil, votingWIF.String(), "imported", false, 0)
 	if err != nil {
-		fmt.Errorf("PayFee: importprivkey: %v", err)
+		fmt.Printf("PayFee: importprivkey: %v", err)
 		return "", errors.New("RPC server error")
 	}
 
@@ -215,14 +216,14 @@ func PayFee2(ctx context.Context, ticketHash *chainhash.Hash, votingWIF *dcrutil
 	feeTxBuf.Grow(feeTx.SerializeSize())
 	err = feeTx.Serialize(feeTxBuf)
 	if err != nil {
-		fmt.Errorf("PayFee: failed to serialize fee transaction: %v", err)
+		fmt.Printf("PayFee: failed to serialize fee transaction: %v", err)
 		return "", errors.New("serialization error")
 	}
 
 	var res string
 	err = nodeConnection.Call(ctx, "sendrawtransaction", &res, hex.NewEncoder(feeTxBuf), false)
 	if err != nil {
-		fmt.Errorf("PayFee: sendrawtransaction: %v", err)
+		fmt.Printf("PayFee: sendrawtransaction: %v", err)
 		return "", errors.New("transaction failed to send")
 	}
 	return res, nil
