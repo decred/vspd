@@ -2,21 +2,27 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	bolt "go.etcd.io/bbolt"
 )
 
 type Ticket struct {
-	Hash                string `json:"hash"`
-	CommitmentSignature string `json:"commitmentsignature"`
-	FeeAddress          string `json:"feeaddress"`
-	Address             string `json:"address"`
-	SDiff               int64  `json:"sdiff"`
-	BlockHeight         int64  `json:"blockheight"`
-	VoteBits            uint16 `json:"votebits"`
-	VotingKey           string `json:"votingkey"`
+	Hash                string  `json:"hash"`
+	CommitmentSignature string  `json:"commitmentsignature"`
+	CommitmentAddress   string  `json:"commitmentaddress"`
+	FeeAddress          string  `json:"feeaddress"`
+	SDiff               float64 `json:"sdiff"`
+	BlockHeight         int64   `json:"blockheight"`
+	VoteBits            uint16  `json:"votebits"`
+	VotingKey           string  `json:"votingkey"`
+	Expiration          int64   `json:"expiration"`
 }
+
+var (
+	ErrNoTicketFound = errors.New("no ticket found")
+)
 
 func (vdb *VspDatabase) InsertFeeAddress(ticket Ticket) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
@@ -47,7 +53,7 @@ func (vdb *VspDatabase) InsertFeeAddressVotingKey(address, votingKey string, vot
 				return fmt.Errorf("could not unmarshal ticket: %v", err)
 			}
 
-			if ticket.Address == address {
+			if ticket.CommitmentAddress == address {
 				ticket.VotingKey = votingKey
 				ticket.VoteBits = voteBits
 				ticketBytes, err := json.Marshal(ticket)
@@ -128,7 +134,7 @@ func (vdb *VspDatabase) GetFeeAddressByTicketHash(ticketHash string) (Ticket, er
 
 		ticketBytes := ticketBkt.Get([]byte(ticketHash))
 		if ticketBytes == nil {
-			return fmt.Errorf("no ticket found with hash %s", ticketHash)
+			return ErrNoTicketFound
 		}
 
 		err := json.Unmarshal(ticketBytes, &ticket)
