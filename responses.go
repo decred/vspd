@@ -20,6 +20,7 @@ type feeAddressResponse struct {
 	TicketHash          string `json:"ticketHash"`
 	CommitmentSignature string `json:"commitmentSignature"`
 	FeeAddress          string `json:"feeAddress"`
+	Expiration          int64  `json:"expiration"`
 }
 
 type PayFeeRequest struct {

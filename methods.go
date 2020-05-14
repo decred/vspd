@@ -24,6 +24,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	defaultFeeAddressExpiration = 24 * time.Hour
+)
+
 func sendJSONResponse(resp interface{}, code int, c *gin.Context) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
@@ -54,11 +58,6 @@ func fee(c *gin.Context) {
 }
 
 func feeAddress(c *gin.Context) {
-	// HTTP GET Params required
-	// ticketHash - hash of ticket
-	// signature - signmessage signature using the ticket commitment address
-	//           - message = "vsp v3 getfeeaddress ticketHash"
-
 	dec := json.NewDecoder(c.Request.Body)
 
 	var feeAddressRequest FeeAddressRequest
@@ -168,11 +167,13 @@ func feeAddress(c *gin.Context) {
 	// TODO: Insert into DB
 	_ = sDiff
 
+	now := time.Now()
 	sendJSONResponse(feeAddressResponse{
-		Timestamp:           time.Now().Unix(),
+		Timestamp:           now.Unix(),
 		TicketHash:          txHash.String(),
 		CommitmentSignature: signature,
 		FeeAddress:          newAddress,
+		Expiration:          now.Add(defaultFeeAddressExpiration).Unix(),
 	}, http.StatusOK, c)
 }
 
@@ -205,6 +206,8 @@ func payFee(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, errors.New("unable to deserialize transaction"))
 		return
 	}
+
+	// TODO: check expiration given during fee address request
 
 	validFeeAddrs, err := db.GetInactiveFeeAddresses()
 	if err != nil {
