@@ -24,7 +24,6 @@ golangci-lint run --disable-all --deadline=10m \
   --enable=gosimple \
   --enable=unconvert \
   --enable=ineffassign \
-  --enable=staticcheck \
   --enable=structcheck \
   --enable=goimports \
   --enable=misspell \

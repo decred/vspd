@@ -34,25 +34,11 @@ func New(dbFile string) (*VspDatabase, error) {
 		return nil, fmt.Errorf("unable to open db file: %v", err)
 	}
 
-	err = createBuckets(db)
-	if err != nil {
-		return nil, err
-	}
-
-	return &VspDatabase{db: db}, nil
-}
-
-// Close releases all database resources. It will block waiting for any open
-// transactions to finish before closing the database and returning.
-func (vdb *VspDatabase) Close() error {
-	return vdb.db.Close()
-}
-
-// createBuckets creates all storage buckets of the VSP if they don't already
-// exist.
-func createBuckets(db *bolt.DB) error {
-	return db.Update(func(tx *bolt.Tx) error {
+	// Create all storage buckets of the VSP if they don't already exist.
+	var newDB bool
+	err = db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(vspBktK) == nil {
+			newDB = true
 			// Create parent bucket.
 			vspBkt, err := tx.CreateBucket(vspBktK)
 			if err != nil {
@@ -76,4 +62,23 @@ func createBuckets(db *bolt.DB) error {
 
 		return nil
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if newDB {
+		log.Debugf("Created new database %s", dbFile)
+	} else {
+		log.Debugf("Using existing database %s", dbFile)
+	}
+
+	return &VspDatabase{db: db}, nil
+}
+
+// Close releases all database resources. It will block waiting for any open
+// transactions to finish before closing the database and returning.
+func (vdb *VspDatabase) Close() error {
+	log.Debug("Closing database")
+	return vdb.db.Close()
 }

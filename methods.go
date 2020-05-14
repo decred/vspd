@@ -49,7 +49,7 @@ func pubKey(c *gin.Context) {
 func fee(c *gin.Context) {
 	sendJSONResponse(feeResponse{
 		Timestamp: time.Now().Unix(),
-		Fee:       cfg.poolFees,
+		Fee:       cfg.VSPFee,
 	}, http.StatusOK, c)
 }
 
@@ -273,7 +273,7 @@ findAddress:
 		return
 	}
 
-	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(feeEntry.BlockHeight), cfg.poolFees, cfg.netParams)
+	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(feeEntry.BlockHeight), cfg.VSPFee, cfg.netParams.Params)
 	if feeAmount < minFee {
 		fmt.Printf("too cheap: %v %v", feeAmount, minFee)
 		c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("dont get cheap on me, dodgson (sent:%v required:%v)", feeAmount, minFee))
