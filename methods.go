@@ -169,11 +169,10 @@ func feeAddress(c *gin.Context) {
 
 	now := time.Now()
 	sendJSONResponse(feeAddressResponse{
-		Timestamp:           now.Unix(),
-		TicketHash:          txHash.String(),
-		CommitmentSignature: signature,
-		FeeAddress:          newAddress,
-		Expiration:          now.Add(defaultFeeAddressExpiration).Unix(),
+		Timestamp:  now.Unix(),
+		Request:    feeAddressRequest,
+		FeeAddress: newAddress,
+		Expiration: now.Add(defaultFeeAddressExpiration).Unix(),
 	}, http.StatusOK, c)
 }
 
@@ -307,7 +306,7 @@ findAddress:
 	sendJSONResponse(payFeeResponse{
 		Timestamp: now.Unix(),
 		TxHash:    resp,
-		VoteBits:  voteBits,
+		Request:   payFeeRequest,
 	}, http.StatusOK, c)
 }
 
