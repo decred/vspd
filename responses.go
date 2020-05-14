@@ -10,11 +10,22 @@ type feeResponse struct {
 	Fee       float64 `json:"fee"`
 }
 
+type FeeAddressRequest struct {
+	TicketHash string `json:"ticketHash"`
+	Signature  string `json:"signature"`
+}
+
 type feeAddressResponse struct {
 	Timestamp           int64  `json:"timestamp"`
 	TicketHash          string `json:"ticketHash"`
 	CommitmentSignature string `json:"commitmentSignature"`
 	FeeAddress          string `json:"feeAddress"`
+}
+
+type PayFeeRequest struct {
+	Hex       []byte `json:"feeTx"`
+	VotingKey string `json:"votingKey"`
+	VoteBits  uint16 `json:"voteBits"`
 }
 
 type payFeeResponse struct {

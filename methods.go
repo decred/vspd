@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/base64"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -60,8 +59,17 @@ func feeAddress(c *gin.Context) {
 	// signature - signmessage signature using the ticket commitment address
 	//           - message = "vsp v3 getfeeaddress ticketHash"
 
+	dec := json.NewDecoder(c.Request.Body)
+
+	var feeAddressRequest FeeAddressRequest
+	err := dec.Decode(&feeAddressRequest)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid json"))
+		return
+	}
+
 	// ticketHash
-	ticketHashStr := c.Param("ticketHash")
+	ticketHashStr := feeAddressRequest.TicketHash
 	if len(ticketHashStr) != chainhash.MaxHashStringSize {
 		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket hash"))
 		return
@@ -73,7 +81,7 @@ func feeAddress(c *gin.Context) {
 	}
 
 	// signature - sanity check signature is in base64 encoding
-	signature := c.Param("signature")
+	signature := feeAddressRequest.Signature
 	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
 		return
@@ -174,31 +182,25 @@ func payFee(c *gin.Context) {
 	// votingKey - WIF private key for ticket stakesubmission address
 	// voteBits - voting preferences in little endian
 
-	votingKey := c.Param("votingKey")
+	dec := json.NewDecoder(c.Request.Body)
+
+	var payFeeRequest PayFeeRequest
+	err := dec.Decode(&payFeeRequest)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid json"))
+		return
+	}
+
+	votingKey := payFeeRequest.VotingKey
 	votingWIF, err := dcrutil.DecodeWIF(votingKey, cfg.netParams.PrivateKeyID)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-
-	feeTxStr := c.Param("feeTx")
-	feeTxBytes, err := hex.DecodeString(feeTxStr)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, errors.New("invalid transaction"))
-		return
-	}
-
-	voteBitsStr := c.Param("voteBits")
-	voteBitsBytes, err := hex.DecodeString(voteBitsStr)
-	if err != nil || len(voteBitsBytes) != 2 {
-		c.AbortWithError(http.StatusInternalServerError, errors.New("invalid votebits"))
-		return
-	}
-
-	voteBits := binary.LittleEndian.Uint16(voteBitsBytes)
+	voteBits := payFeeRequest.VoteBits
 
 	feeTx := wire.NewMsgTx()
-	err = feeTx.FromBytes(feeTxBytes)
+	err = feeTx.FromBytes(payFeeRequest.Hex)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, errors.New("unable to deserialize transaction"))
 		return
