@@ -4,6 +4,8 @@
 
 - [gin-gonic](https://github.com/gin-gonic/gin) webserver
 - [bbolt](https://github.com/etcd-io/bbolt) database
+  - Tickets are stored in a single bucket, using ticket hash as the key and a
+    json encoded representation of the ticket as the value.
 
 ## MVP features
 
