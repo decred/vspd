@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	decred.org/dcrwallet v1.2.3-0.20200507155221-397dd551e317
+	github.com/decred/dcrd/blockchain/stake/v3 v3.0.0-20200311044114-143c1884e4c8
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.2
 	github.com/decred/dcrd/chaincfg/v3 v3.0.0-20200511175520-d08cb3f72b3b
 	github.com/decred/dcrd/dcrec v1.0.0

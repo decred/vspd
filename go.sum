@@ -19,6 +19,7 @@ github.com/decred/base58 v1.0.2/go.mod h1:pXP9cXCfM2sFLb2viz2FNIdeMWmZDBKG3ZBYbi
 github.com/decred/dcrd/addrmgr v1.1.0/go.mod h1:exghL+0+QeVvO4MXezWJ1C2tcpBn3ngfuP6S1R+adB8=
 github.com/decred/dcrd/blockchain/stake/v2 v2.0.2/go.mod h1:o2TT/l/YFdrt15waUdlZ3g90zfSwlA0WgQqHV9UGJF4=
 github.com/decred/dcrd/blockchain/stake/v3 v3.0.0-20200215031403-6b2ce76f0986/go.mod h1:aDL94kcVJfaaJP+acWUJrlK7g7xEOqTSiFe6bSN3yRQ=
+github.com/decred/dcrd/blockchain/stake/v3 v3.0.0-20200311044114-143c1884e4c8 h1:6oEo1yQYyfnT9qCERrLWMi9BlDzVBeyl011ssIAVQ3w=
 github.com/decred/dcrd/blockchain/stake/v3 v3.0.0-20200311044114-143c1884e4c8/go.mod h1:4zE60yDWlfCDtmqnyP5o1k1K0oyhNn3Tvqo6F93/+RU=
 github.com/decred/dcrd/blockchain/standalone v1.1.0 h1:yclvVGEY09Gf8A4GSAo+NCtL1dW2TYJ4OKp4+g0ICI0=
 github.com/decred/dcrd/blockchain/standalone v1.1.0/go.mod h1:6K8ZgzlWM1Kz2TwXbrtiAvfvIwfAmlzrtpA7CVPCUPE=
@@ -39,6 +40,7 @@ github.com/decred/dcrd/crypto/blake256 v1.0.0 h1:/8DMNYp9SGi5f0w7uCm6d6M4OU2rGFK
 github.com/decred/dcrd/crypto/blake256 v1.0.0/go.mod h1:sQl2p6Y26YV+ZOcSTP6thNdn47hh8kt6rqSlvmrXFAc=
 github.com/decred/dcrd/crypto/ripemd160 v1.0.0 h1:MciTnR4NfBqDFRFjFkrn8WPLP4Vo7t6ww6ghfn6wcXQ=
 github.com/decred/dcrd/crypto/ripemd160 v1.0.0/go.mod h1:F0H8cjIuWTRoixr/LM3REB8obcWkmYx0gbxpQWR8RPg=
+github.com/decred/dcrd/database/v2 v2.0.1 h1:ghLzkKpVpwvjrdRv3njrEfkvygQpYQX66sGVs8ha+E8=
 github.com/decred/dcrd/database/v2 v2.0.1/go.mod h1:ZOaWTv3IlNqCA+y7q3q5EozgmiDOmNwCSq3ntZn2CDo=
 github.com/decred/dcrd/dcrec v1.0.0 h1:W+z6Es+Rai3MXYVoPAxYr5U1DGis0Co33scJ6uH2J6o=
 github.com/decred/dcrd/dcrec v1.0.0/go.mod h1:HIaqbEJQ+PDzQcORxnqen5/V1FR3B4VpIfmePklt8Q8=

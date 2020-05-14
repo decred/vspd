@@ -10,7 +10,7 @@ type feeResponse struct {
 	Fee       float64 `json:"fee"`
 }
 
-type getFeeAddressResponse struct {
+type feeAddressResponse struct {
 	Timestamp           int64  `json:"timestamp"`
 	TicketHash          string `json:"ticketHash"`
 	CommitmentSignature string `json:"commitmentSignature"`
