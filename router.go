@@ -12,9 +12,9 @@ func newRouter() *gin.Engine {
 	api.Use()
 	{
 		router.GET("/fee", fee)
-		router.GET("/feeaddress", feeAddress)
+		router.POST("/feeaddress", feeAddress)
 		router.GET("/pubkey", pubKey)
-		router.GET("/payfee", payFee)
+		router.POST("/payfee", payFee)
 	}
 
 	return router
