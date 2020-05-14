@@ -25,4 +25,4 @@ jobs:
           GO111MODULE: "on"
         run: |
           export PATH=${PATH}:$(go env GOPATH)/bin
-          sh ./run_tests.sh
+          ./run_tests.sh
