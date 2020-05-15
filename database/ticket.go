@@ -54,7 +54,10 @@ func (vdb *VspDatabase) InsertFeeAddressVotingKey(address, votingKey string, vot
 				if err != nil {
 					return err
 				}
-				ticketBkt.Put(k, ticketBytes)
+				err = ticketBkt.Put(k, ticketBytes)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
