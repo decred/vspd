@@ -16,6 +16,8 @@ and implemented in [dcrstakepool #625](https://github.com/decred/dcrstakepool/pu
   - Pay fee
   - Set voting preferences
 - A minimal, static, web front-end providing pool stats and basic connection instructions.
+- Fees have an expiry period. If the fee is not paid within this period, the
+  client must request a new fee. This enables the VSP to alter its fee rate.
 
 ## Future features
 

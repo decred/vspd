@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -31,7 +30,7 @@ const (
 func sendJSONResponse(resp interface{}, code int, c *gin.Context) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
-		log.Printf("JSON marshal error: %v", err)
+		log.Errorf("JSON marshal error: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -206,7 +205,7 @@ func payFee(c *gin.Context) {
 
 	validFeeAddrs, err := db.GetInactiveFeeAddresses()
 	if err != nil {
-		log.Fatalf("database error: %v", err)
+		log.Errorf("database error: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 		return
 	}
