@@ -347,3 +347,61 @@ func PayFee2(ctx context.Context, ticketHash *chainhash.Hash, votingWIF *dcrutil
 	}
 	return res, nil
 }
+
+func ticketStatus(c *gin.Context) {
+	dec := json.NewDecoder(c.Request.Body)
+
+	var ticketStatusRequest TicketStatusRequest
+	err := dec.Decode(&ticketStatusRequest)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid json"))
+		return
+	}
+
+	// ticketHash
+	ticketHashStr := ticketStatusRequest.TicketHash
+	if len(ticketHashStr) != chainhash.MaxHashStringSize {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket hash"))
+		return
+	}
+	_, err = chainhash.NewHashFromStr(ticketHashStr)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket hash"))
+		return
+	}
+
+	// signature - sanity check signature is in base64 encoding
+	signature := ticketStatusRequest.Signature
+	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
+		return
+	}
+
+	// TODO: DB - get commitment address taken during /feeaddress request
+	// this will drop the need for getrawtransaction
+	var addr string
+
+	// verify message
+	ctx := c.Request.Context()
+	message := fmt.Sprintf("vsp v3 ticketstatus %d %s", ticketStatusRequest.Timestamp, ticketHashStr)
+	var valid bool
+	err = nodeConnection.Call(ctx, "verifymessage", &valid, addr, signature, message)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
+		return
+	}
+	if !valid {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
+		return
+	}
+
+	// TODO: DB - get current votebits, get ticket status
+	var voteBits uint16
+
+	sendJSONResponse(ticketStatusResponse{
+		Timestamp: time.Now().Unix(),
+		Request:   ticketStatusRequest,
+		Status:    "active", // TODO - active, pending, expired (missed, revoked?)
+		VoteBits:  voteBits,
+	}, http.StatusOK, c)
+}
