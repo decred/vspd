@@ -9,13 +9,14 @@ var (
 	testDb = "test.db"
 	ticket = Ticket{
 		Hash:                "Hash",
+		CommitmentAddress:   "Address",
 		CommitmentSignature: "CommitmentSignature",
 		FeeAddress:          "FeeAddress",
-		Address:             "Address",
 		SDiff:               1,
 		BlockHeight:         2,
 		VoteBits:            3,
 		VotingKey:           "VotingKey",
+		Expiration:          4,
 	}
 	db *VspDatabase
 )
@@ -80,13 +81,14 @@ func testGetFeeAddressByTicketHash(t *testing.T) {
 
 	// Check ticket fields match expected.
 	if retrieved.Hash != ticket.Hash ||
+		retrieved.CommitmentAddress != ticket.CommitmentAddress ||
 		retrieved.CommitmentSignature != ticket.CommitmentSignature ||
 		retrieved.FeeAddress != ticket.FeeAddress ||
-		retrieved.Address != ticket.Address ||
 		retrieved.SDiff != ticket.SDiff ||
 		retrieved.BlockHeight != ticket.BlockHeight ||
 		retrieved.VoteBits != ticket.VoteBits ||
-		retrieved.VotingKey != ticket.VotingKey {
+		retrieved.VotingKey != ticket.VotingKey ||
+		retrieved.Expiration != ticket.Expiration {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
 
@@ -145,7 +147,7 @@ func testInsertFeeAddressVotingKey(t *testing.T) {
 	// Update values.
 	newVotingKey := ticket.VotingKey + "2"
 	newVoteBits := ticket.VoteBits + 2
-	err = db.InsertFeeAddressVotingKey(ticket.Address, newVotingKey, newVoteBits)
+	err = db.InsertFeeAddressVotingKey(ticket.CommitmentAddress, newVotingKey, newVoteBits)
 	if err != nil {
 		t.Fatalf("error updating votingkey and votebits: %v", err)
 	}

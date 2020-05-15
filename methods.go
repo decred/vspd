@@ -21,6 +21,7 @@ import (
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/gin-gonic/gin"
+	"github.com/jholdstock/dcrvsp/database"
 )
 
 const (
@@ -85,8 +86,28 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	// TODO: check db for cache response - if expired, reset expiration, but still
-	// use same feeaddress
+	/*
+		// TODO - DB - deal with cached responses
+		ticket, err := db.GetFeeAddressByTicketHash(ticketHashStr)
+		if err != nil && !errors.Is(err, database.ErrNoTicketFound) {
+			c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
+			return
+		}
+		if err == nil {
+			// TODO - deal with expiration
+			if signature == ticket.CommitmentSignature {
+				sendJSONResponse(feeAddressResponse{
+					Timestamp:           time.Now().Unix(),
+					CommitmentSignature: ticket.CommitmentSignature,
+					FeeAddress:          ticket.FeeAddress,
+					Expiration: 	ticket.Expiration,
+					}, http.StatusOK, c)
+				return
+			}
+			c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
+			return
+		}
+	*/
 
 	ctx := c.Request.Context()
 
@@ -154,7 +175,6 @@ func feeAddress(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
 		return
 	}
-	sDiff := blockHeader.SBits
 
 	var newAddress string
 	err = nodeConnection.Call(ctx, "getnewaddress", &newAddress, "fees")
@@ -163,15 +183,33 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	// TODO: Insert into DB
-	_ = sDiff
-
 	now := time.Now()
+	expire := now.Add(defaultFeeAddressExpiration).Unix()
+
+	dbTicket := database.Ticket{
+		Hash:                txHash.String(),
+		CommitmentSignature: signature,
+		CommitmentAddress:   addr.Address(),
+		FeeAddress:          newAddress,
+		SDiff:               blockHeader.SBits,
+		BlockHeight:         int64(blockHeader.Height),
+		VoteBits:            dcrutil.BlockValid,
+		Expiration:          expire,
+		// VotingKey: set during payfee
+	}
+
+	// TODO: Insert into DB
+	err = db.InsertFeeAddress(dbTicket)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
+		return
+	}
+
 	sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),
 		Request:    feeAddressRequest,
 		FeeAddress: newAddress,
-		Expiration: now.Add(defaultFeeAddressExpiration).Unix(),
+		Expiration: expire,
 	}, c)
 }
 
@@ -246,7 +284,7 @@ findAddress:
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 		return
 	}
-	voteAddr, err := dcrutil.DecodeAddress(feeEntry.Address, cfg.netParams)
+	voteAddr, err := dcrutil.DecodeAddress(feeEntry.CommitmentAddress, cfg.netParams)
 	if err != nil {
 		fmt.Printf("PayFee: DecodeAddress: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
