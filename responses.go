@@ -37,6 +37,19 @@ type payFeeResponse struct {
 	Request   PayFeeRequest `json:"request"`
 }
 
+type SetVoteBitsRequest struct {
+	Timestamp  int64  `json:"timestamp"`
+	TicketHash string `json:"ticketHash"`
+	Signature  string `json:"commitmentSignature"`
+	VoteBits   uint16 `json:"voteBits"`
+}
+
+type setVoteBitsResponse struct {
+	Timestamp int64              `json:"timestamp"`
+	Request   SetVoteBitsRequest `json:"request"`
+	VoteBits  uint16             `json:"voteBits"`
+}
+
 type TicketStatusRequest struct {
 	Timestamp  int64  `json:"timestamp"`
 	TicketHash string `json:"ticketHash"`

@@ -347,6 +347,70 @@ func PayFee2(ctx context.Context, ticketHash *chainhash.Hash, votingWIF *dcrutil
 	return res, nil
 }
 
+func setVoteBits(c *gin.Context) {
+	dec := json.NewDecoder(c.Request.Body)
+
+	var setVoteBitsRequest SetVoteBitsRequest
+	err := dec.Decode(&setVoteBitsRequest)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid json"))
+		return
+	}
+
+	// ticketHash
+	ticketHashStr := setVoteBitsRequest.TicketHash
+	if len(ticketHashStr) != chainhash.MaxHashStringSize {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket hash"))
+		return
+	}
+	txHash, err := chainhash.NewHashFromStr(ticketHashStr)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket hash"))
+		return
+	}
+
+	// signature - sanity check signature is in base64 encoding
+	signature := setVoteBitsRequest.Signature
+	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
+		return
+	}
+
+	// votebits
+	voteBits := setVoteBitsRequest.VoteBits
+	if !isValidVoteBits(cfg.netParams.Params, currentVoteVersion(cfg.netParams.Params), voteBits) {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid votebits"))
+		return
+	}
+
+	// TODO: DB - get commitment address from db (stored from feeaddress)
+	var addr string
+
+	// verify message
+	ctx := c.Request.Context()
+	message := fmt.Sprintf("vsp v3 setvotebits %d %s %d", setVoteBitsRequest.Timestamp, txHash, voteBits)
+	var valid bool
+	err = nodeConnection.Call(ctx, "verifymessage", &valid, addr, signature, message)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
+		return
+	}
+	if !valid {
+		c.AbortWithError(http.StatusBadRequest, errors.New("message did not pass verification"))
+		return
+	}
+
+	// TODO: DB - error if given timestamp is older than any previous requests
+
+	// TODO: DB - store setvotebits receipt in log
+
+	sendJSONResponse(setVoteBitsResponse{
+		Timestamp: time.Now().Unix(),
+		Request:   setVoteBitsRequest,
+		VoteBits:  voteBits,
+	}, c)
+}
+
 func ticketStatus(c *gin.Context) {
 	dec := json.NewDecoder(c.Request.Body)
 
