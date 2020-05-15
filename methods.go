@@ -24,6 +24,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	defaultFeeAddressExpiration = 24 * time.Hour
+)
+
 func sendJSONResponse(resp interface{}, code int, c *gin.Context) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
@@ -54,11 +58,6 @@ func fee(c *gin.Context) {
 }
 
 func feeAddress(c *gin.Context) {
-	// HTTP GET Params required
-	// ticketHash - hash of ticket
-	// signature - signmessage signature using the ticket commitment address
-	//           - message = "vsp v3 getfeeaddress ticketHash"
-
 	dec := json.NewDecoder(c.Request.Body)
 
 	var feeAddressRequest FeeAddressRequest
@@ -87,8 +86,8 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	// check DB for cached response
-	// TODO: check db
+	// TODO: check db for cache response - if expired, reset expiration, but still
+	// use same feeaddress
 
 	ctx := c.Request.Context()
 
@@ -168,20 +167,16 @@ func feeAddress(c *gin.Context) {
 	// TODO: Insert into DB
 	_ = sDiff
 
+	now := time.Now()
 	sendJSONResponse(feeAddressResponse{
-		Timestamp:           time.Now().Unix(),
-		TicketHash:          txHash.String(),
-		CommitmentSignature: signature,
-		FeeAddress:          newAddress,
+		Timestamp:  now.Unix(),
+		Request:    feeAddressRequest,
+		FeeAddress: newAddress,
+		Expiration: now.Add(defaultFeeAddressExpiration).Unix(),
 	}, http.StatusOK, c)
 }
 
 func payFee(c *gin.Context) {
-	// HTTP GET Params required
-	// feeTx - serialized wire.MsgTx
-	// votingKey - WIF private key for ticket stakesubmission address
-	// voteBits - voting preferences in little endian
-
 	dec := json.NewDecoder(c.Request.Body)
 
 	var payFeeRequest PayFeeRequest
@@ -197,6 +192,7 @@ func payFee(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+
 	voteBits := payFeeRequest.VoteBits
 
 	feeTx := wire.NewMsgTx()
@@ -205,6 +201,8 @@ func payFee(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, errors.New("unable to deserialize transaction"))
 		return
 	}
+
+	// TODO: DB - check expiration given during fee address request
 
 	validFeeAddrs, err := db.GetInactiveFeeAddresses()
 	if err != nil {
@@ -262,10 +260,12 @@ findAddress:
 		c.AbortWithError(http.StatusInternalServerError, errors.New("failed to deserialize voting wif"))
 		return
 	}
-	// TODO: validate votingkey against ticket submission address
+
+	// TODO: DB - validate votingkey against ticket submission address
 
 	sDiff := dcrutil.Amount(feeEntry.SDiff)
-	// TODO - wallet relayfee
+
+	// TODO - RPC - get relayfee from wallet
 	relayFee, err := dcrutil.NewAmount(0.0001)
 	if err != nil {
 		fmt.Printf("PayFee: failed to NewAmount: %v", err)
@@ -306,6 +306,7 @@ findAddress:
 	sendJSONResponse(payFeeResponse{
 		Timestamp: now.Unix(),
 		TxHash:    resp,
+		Request:   payFeeRequest,
 	}, http.StatusOK, c)
 }
 
