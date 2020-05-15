@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -28,10 +27,10 @@ const (
 	defaultFeeAddressExpiration = 24 * time.Hour
 )
 
-func sendJSONResponse(resp interface{}, code int, c *gin.Context) {
+func sendJSONResponse(resp interface{}, c *gin.Context) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
-		log.Printf("JSON marshal error: %v", err)
+		log.Errorf("JSON marshal error: %v", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -39,7 +38,7 @@ func sendJSONResponse(resp interface{}, code int, c *gin.Context) {
 	sig := ed25519.Sign(cfg.signKey, dec)
 	c.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	c.Writer.Header().Set("VSP-Signature", hex.EncodeToString(sig))
-	c.Writer.WriteHeader(code)
+	c.Writer.WriteHeader(http.StatusOK)
 	c.Writer.Write(dec)
 }
 
@@ -47,14 +46,14 @@ func pubKey(c *gin.Context) {
 	sendJSONResponse(pubKeyResponse{
 		Timestamp: time.Now().Unix(),
 		PubKey:    cfg.pubKey,
-	}, http.StatusOK, c)
+	}, c)
 }
 
 func fee(c *gin.Context) {
 	sendJSONResponse(feeResponse{
 		Timestamp: time.Now().Unix(),
 		Fee:       cfg.VSPFee,
-	}, http.StatusOK, c)
+	}, c)
 }
 
 func feeAddress(c *gin.Context) {
@@ -173,7 +172,7 @@ func feeAddress(c *gin.Context) {
 		Request:    feeAddressRequest,
 		FeeAddress: newAddress,
 		Expiration: now.Add(defaultFeeAddressExpiration).Unix(),
-	}, http.StatusOK, c)
+	}, c)
 }
 
 func payFee(c *gin.Context) {
@@ -206,7 +205,7 @@ func payFee(c *gin.Context) {
 
 	validFeeAddrs, err := db.GetInactiveFeeAddresses()
 	if err != nil {
-		log.Fatalf("database error: %v", err)
+		log.Errorf("database error: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 		return
 	}
@@ -307,7 +306,7 @@ findAddress:
 		Timestamp: now.Unix(),
 		TxHash:    resp,
 		Request:   payFeeRequest,
-	}, http.StatusOK, c)
+	}, c)
 }
 
 // PayFee2 is copied from the stakepoold implementation in #625
@@ -403,5 +402,5 @@ func ticketStatus(c *gin.Context) {
 		Request:   ticketStatusRequest,
 		Status:    "active", // TODO - active, pending, expired (missed, revoked?)
 		VoteBits:  voteBits,
-	}, http.StatusOK, c)
+	}, c)
 }

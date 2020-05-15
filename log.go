@@ -38,8 +38,8 @@ var (
 	// application shutdown.
 	logRotator *rotator.Rotator
 
-	vspLog = backendLog.Logger("VSP")
-	dbLog  = backendLog.Logger("DB")
+	log   = backendLog.Logger("VSP")
+	dbLog = backendLog.Logger(" DB")
 )
 
 // Initialize package-global logger variables.
@@ -49,8 +49,8 @@ func init() {
 
 // subsystemLoggers maps each subsystem identifier to its associated logger.
 var subsystemLoggers = map[string]slog.Logger{
-	"VSP": vspLog,
-	"DB":  dbLog,
+	"VSP": log,
+	" DB": dbLog,
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and
