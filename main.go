@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -62,17 +63,36 @@ func run(ctx context.Context) error {
 		}
 	}()
 
+	// Create TCP listener for webserver.
+	var listenConfig net.ListenConfig
+	listener, err := listenConfig.Listen(ctx, "tcp", cfg.Listen)
+	if err != nil {
+		log.Errorf("Failed to create tcp listener: %v", err)
+		return err
+	}
+	log.Infof("Listening on %s", cfg.Listen)
+
+	// Create webserver.
 	// TODO: Make releaseMode properly configurable.
 	releaseMode := true
-	router := newRouter(releaseMode)
-	srv := &http.Server{
-		Addr:    cfg.Listen,
-		Handler: router,
+	srv := http.Server{
+		Handler:      newRouter(releaseMode),
+		ReadTimeout:  5 * time.Second,  // slow requests should not hold connections opened
+		WriteTimeout: 60 * time.Second, // hung responses must die
 	}
 
 	// Start webserver.
-	log.Infof("Listening on %s", cfg.Listen)
-	go srv.ListenAndServe()
+	go func() {
+		err = srv.Serve(listener)
+		// If the server dies for any reason other than ErrServerClosed (from
+		// graceful server.Shutdown), log the error and request dcrvsp be
+		// shutdown.
+		if err != nil && err != http.ErrServerClosed {
+			log.Errorf("Unexpected webserver error: %v", err)
+			requestShutdown()
+		}
+	}()
+
 	// Stop webserver.
 	defer func() {
 		log.Debug("Stopping webserver...")

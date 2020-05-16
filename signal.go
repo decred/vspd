@@ -35,6 +35,12 @@ func withShutdownCancel(ctx context.Context) context.Context {
 	return ctx
 }
 
+// requestShutdown signals for starting the clean shutdown of the process
+// through an internal component (such as through the JSON-RPC stop request).
+func requestShutdown() {
+	shutdownRequestChannel <- struct{}{}
+}
+
 // shutdownListener listens for shutdown requests and cancels all contexts
 // created from withShutdownCancel.  This function never returns and is intended
 // to be spawned in a new goroutine.
