@@ -154,6 +154,7 @@ func loadConfig() (*config, error) {
 	// directory is updated, other variables need to be updated to
 	// reflect the new changes.
 	if preCfg.HomeDir != "" {
+		cfg.HomeDir = cleanAndExpandPath(cfg.HomeDir)
 		cfg.HomeDir, _ = filepath.Abs(preCfg.HomeDir)
 
 		if preCfg.ConfigFile == defaultConfigFile {
