@@ -1,4 +1,4 @@
-package main
+package webapi
 
 type pubKeyResponse struct {
 	Timestamp int64  `json:"timestamp"`

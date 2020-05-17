@@ -1,4 +1,4 @@
-package main
+package webapi
 
 import (
 	"bytes"
@@ -36,7 +36,7 @@ func sendJSONResponse(resp interface{}, c *gin.Context) {
 		return
 	}
 
-	sig := ed25519.Sign(cfg.signKey, dec)
+	sig := ed25519.Sign(cfg.SignKey, dec)
 	c.Writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	c.Writer.Header().Set("VSP-Signature", hex.EncodeToString(sig))
 	c.Writer.WriteHeader(http.StatusOK)
@@ -46,7 +46,7 @@ func sendJSONResponse(resp interface{}, c *gin.Context) {
 func pubKey(c *gin.Context) {
 	sendJSONResponse(pubKeyResponse{
 		Timestamp: time.Now().Unix(),
-		PubKey:    cfg.pubKey,
+		PubKey:    cfg.PubKey,
 	}, c)
 }
 
@@ -121,7 +121,7 @@ func feeAddress(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, errors.New("transaction does not have minimum confirmations"))
 		return
 	}
-	if resp.Confirmations > int64(uint32(cfg.netParams.TicketMaturity)+cfg.netParams.TicketExpiry) {
+	if resp.Confirmations > int64(uint32(cfg.NetParams.TicketMaturity)+cfg.NetParams.TicketExpiry) {
 		c.AbortWithError(http.StatusBadRequest, errors.New("transaction too old"))
 		return
 	}
@@ -147,7 +147,7 @@ func feeAddress(c *gin.Context) {
 	}
 
 	// Get commitment address
-	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, cfg.netParams)
+	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, cfg.NetParams)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, errors.New("failed to get commitment address"))
 		return
@@ -155,7 +155,7 @@ func feeAddress(c *gin.Context) {
 
 	// verify message
 	message := fmt.Sprintf("vsp v3 getfeeaddress %s", msgTx.TxHash())
-	err = dcrutil.VerifyMessage(addr.Address(), signature, message, cfg.netParams.Params)
+	err = dcrutil.VerifyMessage(addr.Address(), signature, message, cfg.NetParams)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
 		return
@@ -219,7 +219,7 @@ func payFee(c *gin.Context) {
 	}
 
 	votingKey := payFeeRequest.VotingKey
-	votingWIF, err := dcrutil.DecodeWIF(votingKey, cfg.netParams.PrivateKeyID)
+	votingWIF, err := dcrutil.DecodeWIF(votingKey, cfg.NetParams.PrivateKeyID)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -250,7 +250,7 @@ func payFee(c *gin.Context) {
 findAddress:
 	for _, txOut := range feeTx.TxOut {
 		_, addresses, _, err := txscript.ExtractPkScriptAddrs(scriptVersion,
-			txOut.PkScript, cfg.netParams)
+			txOut.PkScript, cfg.NetParams)
 		if err != nil {
 			fmt.Printf("Extract: %v", err)
 			c.AbortWithError(http.StatusInternalServerError, err)
@@ -279,13 +279,13 @@ findAddress:
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 		return
 	}
-	voteAddr, err := dcrutil.DecodeAddress(feeEntry.CommitmentAddress, cfg.netParams)
+	voteAddr, err := dcrutil.DecodeAddress(feeEntry.CommitmentAddress, cfg.NetParams)
 	if err != nil {
 		fmt.Printf("PayFee: DecodeAddress: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 		return
 	}
-	_, err = dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), cfg.netParams,
+	_, err = dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), cfg.NetParams,
 		dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		fmt.Printf("PayFee: NewAddressPubKeyHash: %v", err)
@@ -305,7 +305,7 @@ findAddress:
 		return
 	}
 
-	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(feeEntry.BlockHeight), cfg.VSPFee, cfg.netParams.Params)
+	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(feeEntry.BlockHeight), cfg.VSPFee, cfg.NetParams)
 	if feeAmount < minFee {
 		fmt.Printf("too cheap: %v %v", feeAmount, minFee)
 		c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("dont get cheap on me, dodgson (sent:%v required:%v)", feeAmount, minFee))
@@ -411,7 +411,7 @@ func setVoteBits(c *gin.Context) {
 
 	// votebits
 	voteBits := setVoteBitsRequest.VoteBits
-	if !isValidVoteBits(cfg.netParams.Params, currentVoteVersion(cfg.netParams.Params), voteBits) {
+	if !isValidVoteBits(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteBits) {
 		c.AbortWithError(http.StatusBadRequest, errors.New("invalid votebits"))
 		return
 	}
@@ -424,7 +424,7 @@ func setVoteBits(c *gin.Context) {
 
 	// verify message
 	message := fmt.Sprintf("vsp v3 setvotebits %d %s %d", setVoteBitsRequest.Timestamp, txHash, voteBits)
-	err = dcrutil.VerifyMessage(addr, signature, message, cfg.netParams.Params)
+	err = dcrutil.VerifyMessage(addr, signature, message, cfg.NetParams)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("message did not pass verification"))
 		return
@@ -478,7 +478,7 @@ func ticketStatus(c *gin.Context) {
 
 	// verify message
 	message := fmt.Sprintf("vsp v3 ticketstatus %d %s", ticketStatusRequest.Timestamp, ticketHashStr)
-	err = dcrutil.VerifyMessage(addr, signature, message, cfg.netParams.Params)
+	err = dcrutil.VerifyMessage(addr, signature, message, cfg.NetParams)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
 		return

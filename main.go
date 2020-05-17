@@ -4,19 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
-	"net/http"
 	"os"
-	"time"
+	"sync"
 
 	"github.com/jholdstock/dcrvsp/database"
+	"github.com/jholdstock/dcrvsp/webapi"
 	"github.com/jrick/wsrpc/v2"
-)
-
-var (
-	cfg            *config
-	db             *database.VspDatabase
-	nodeConnection *wsrpc.Client
 )
 
 func main() {
@@ -36,18 +29,20 @@ func main() {
 // opening the database, starting the webserver, and stopping all started
 // services when the context is cancelled.
 func run(ctx context.Context) error {
-	var err error
 
 	// Load config file and parse CLI args.
-	cfg, err = loadConfig()
+	cfg, err := loadConfig()
 	if err != nil {
 		// Don't use logger here because it may not be initialised.
 		fmt.Fprintf(os.Stderr, "Config error: %v", err)
 		return err
 	}
 
+	// Waitgroup for services to signal when they have shutdown cleanly.
+	var shutdownWg sync.WaitGroup
+
 	// Open database.
-	db, err = database.New(cfg.dbPath)
+	db, err := database.New(cfg.dbPath)
 	if err != nil {
 		log.Errorf("Database error: %v", err)
 		return err
@@ -63,51 +58,27 @@ func run(ctx context.Context) error {
 		}
 	}()
 
-	// Create TCP listener for webserver.
-	var listenConfig net.ListenConfig
-	listener, err := listenConfig.Listen(ctx, "tcp", cfg.Listen)
-	if err != nil {
-		log.Errorf("Failed to create tcp listener: %v", err)
-		return err
-	}
-	log.Infof("Listening on %s", cfg.Listen)
+	// TODO: Create real RPC client.
+	var rpc *wsrpc.Client
 
-	// Create webserver.
-	// TODO: Make releaseMode properly configurable.
+	// Create and start webapi server.
+	apiCfg := webapi.Config{
+		SignKey:   cfg.signKey,
+		PubKey:    cfg.pubKey,
+		VSPFee:    cfg.VSPFee,
+		NetParams: cfg.netParams.Params,
+	}
+	// TODO: Make releaseMode properly configurable. Release mode enables very
+	// detailed webserver logging and live reloading of HTML templates.
 	releaseMode := true
-	srv := http.Server{
-		Handler:      newRouter(releaseMode),
-		ReadTimeout:  5 * time.Second,  // slow requests should not hold connections opened
-		WriteTimeout: 60 * time.Second, // hung responses must die
+	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, rpc, releaseMode, apiCfg)
+	if err != nil {
+		log.Errorf("Failed to initialise webapi: %v", err)
+		requestShutdown()
 	}
 
-	// Start webserver.
-	go func() {
-		err = srv.Serve(listener)
-		// If the server dies for any reason other than ErrServerClosed (from
-		// graceful server.Shutdown), log the error and request dcrvsp be
-		// shutdown.
-		if err != nil && err != http.ErrServerClosed {
-			log.Errorf("Unexpected webserver error: %v", err)
-			requestShutdown()
-		}
-	}()
-
-	// Stop webserver.
-	defer func() {
-		log.Debug("Stopping webserver...")
-		// Give the webserver 5 seconds to finish what it is doing.
-		timeoutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := srv.Shutdown(timeoutCtx); err != nil {
-			log.Errorf("Failed to stop webserver cleanly: %v", err)
-		}
-		log.Debug("Webserver stopped")
-	}()
-
-	// Wait until shutdown is signaled before returning and running deferred
-	// shutdown tasks.
-	<-ctx.Done()
+	// Wait for shutdown tasks to complete before returning.
+	shutdownWg.Wait()
 
 	return ctx.Err()
 }

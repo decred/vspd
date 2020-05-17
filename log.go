@@ -9,6 +9,7 @@ import (
 	"github.com/jrick/logrotate/rotator"
 
 	"github.com/jholdstock/dcrvsp/database"
+	"github.com/jholdstock/dcrvsp/webapi"
 )
 
 // logWriter implements an io.Writer that outputs to both standard output and
@@ -38,19 +39,22 @@ var (
 	// application shutdown.
 	logRotator *rotator.Rotator
 
-	log   = backendLog.Logger("VSP")
-	dbLog = backendLog.Logger(" DB")
+	log    = backendLog.Logger("VSP")
+	dbLog  = backendLog.Logger(" DB")
+	apiLog = backendLog.Logger("API")
 )
 
 // Initialize package-global logger variables.
 func init() {
 	database.UseLogger(dbLog)
+	webapi.UseLogger(apiLog)
 }
 
 // subsystemLoggers maps each subsystem identifier to its associated logger.
 var subsystemLoggers = map[string]slog.Logger{
 	"VSP": log,
 	" DB": dbLog,
+	"API": apiLog,
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and
