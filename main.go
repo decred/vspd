@@ -42,21 +42,13 @@ func run(ctx context.Context) error {
 	var shutdownWg sync.WaitGroup
 
 	// Open database.
-	db, err := database.New(cfg.dbPath)
+	db, err := database.Open(ctx, &shutdownWg, cfg.dbPath)
 	if err != nil {
 		log.Errorf("Database error: %v", err)
+		requestShutdown()
+		shutdownWg.Wait()
 		return err
 	}
-	// Close database.
-	defer func() {
-		log.Debug("Closing database...")
-		err := db.Close()
-		if err != nil {
-			log.Errorf("Error closing database: %v", err)
-		} else {
-			log.Debug("Database closed")
-		}
-	}()
 
 	// TODO: Create real RPC client.
 	var rpc *wsrpc.Client
@@ -75,6 +67,8 @@ func run(ctx context.Context) error {
 	if err != nil {
 		log.Errorf("Failed to initialise webapi: %v", err)
 		requestShutdown()
+		shutdownWg.Wait()
+		return err
 	}
 
 	// Wait for shutdown tasks to complete before returning.

@@ -1,8 +1,10 @@
 package database
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
+	"sync"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -25,20 +27,37 @@ var (
 	versionK = []byte("version")
 )
 
-// New initialises and returns a database. If no database file is found at the
-// provided path, a new one will be created. Returns an open database which
-// should always be closed after use.
-func New(dbFile string) (*VspDatabase, error) {
+// Open initialises and returns an open database. If no database file is found
+// at the provided path, a new one will be created.
+func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string) (*VspDatabase, error) {
+
 	db, err := bolt.Open(dbFile, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return nil, fmt.Errorf("unable to open db file: %v", err)
 	}
 
+	log.Debugf("Opened database file %s", dbFile)
+
+	// Add the graceful shutdown to the waitgroup.
+	shutdownWg.Add(1)
+	go func() {
+		// Wait until shutdown is signaled before shutting down.
+		<-ctx.Done()
+
+		log.Debug("Closing database...")
+		err := db.Close()
+		if err != nil {
+			log.Errorf("Error closing database: %v", err)
+		} else {
+			log.Debug("Database closed")
+		}
+		shutdownWg.Done()
+	}()
+
 	// Create all storage buckets of the VSP if they don't already exist.
-	var newDB bool
 	err = db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(vspBktK) == nil {
-			newDB = true
+			log.Debug("Initialising new database")
 			// Create parent bucket.
 			vspBkt, err := tx.CreateBucket(vspBktK)
 			if err != nil {
@@ -67,17 +86,5 @@ func New(dbFile string) (*VspDatabase, error) {
 		return nil, err
 	}
 
-	if newDB {
-		log.Debugf("Created new database %s", dbFile)
-	} else {
-		log.Debugf("Using existing database %s", dbFile)
-	}
-
 	return &VspDatabase{db: db}, nil
-}
-
-// Close releases all database resources. It will block waiting for any open
-// transactions to finish before closing the database and returning.
-func (vdb *VspDatabase) Close() error {
-	return vdb.db.Close()
 }

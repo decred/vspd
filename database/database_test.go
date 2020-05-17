@@ -1,7 +1,9 @@
 package database
 
 import (
+	"context"
 	"os"
+	"sync"
 	"testing"
 )
 
@@ -38,7 +40,9 @@ func TestDatabase(t *testing.T) {
 	for testName, test := range tests {
 		// Create a new blank database for each sub-test.
 		var err error
-		db, err = New(testDb)
+		var wg sync.WaitGroup
+		ctx, cancel := context.WithCancel(context.TODO())
+		db, err = Open(ctx, &wg, testDb)
 		if err != nil {
 			t.Fatalf("error creating test database: %v", err)
 		}
@@ -46,8 +50,10 @@ func TestDatabase(t *testing.T) {
 		// Run the sub-test.
 		t.Run(testName, test)
 
-		// Close and remove test database after each sub-test.
-		db.Close()
+		// Request database shutdown and wait for it to complete.
+		cancel()
+		wg.Wait()
+
 		os.Remove(testDb)
 	}
 }
