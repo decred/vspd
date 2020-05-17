@@ -79,6 +79,5 @@ func New(dbFile string) (*VspDatabase, error) {
 // Close releases all database resources. It will block waiting for any open
 // transactions to finish before closing the database and returning.
 func (vdb *VspDatabase) Close() error {
-	log.Debug("Closing database")
 	return vdb.db.Close()
 }

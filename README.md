@@ -20,8 +20,7 @@
   - Request fee address (`POST /feeaddress`)
   - Pay fee (`POST /payFee`)
   - Ticket status (`POST /ticketstatus`)
-  - Set voting preferences (TBD)
-
+  - Set voting preferences (`POST /setvotebits`)
 - A minimal, static, web front-end providing pool stats and basic connection instructions.
 - Fees have an expiry period. If the fee is not paid within this period, the
   client must request a new fee. This enables the VSP to alter its fee rate.
@@ -33,7 +32,6 @@
 - Status check API call as described in [dcrstakepool #628](https://github.com/decred/dcrstakepool/issues/628).
 - Accountability for both client and server changes to voting preferences.
 - Consistency checking across connected wallets.
-- Validate votebits provided in PayFee request are valid per current agendas.
 
 ## Issue Tracker
 
