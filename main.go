@@ -34,7 +34,7 @@ func run(ctx context.Context) error {
 	cfg, err := loadConfig()
 	if err != nil {
 		// Don't use logger here because it may not be initialised.
-		fmt.Fprintf(os.Stderr, "Config error: %v", err)
+		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
 		return err
 	}
 

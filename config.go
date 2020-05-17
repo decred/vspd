@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -24,6 +25,7 @@ var (
 	defaultHomeDir        = dcrutil.AppDataDir("dcrvsp", false)
 	defaultConfigFilename = "dcrvsp.conf"
 	defaultConfigFile     = filepath.Join(defaultHomeDir, defaultConfigFilename)
+	defaultWalletHost     = "127.0.0.1"
 )
 
 // config defines the configuration options for the VSP.
@@ -34,11 +36,16 @@ type config struct {
 	VSPFee     float64 `long:"vspfee" ini-name:"vspfee" description:"The fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
 	HomeDir    string  `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile string  `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
+	WalletHost string  `long:"wallethost" ini-name:"wallethost" description:"The ip:port to establish a JSON-RPC connection with dcrwallet."`
+	WalletUser string  `long:"walletuser" ini-name:"walletuser" description:"Username for dcrwallet RPC connections."`
+	WalletPass string  `long:"walletpass" ini-name:"walletpass" description:"Password for dcrwallet RPC connections."`
+	WalletCert string  `long:"walletcert" ini-name:"walletcert" description:"The dcrwallet RPC certificate file."`
 
 	signKey   ed25519.PrivateKey
 	pubKey    ed25519.PublicKey
 	dbPath    string
 	netParams *netParams
+	dcrwCert  []byte
 }
 
 // fileExists reports whether the named file or directory exists.
@@ -103,6 +110,16 @@ func cleanAndExpandPath(path string) string {
 	return filepath.Join(homeDir, path)
 }
 
+// normalizeAddress returns addr with the passed default port appended if
+// there is not already a port specified.
+func normalizeAddress(addr, defaultPort string) string {
+	_, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return net.JoinHostPort(addr, defaultPort)
+	}
+	return addr
+}
+
 // loadConfig initializes and parses the config using a config file and command
 // line options.
 //
@@ -125,6 +142,7 @@ func loadConfig() (*config, error) {
 		VSPFee:     defaultVSPFee,
 		HomeDir:    defaultHomeDir,
 		ConfigFile: defaultConfigFile,
+		WalletHost: defaultWalletHost,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -134,7 +152,6 @@ func loadConfig() (*config, error) {
 	preCfg := cfg
 
 	preParser := flags.NewParser(&preCfg, flags.HelpFlag)
-
 	_, err := preParser.Parse()
 	if err != nil {
 		if e, ok := err.(*flags.Error); ok && e.Type != flags.ErrHelp {
@@ -189,7 +206,7 @@ func loadConfig() (*config, error) {
 	}
 
 	// Load additional config from file.
-	parser := flags.NewParser(&preCfg, flags.Default)
+	parser := flags.NewParser(&cfg, flags.Default)
 
 	err = flags.NewIniParser(parser).ParseFile(preCfg.ConfigFile)
 	if err != nil {
@@ -214,6 +231,39 @@ func loadConfig() (*config, error) {
 		cfg.netParams = &mainNetParams
 	case "simnet":
 		cfg.netParams = &simNetParams
+	}
+
+	// Ensure the dcrwallet RPC username is set.
+	if cfg.WalletUser == "" {
+		str := "%s: the walletuser option is not set"
+		err := fmt.Errorf(str, funcName)
+		return nil, err
+	}
+
+	// Ensure the dcrwallet RPC password is set.
+	if cfg.WalletPass == "" {
+		str := "%s: the walletpass option is not set"
+		err := fmt.Errorf(str, funcName)
+		return nil, err
+	}
+
+	// Ensure the dcrwallet RPC cert path is set.
+	if cfg.WalletCert == "" {
+		str := "%s: the walletcert option is not set"
+		err := fmt.Errorf(str, funcName)
+		return nil, err
+	}
+
+	// Add default port for the active network if there is no port specified.
+	cfg.WalletHost = normalizeAddress(cfg.WalletHost, cfg.netParams.WalletRPCServerPort)
+
+	// Load dcrwallet RPC certificate.
+	cfg.WalletCert = cleanAndExpandPath(cfg.WalletCert)
+	cfg.dcrwCert, err = ioutil.ReadFile(cfg.WalletCert)
+	if err != nil {
+		str := "%s: failed to read dcrwallet cert file: %s"
+		err := fmt.Errorf(str, funcName, err)
+		return nil, err
 	}
 
 	// Create the data directory.
