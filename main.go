@@ -40,6 +40,7 @@ func run(ctx context.Context) error {
 
 	// Waitgroup for services to signal when they have shutdown cleanly.
 	var shutdownWg sync.WaitGroup
+	defer log.Info("Shutdown complete")
 
 	// Open database.
 	db, err := database.Open(ctx, &shutdownWg, cfg.dbPath)
