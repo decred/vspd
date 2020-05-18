@@ -7,7 +7,8 @@
 ## Design decisions
 
 - [gin-gonic](https://github.com/gin-gonic/gin) webserver for both front-end and API.
-  - API uses JSON encoded reqs/resps in HTTP body.
+  - Success responses use HTTP status 200 and a JSON encoded body.
+  - Error responses use either HTTP status 500 or 400, and a JSON encoded error in the body (eg. `{"error":"Description"}')
 - [bbolt](https://github.com/etcd-io/bbolt) k/v database.
   - Tickets are stored in a single bucket, using ticket hash as the key and a
     json encoded representation of the ticket as the value.
