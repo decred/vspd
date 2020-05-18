@@ -95,7 +95,7 @@ func (vdb *VspDatabase) GetInactiveFeeAddresses() ([]string, error) {
 	return addrs, err
 }
 
-func (vdb *VspDatabase) GetFeesByFeeAddress(feeAddr string) (*Ticket, error) {
+func (vdb *VspDatabase) GetTicketByFeeAddress(feeAddr string) (*Ticket, error) {
 	var tickets []Ticket
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
@@ -115,7 +115,6 @@ func (vdb *VspDatabase) GetFeesByFeeAddress(feeAddr string) (*Ticket, error) {
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
