@@ -53,12 +53,41 @@ func run(ctx context.Context) error {
 
 	// Create dcrwallet RPC client.
 	walletRPC := rpc.Setup(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass, cfg.WalletHost, cfg.dcrwCert)
-	_, err = walletRPC()
+	walletClient, err := walletRPC()
 	if err != nil {
 		log.Errorf("dcrwallet RPC error: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return err
+	}
+
+	// Get the masterpubkey from the fees account, if it exists, and make
+	// sure it matches the configuration.
+	var existingXPub string
+	err = walletClient.Call(ctx, "getmasterpubkey", &existingXPub, "fees")
+	if err != nil {
+		// TODO - ignore account not found
+		log.Errorf("dcrwallet RPC error: %v", err)
+		requestShutdown()
+		shutdownWg.Wait()
+		return err
+	}
+	if err == nil {
+		// account exists - make sure it matches the configuration.
+		if existingXPub != cfg.FeeXPub {
+			log.Errorf("fees account xpub differs: %s != %s", existingXPub, cfg.FeeXPub)
+			requestShutdown()
+			shutdownWg.Wait()
+			return err
+		}
+	} else {
+		// account does not exist - import xpub from configuration.
+		if err = walletClient.Call(ctx, "importxpub", nil, "fees"); err != nil {
+			log.Errorf("failed to import xpub: %v", err)
+			requestShutdown()
+			shutdownWg.Wait()
+			return err
+		}
 	}
 
 	// Create and start webapi server.
