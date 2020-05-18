@@ -31,7 +31,7 @@ func TestDatabase(t *testing.T) {
 	// All sub-tests to run.
 	tests := map[string]func(*testing.T){
 		"testInsertFeeAddress":          testInsertFeeAddress,
-		"testGetFeeAddressByTicketHash": testGetFeeAddressByTicketHash,
+		"testGetTicketByHash":           testGetTicketByHash,
 		"testGetFeesByFeeAddress":       testGetFeesByFeeAddress,
 		"testInsertFeeAddressVotingKey": testInsertFeeAddressVotingKey,
 		"testGetInactiveFeeAddresses":   testGetInactiveFeeAddresses,
@@ -72,7 +72,7 @@ func testInsertFeeAddress(t *testing.T) {
 	}
 }
 
-func testGetFeeAddressByTicketHash(t *testing.T) {
+func testGetTicketByHash(t *testing.T) {
 	// Insert a ticket into the database.
 	err := db.InsertFeeAddress(ticket)
 	if err != nil {
@@ -80,7 +80,7 @@ func testGetFeeAddressByTicketHash(t *testing.T) {
 	}
 
 	// Retrieve ticket from database.
-	retrieved, err := db.GetFeeAddressByTicketHash(ticket.Hash)
+	retrieved, err := db.GetTicketByHash(ticket.Hash)
 	if err != nil {
 		t.Fatalf("error retrieving ticket by ticket hash: %v", err)
 	}
@@ -99,7 +99,7 @@ func testGetFeeAddressByTicketHash(t *testing.T) {
 	}
 
 	// Error if non-existent ticket requested.
-	_, err = db.GetFeeAddressByTicketHash("Not a real ticket hash")
+	_, err = db.GetTicketByHash("Not a real ticket hash")
 	if err == nil {
 		t.Fatal("expected an error while retrieving a non-existent ticket")
 	}
@@ -159,7 +159,7 @@ func testInsertFeeAddressVotingKey(t *testing.T) {
 	}
 
 	// Retrieve ticket from database.
-	retrieved, err := db.GetFeeAddressByTicketHash(ticket.Hash)
+	retrieved, err := db.GetTicketByHash(ticket.Hash)
 	if err != nil {
 		t.Fatalf("error retrieving ticket by ticket hash: %v", err)
 	}
