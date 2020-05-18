@@ -416,8 +416,11 @@ func setVoteBits(c *gin.Context) {
 		return
 	}
 
-	// TODO: DB - get commitment address from db (stored from feeaddress)
-	var addr string
+	addr, err := db.GetCommitmentAddressByTicketHash(txHash.String())
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket"))
+		return
+	}
 
 	// verify message
 	message := fmt.Sprintf("vsp v3 setvotebits %d %s %d", setVoteBitsRequest.Timestamp, txHash, voteBits)
@@ -467,9 +470,11 @@ func ticketStatus(c *gin.Context) {
 		return
 	}
 
-	// TODO: DB - get commitment address taken during /feeaddress request
-	// this will drop the need for getrawtransaction
-	var addr string
+	addr, err := db.GetCommitmentAddressByTicketHash(ticketHashStr)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket"))
+		return
+	}
 
 	// verify message
 	message := fmt.Sprintf("vsp v3 ticketstatus %d %s", ticketStatusRequest.Timestamp, ticketHashStr)
