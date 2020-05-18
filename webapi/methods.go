@@ -118,7 +118,7 @@ func feeAddress(c *gin.Context) {
 	}
 
 	var resp dcrdtypes.TxRawResult
-	err = walletClient.Call(ctx, "getrawtransaction", &resp, txHash.String(), true)
+	err = walletClient.Call(ctx, "getrawtransaction", &resp, txHash.String(), 1)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("unknown transaction"))
 		return
@@ -199,7 +199,6 @@ func feeAddress(c *gin.Context) {
 		// VotingKey: set during payfee
 	}
 
-	// TODO: Insert into DB
 	err = db.InsertFeeAddress(dbTicket)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))

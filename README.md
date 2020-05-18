@@ -33,6 +33,10 @@
 - Accountability for both client and server changes to voting preferences.
 - Consistency checking across connected wallets.
 
+## Notes
+
+- dcrd must have transaction index enabled so `getrawtransaction` can be used.
+
 ## Issue Tracker
 
 The [integrated github issue tracker](https://github.com/jholdstock/dcrvsp/issues)
