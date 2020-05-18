@@ -71,6 +71,31 @@ func (vdb *VspDatabase) InsertFeeAddressVotingKey(address, votingKey string, vot
 	})
 }
 
+func (vdb *VspDatabase) GetCommitmentAddressByTicketHash(txHash string) (string, error) {
+	var addr string
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+		c := ticketBkt.Cursor()
+
+		for k, v := c.First(); k != nil; k, v = c.Next() {
+			var ticket Ticket
+			err := json.Unmarshal(v, &ticket)
+			if err != nil {
+				return fmt.Errorf("could not unmarshal ticket: %v", err)
+			}
+
+			if ticket.Hash == txHash {
+				addr = ticket.CommitmentAddress
+				return nil
+			}
+		}
+
+		return fmt.Errorf("transaction %s not found", txHash)
+	})
+
+	return addr, err
+}
+
 func (vdb *VspDatabase) GetInactiveFeeAddresses() ([]string, error) {
 	var addrs []string
 	err := vdb.db.View(func(tx *bolt.Tx) error {

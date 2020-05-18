@@ -122,7 +122,7 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 	if resp.Confirmations > int64(uint32(cfg.netParams.TicketMaturity)+cfg.netParams.TicketExpiry) {
-		c.AbortWithError(http.StatusBadRequest, errors.New("ticket has expired"))
+		c.AbortWithError(http.StatusBadRequest, errors.New("transaction too old"))
 		return
 	}
 
@@ -155,13 +155,8 @@ func feeAddress(c *gin.Context) {
 
 	// verify message
 	message := fmt.Sprintf("vsp v3 getfeeaddress %s", msgTx.TxHash())
-	var valid bool
-	err = nodeConnection.Call(ctx, "verifymessage", &valid, addr.Address(), signature, message)
+	err = dcrutil.VerifyMessage(addr.Address(), signature, message, cfg.netParams.Params)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
-		return
-	}
-	if !valid {
 		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
 		return
 	}
@@ -421,19 +416,16 @@ func setVoteBits(c *gin.Context) {
 		return
 	}
 
-	// TODO: DB - get commitment address from db (stored from feeaddress)
-	var addr string
-
-	// verify message
-	ctx := c.Request.Context()
-	message := fmt.Sprintf("vsp v3 setvotebits %d %s %d", setVoteBitsRequest.Timestamp, txHash, voteBits)
-	var valid bool
-	err = nodeConnection.Call(ctx, "verifymessage", &valid, addr, signature, message)
+	addr, err := db.GetCommitmentAddressByTicketHash(txHash.String())
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket"))
 		return
 	}
-	if !valid {
+
+	// verify message
+	message := fmt.Sprintf("vsp v3 setvotebits %d %s %d", setVoteBitsRequest.Timestamp, txHash, voteBits)
+	err = dcrutil.VerifyMessage(addr, signature, message, cfg.netParams.Params)
+	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("message did not pass verification"))
 		return
 	}
@@ -478,20 +470,16 @@ func ticketStatus(c *gin.Context) {
 		return
 	}
 
-	// TODO: DB - get commitment address taken during /feeaddress request
-	// this will drop the need for getrawtransaction
-	var addr string
-
-	// verify message
-	ctx := c.Request.Context()
-	message := fmt.Sprintf("vsp v3 ticketstatus %d %s", ticketStatusRequest.Timestamp, ticketHashStr)
-	var valid bool
-	err = nodeConnection.Call(ctx, "verifymessage", &valid, addr, signature, message)
+	addr, err := db.GetCommitmentAddressByTicketHash(ticketHashStr)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket"))
 		return
 	}
-	if !valid {
+
+	// verify message
+	message := fmt.Sprintf("vsp v3 ticketstatus %d %s", ticketStatusRequest.Timestamp, ticketHashStr)
+	err = dcrutil.VerifyMessage(addr, signature, message, cfg.netParams.Params)
+	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
 		return
 	}
