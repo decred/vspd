@@ -17,6 +17,7 @@ type Ticket struct {
 	BlockHeight         int64   `json:"blockheight"`
 	VoteBits            uint16  `json:"votebits"`
 	VotingKey           string  `json:"votingkey"`
+	VSPFee              float64 `json:"vspfee"`
 	Expiration          int64   `json:"expiration"`
 }
 
@@ -146,4 +147,71 @@ func (vdb *VspDatabase) GetTicketByHash(hash string) (Ticket, error) {
 	})
 
 	return ticket, err
+}
+
+func (vdb *VspDatabase) UpdateVoteBits(hash string, voteBits uint16) error {
+	return vdb.db.View(func(tx *bolt.Tx) error {
+		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+		key := []byte(hash)
+
+		ticketBytes := ticketBkt.Get(key)
+		if ticketBytes == nil {
+			return ErrNoTicketFound
+		}
+
+		var ticket Ticket
+		err := json.Unmarshal(ticketBytes, &ticket)
+		if err != nil {
+			return fmt.Errorf("could not unmarshal ticket: %v", err)
+		}
+		ticket.VoteBits = voteBits
+
+		ticketBytes, err = json.Marshal(ticket)
+		if err != nil {
+			return fmt.Errorf("could not marshal ticket: %v", err)
+		}
+
+		// Delete existing ticket
+		err = ticketBkt.Delete(key)
+		if err != nil {
+			return fmt.Errorf("failed to delete ticket: %v", err)
+		}
+
+		// Add updated ticket
+		return ticketBkt.Put(key, ticketBytes)
+	})
+}
+
+func (vdb *VspDatabase) UpdateExpireAndFee(hash string, expiration int64, vspFee float64) error {
+	return vdb.db.View(func(tx *bolt.Tx) error {
+		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+		key := []byte(hash)
+
+		ticketBytes := ticketBkt.Get(key)
+		if ticketBytes == nil {
+			return ErrNoTicketFound
+		}
+
+		var ticket Ticket
+		err := json.Unmarshal(ticketBytes, &ticket)
+		if err != nil {
+			return fmt.Errorf("could not unmarshal ticket: %v", err)
+		}
+		ticket.Expiration = expiration
+		ticket.VSPFee = vspFee
+
+		ticketBytes, err = json.Marshal(ticket)
+		if err != nil {
+			return fmt.Errorf("could not marshal ticket: %v", err)
+		}
+
+		// Delete existing ticket
+		err = ticketBkt.Delete(key)
+		if err != nil {
+			return fmt.Errorf("failed to delete ticket: %v", err)
+		}
+
+		// Add updated ticket
+		return ticketBkt.Put(key, ticketBytes)
+	})
 }
