@@ -88,7 +88,7 @@ func feeAddress(c *gin.Context) {
 
 	/*
 		// TODO - DB - deal with cached responses
-		ticket, err := db.GetFeeAddressByTicketHash(ticketHashStr)
+		ticket, err := db.GetTicketByHash(ticketHashStr)
 		if err != nil && !errors.Is(err, database.ErrNoTicketFound) {
 			c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 			return
@@ -416,7 +416,7 @@ func setVoteBits(c *gin.Context) {
 		return
 	}
 
-	addr, err := db.GetCommitmentAddressByTicketHash(txHash.String())
+	ticket, err := db.GetTicketByHash(txHash.String())
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket"))
 		return
@@ -424,7 +424,7 @@ func setVoteBits(c *gin.Context) {
 
 	// verify message
 	message := fmt.Sprintf("vsp v3 setvotebits %d %s %d", setVoteBitsRequest.Timestamp, txHash, voteBits)
-	err = dcrutil.VerifyMessage(addr, signature, message, cfg.NetParams)
+	err = dcrutil.VerifyMessage(ticket.CommitmentAddress, signature, message, cfg.NetParams)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("message did not pass verification"))
 		return
@@ -470,7 +470,7 @@ func ticketStatus(c *gin.Context) {
 		return
 	}
 
-	addr, err := db.GetCommitmentAddressByTicketHash(ticketHashStr)
+	ticket, err := db.GetTicketByHash(ticketHashStr)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("invalid ticket"))
 		return
@@ -478,7 +478,7 @@ func ticketStatus(c *gin.Context) {
 
 	// verify message
 	message := fmt.Sprintf("vsp v3 ticketstatus %d %s", ticketStatusRequest.Timestamp, ticketHashStr)
-	err = dcrutil.VerifyMessage(addr, signature, message, cfg.NetParams)
+	err = dcrutil.VerifyMessage(ticket.CommitmentAddress, signature, message, cfg.NetParams)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
 		return
