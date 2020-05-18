@@ -1,4 +1,4 @@
-package main
+package webapi
 
 import (
 	"github.com/decred/dcrd/chaincfg/v3"

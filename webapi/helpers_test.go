@@ -1,4 +1,4 @@
-package main
+package webapi
 
 import (
 	"testing"
