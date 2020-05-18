@@ -85,7 +85,7 @@ func router(releaseMode bool) *gin.Engine {
 	}
 
 	router := gin.New()
-	router.LoadHTMLGlob("templates/*")
+	router.LoadHTMLGlob("webapi/templates/*")
 
 	// Recovery middleware handles any go panics generated while processing web
 	// requests. Ensures a 500 response is sent to the client rather than
@@ -99,7 +99,7 @@ func router(releaseMode bool) *gin.Engine {
 	}
 
 	// Serve static web resources
-	router.Static("/public", "./public/")
+	router.Static("/public", "webapi/public/")
 
 	router.GET("/", homepage)
 
