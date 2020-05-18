@@ -111,8 +111,14 @@ func feeAddress(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
+	walletClient, err := walletRPC()
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, errors.New("wallet RPC error"))
+		return
+	}
+
 	var resp dcrdtypes.TxRawResult
-	err = nodeConnection.Call(ctx, "getrawtransaction", &resp, txHash.String(), true)
+	err = walletClient.Call(ctx, "getrawtransaction", &resp, txHash.String(), true)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, errors.New("unknown transaction"))
 		return
@@ -165,14 +171,14 @@ func feeAddress(c *gin.Context) {
 	// txrules.StakePoolTicketFee, and store them in the database
 	// for processing by payfee
 	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
-	err = nodeConnection.Call(ctx, "getblockheader", &blockHeader, resp.BlockHash, true)
+	err = walletClient.Call(ctx, "getblockheader", &blockHeader, resp.BlockHash, true)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, errors.New("RPC server error"))
 		return
 	}
 
 	var newAddress string
-	err = nodeConnection.Call(ctx, "getnewaddress", &newAddress, "fees")
+	err = walletClient.Call(ctx, "getnewaddress", &newAddress, "fees")
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, errors.New("unable to generate fee address"))
 		return
@@ -345,19 +351,26 @@ findAddress:
 // PayFee2 is copied from the stakepoold implementation in #625
 func PayFee2(ctx context.Context, ticketHash *chainhash.Hash, votingWIF *dcrutil.WIF, feeTx *wire.MsgTx) (string, error) {
 	var resp dcrdtypes.TxRawResult
-	err := nodeConnection.Call(ctx, "getrawtransaction", &resp, ticketHash.String(), true)
+
+	walletClient, err := walletRPC()
+	if err != nil {
+		fmt.Printf("PayFee: wallet RPC error: %v", err)
+		return "", errors.New("RPC server error")
+	}
+
+	err = walletClient.Call(ctx, "getrawtransaction", &resp, ticketHash.String(), true)
 	if err != nil {
 		fmt.Printf("PayFee: getrawtransaction: %v", err)
 		return "", errors.New("RPC server error")
 	}
 
-	err = nodeConnection.Call(ctx, "addticket", nil, resp.Hex)
+	err = walletClient.Call(ctx, "addticket", nil, resp.Hex)
 	if err != nil {
 		fmt.Printf("PayFee: addticket: %v", err)
 		return "", errors.New("RPC server error")
 	}
 
-	err = nodeConnection.Call(ctx, "importprivkey", nil, votingWIF.String(), "imported", false, 0)
+	err = walletClient.Call(ctx, "importprivkey", nil, votingWIF.String(), "imported", false, 0)
 	if err != nil {
 		fmt.Printf("PayFee: importprivkey: %v", err)
 		return "", errors.New("RPC server error")
@@ -372,7 +385,7 @@ func PayFee2(ctx context.Context, ticketHash *chainhash.Hash, votingWIF *dcrutil
 	}
 
 	var res string
-	err = nodeConnection.Call(ctx, "sendrawtransaction", &res, hex.NewEncoder(feeTxBuf), false)
+	err = walletClient.Call(ctx, "sendrawtransaction", &res, hex.NewEncoder(feeTxBuf), false)
 	if err != nil {
 		fmt.Printf("PayFee: sendrawtransaction: %v", err)
 		return "", errors.New("transaction failed to send")

@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	"github.com/jholdstock/dcrvsp/database"
+	"github.com/jholdstock/dcrvsp/rpc"
 	"github.com/jholdstock/dcrvsp/webapi"
-	"github.com/jrick/wsrpc/v2"
 )
 
 func main() {
@@ -50,8 +50,15 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	// TODO: Create real RPC client.
-	var rpc *wsrpc.Client
+	// Create dcrwallet RPC client.
+	walletRPC := rpc.Setup(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass, cfg.WalletHost, cfg.dcrwCert)
+	_, err = walletRPC()
+	if err != nil {
+		log.Errorf("dcrwallet RPC error: %v", err)
+		requestShutdown()
+		shutdownWg.Wait()
+		return err
+	}
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
@@ -63,7 +70,7 @@ func run(ctx context.Context) error {
 	// TODO: Make releaseMode properly configurable. Release mode enables very
 	// detailed webserver logging and live reloading of HTML templates.
 	releaseMode := true
-	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, rpc, releaseMode, apiCfg)
+	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, walletRPC, releaseMode, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialise webapi: %v", err)
 		requestShutdown()

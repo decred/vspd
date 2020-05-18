@@ -9,6 +9,7 @@ import (
 	"github.com/jrick/logrotate/rotator"
 
 	"github.com/jholdstock/dcrvsp/database"
+	"github.com/jholdstock/dcrvsp/rpc"
 	"github.com/jholdstock/dcrvsp/webapi"
 )
 
@@ -42,12 +43,14 @@ var (
 	log    = backendLog.Logger("VSP")
 	dbLog  = backendLog.Logger(" DB")
 	apiLog = backendLog.Logger("API")
+	rpcLog = backendLog.Logger("RPC")
 )
 
 // Initialize package-global logger variables.
 func init() {
 	database.UseLogger(dbLog)
 	webapi.UseLogger(apiLog)
+	rpc.UseLogger(rpcLog)
 }
 
 // subsystemLoggers maps each subsystem identifier to its associated logger.
@@ -55,6 +58,7 @@ var subsystemLoggers = map[string]slog.Logger{
 	"VSP": log,
 	" DB": dbLog,
 	"API": apiLog,
+	"RPC": rpcLog,
 }
 
 // initLogRotator initializes the logging rotater to write logs to logFile and
