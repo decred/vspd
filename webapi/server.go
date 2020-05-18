@@ -8,10 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jholdstock/dcrvsp/database"
+	"github.com/jholdstock/dcrvsp/rpc"
+
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/gin-gonic/gin"
-	"github.com/jholdstock/dcrvsp/database"
-	"github.com/jrick/wsrpc/v2"
 )
 
 type Config struct {
@@ -23,10 +24,10 @@ type Config struct {
 
 var cfg Config
 var db *database.VspDatabase
-var nodeConnection *wsrpc.Client
+var walletRPC rpc.Client
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, db *database.VspDatabase, nodeConnection *wsrpc.Client, releaseMode bool, config Config) error {
+	listen string, db *database.VspDatabase, wRPC rpc.Client, releaseMode bool, config Config) error {
 
 	// Create TCP listener.
 	var listenConfig net.ListenConfig
@@ -73,6 +74,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	}()
 
 	cfg = config
+	walletRPC = wRPC
 
 	return nil
 }
