@@ -22,6 +22,7 @@ func exampleTicket() Ticket {
 		BlockHeight:         2,
 		VoteBits:            3,
 		VotingKey:           "VotingKey",
+		VSPFee:              0.1,
 		Expiration:          4,
 	}
 }
@@ -38,6 +39,8 @@ func TestDatabase(t *testing.T) {
 		"testGetFeesByFeeAddress":       testGetFeesByFeeAddress,
 		"testInsertFeeAddressVotingKey": testInsertFeeAddressVotingKey,
 		"testGetInactiveFeeAddresses":   testGetInactiveFeeAddresses,
+		"testUpdateExpireAndFee":        testUpdateExpireAndFee,
+		"testUpdateVoteBits":            testUpdateVoteBits,
 	}
 
 	for testName, test := range tests {
@@ -106,6 +109,7 @@ func testGetTicketByHash(t *testing.T) {
 		retrieved.BlockHeight != ticket.BlockHeight ||
 		retrieved.VoteBits != ticket.VoteBits ||
 		retrieved.VotingKey != ticket.VotingKey ||
+		retrieved.VSPFee != ticket.VSPFee ||
 		retrieved.Expiration != ticket.Expiration {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
@@ -215,5 +219,60 @@ func testGetInactiveFeeAddresses(t *testing.T) {
 	}
 	if feeAddrs[0] != newFeeAddr {
 		t.Fatal("fee address didnt match expected")
+	}
+}
+
+func testUpdateExpireAndFee(t *testing.T) {
+	// Insert a ticket into the database.
+	ticket := exampleTicket()
+	err := db.InsertFeeAddress(ticket)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	// Update ticket with new values.
+	newExpiry := ticket.Expiration + 1
+	newFee := ticket.VSPFee + 1
+	err = db.UpdateExpireAndFee(ticket.Hash, newExpiry, newFee)
+	if err != nil {
+		t.Fatalf("error updating expiry and fee: %v", err)
+	}
+
+	// Get updated ticket
+	retrieved, err := db.GetTicketByHash(ticket.Hash)
+	if err != nil {
+		t.Fatalf("error retrieving updated ticket: %v", err)
+	}
+
+	// Check ticket fields match expected.
+	if retrieved.VSPFee != newFee || retrieved.Expiration != newExpiry {
+		t.Fatal("retrieved ticket value didnt match expected")
+	}
+}
+
+func testUpdateVoteBits(t *testing.T) {
+	// Insert a ticket into the database.
+	ticket := exampleTicket()
+	err := db.InsertFeeAddress(ticket)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	// Update ticket with new votebits.
+	newVoteBits := ticket.VoteBits + 1
+	err = db.UpdateVoteBits(ticket.Hash, newVoteBits)
+	if err != nil {
+		t.Fatalf("error updating votebits: %v", err)
+	}
+
+	// Get updated ticket
+	retrieved, err := db.GetTicketByHash(ticket.Hash)
+	if err != nil {
+		t.Fatalf("error retrieving updated ticket: %v", err)
+	}
+
+	// Check ticket fields match expected.
+	if retrieved.VoteBits != newVoteBits {
+		t.Fatal("retrieved ticket value didnt match expected")
 	}
 }

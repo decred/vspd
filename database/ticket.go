@@ -150,7 +150,7 @@ func (vdb *VspDatabase) GetTicketByHash(hash string) (Ticket, error) {
 }
 
 func (vdb *VspDatabase) UpdateVoteBits(hash string, voteBits uint16) error {
-	return vdb.db.View(func(tx *bolt.Tx) error {
+	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 		key := []byte(hash)
 
@@ -171,19 +171,12 @@ func (vdb *VspDatabase) UpdateVoteBits(hash string, voteBits uint16) error {
 			return fmt.Errorf("could not marshal ticket: %v", err)
 		}
 
-		// Delete existing ticket
-		err = ticketBkt.Delete(key)
-		if err != nil {
-			return fmt.Errorf("failed to delete ticket: %v", err)
-		}
-
-		// Add updated ticket
 		return ticketBkt.Put(key, ticketBytes)
 	})
 }
 
 func (vdb *VspDatabase) UpdateExpireAndFee(hash string, expiration int64, vspFee float64) error {
-	return vdb.db.View(func(tx *bolt.Tx) error {
+	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 		key := []byte(hash)
 
@@ -205,13 +198,6 @@ func (vdb *VspDatabase) UpdateExpireAndFee(hash string, expiration int64, vspFee
 			return fmt.Errorf("could not marshal ticket: %v", err)
 		}
 
-		// Delete existing ticket
-		err = ticketBkt.Delete(key)
-		if err != nil {
-			return fmt.Errorf("failed to delete ticket: %v", err)
-		}
-
-		// Add updated ticket
 		return ticketBkt.Put(key, ticketBytes)
 	})
 }

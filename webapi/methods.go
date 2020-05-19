@@ -89,7 +89,8 @@ func feeAddress(c *gin.Context) {
 	// Check for existing response
 	ticket, err := db.GetTicketByHash(ticketHashStr)
 	if err != nil && !errors.Is(err, database.ErrNoTicketFound) {
-		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
+		log.Errorf("GetTicketByHash error: %v", err)
+		sendErrorResponse("database error", http.StatusInternalServerError, c)
 		return
 	}
 	if err == nil {
@@ -104,7 +105,8 @@ func feeAddress(c *gin.Context) {
 
 				err = db.UpdateExpireAndFee(ticketHashStr, expire, VSPFee)
 				if err != nil {
-					c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
+					log.Errorf("UpdateExpireAndFee error: %v", err)
+					sendErrorResponse("database error", http.StatusInternalServerError, c)
 					return
 				}
 			}
@@ -118,7 +120,8 @@ func feeAddress(c *gin.Context) {
 
 			return
 		}
-		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
+		log.Warnf("Invalid signature from %s", c.ClientIP())
+		sendErrorResponse("invalid signature", http.StatusBadRequest, c)
 		return
 	}
 
@@ -473,7 +476,8 @@ func setVoteBits(c *gin.Context) {
 
 	err = db.UpdateVoteBits(txHash.String(), voteBits)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
+		log.Errorf("UpdateVoteBits error: %v", err)
+		sendErrorResponse("database error", http.StatusInternalServerError, c)
 		return
 	}
 
