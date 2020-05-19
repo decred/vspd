@@ -497,13 +497,10 @@ func ticketStatus(c *gin.Context) {
 		return
 	}
 
-	// TODO: DB - get current votebits, get ticket status
-	var voteBits uint16
-
 	sendJSONResponse(ticketStatusResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   ticketStatusRequest,
 		Status:    "active", // TODO - active, pending, expired (missed, revoked?)
-		VoteBits:  voteBits,
+		VoteBits:  ticket.VoteBits,
 	}, c)
 }
