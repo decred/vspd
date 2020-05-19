@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
 	"sync"
@@ -25,6 +27,8 @@ var (
 	ticketBktK = []byte("ticketbkt")
 	// version is the current database version.
 	versionK = []byte("version")
+	// privateKeyK is the private key.
+	privateKeyK = []byte("privatekey")
 )
 
 // Open initialises and returns an open database. If no database file is found
@@ -72,6 +76,16 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string) (*VspD
 				return err
 			}
 
+			// Generate ed25519 key
+			_, signKey, err := ed25519.GenerateKey(rand.Reader)
+			if err != nil {
+				return fmt.Errorf("failed to generate signing key: %v", err)
+			}
+			err = vspBkt.Put(privateKeyK, signKey.Seed())
+			if err != nil {
+				return err
+			}
+
 			// Create ticket bucket.
 			_, err = vspBkt.CreateBucket(ticketBktK)
 			if err != nil {
@@ -87,4 +101,32 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string) (*VspD
 	}
 
 	return &VspDatabase{db: db}, nil
+}
+
+func (vdb *VspDatabase) KeyPair() (ed25519.PrivateKey, ed25519.PublicKey, error) {
+	var seed []byte
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		vspBkt := tx.Bucket(vspBktK)
+
+		seed = vspBkt.Get(privateKeyK)
+		if seed == nil {
+			// should not happen
+			return fmt.Errorf("no private key found")
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	signKey := ed25519.NewKeyFromSeed(seed)
+
+	// Derive pubKey from signKey
+	pubKey, ok := signKey.Public().(ed25519.PublicKey)
+	if !ok {
+		return nil, nil, fmt.Errorf("failed to cast signing key: %T", pubKey)
+	}
+
+	return signKey, pubKey, err
 }
