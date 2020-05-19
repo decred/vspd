@@ -16,6 +16,10 @@
 
 ## MVP features
 
+- When dcrvsp is started for the first time, it generates a ed25519 keypair and
+  stores it in the database. This key is used to sign all API responses, and the
+  signature is included in the response header `VSP-Signature`. Error responses
+  are not signed.
 - VSP API as described in [dcrstakepool #574](https://github.com/decred/dcrstakepool/issues/574)
   - Request fee amount (`GET /fee`)
   - Request fee address (`POST /feeaddress`)
