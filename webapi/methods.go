@@ -85,28 +85,41 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	/*
-		// TODO - DB - deal with cached responses
-		ticket, err := db.GetTicketByHash(ticketHashStr)
-		if err != nil && !errors.Is(err, database.ErrNoTicketFound) {
-			c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
-			return
-		}
-		if err == nil {
-			// TODO - deal with expiration
-			if signature == ticket.CommitmentSignature {
-				sendJSONResponse(feeAddressResponse{
-					Timestamp:           time.Now().Unix(),
-					CommitmentSignature: ticket.CommitmentSignature,
-					FeeAddress:          ticket.FeeAddress,
-					Expiration: 	ticket.Expiration,
-					}, http.StatusOK, c)
-				return
+	// Check for existing response
+	ticket, err := db.GetTicketByHash(ticketHashStr)
+	if err != nil && !errors.Is(err, database.ErrNoTicketFound) {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
+		return
+	}
+	if err == nil {
+		// Ticket already exists
+		if signature == ticket.CommitmentSignature {
+			now := time.Now()
+			expire := ticket.Expiration
+			VSPFee := ticket.VSPFee
+			if now.After(time.Unix(ticket.Expiration, 0)) {
+				expire = now.Add(defaultFeeAddressExpiration).Unix()
+				VSPFee = cfg.VSPFee
+
+				err = db.UpdateExpireAndFee(ticketHashStr, expire, VSPFee)
+				if err != nil {
+					c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
+					return
+				}
 			}
-			c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
+			sendJSONResponse(feeAddressResponse{
+				Timestamp:  now.Unix(),
+				Request:    feeAddressRequest,
+				FeeAddress: ticket.FeeAddress,
+				Fee:        VSPFee,
+				Expiration: expire,
+			}, c)
+
 			return
 		}
-	*/
+		c.AbortWithError(http.StatusBadRequest, errors.New("invalid signature"))
+		return
+	}
 
 	walletClient, err := walletRPC()
 	if err != nil {
@@ -206,6 +219,7 @@ func feeAddress(c *gin.Context) {
 		SDiff:               blockHeader.SBits,
 		BlockHeight:         int64(blockHeader.Height),
 		VoteBits:            dcrutil.BlockValid,
+		VSPFee:              cfg.VSPFee,
 		Expiration:          expire,
 		// VotingKey: set during payfee
 	}
@@ -221,6 +235,7 @@ func feeAddress(c *gin.Context) {
 		Timestamp:  now.Unix(),
 		Request:    feeAddressRequest,
 		FeeAddress: newAddress,
+		Fee:        cfg.VSPFee,
 		Expiration: expire,
 	}, c)
 }
@@ -445,6 +460,12 @@ func setVoteBits(c *gin.Context) {
 	if err != nil {
 		log.Warnf("Failed to verify message from %s", c.ClientIP())
 		sendErrorResponse("message did not pass verification", http.StatusBadRequest, c)
+		return
+	}
+
+	err = db.UpdateVoteBits(txHash.String(), voteBits)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 		return
 	}
 
