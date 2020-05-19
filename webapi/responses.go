@@ -25,10 +25,11 @@ type feeAddressResponse struct {
 }
 
 type PayFeeRequest struct {
-	Timestamp int64  `json:"timestamp" binding:"required"`
-	Hex       string `json:"feetx" binding:"required"`
-	VotingKey string `json:"votingkey" binding:"required"`
-	VoteBits  uint16 `json:"votebits" binding:"required"`
+	Timestamp  int64  `json:"timestamp" binding:"required"`
+	TicketHash string `json:"tickethash" binding:"required"`
+	FeeTx      string `json:"feetx" binding:"required"`
+	VotingKey  string `json:"votingkey" binding:"required"`
+	VoteBits   uint16 `json:"votebits" binding:"required"`
 }
 
 type payFeeResponse struct {

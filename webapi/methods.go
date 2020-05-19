@@ -262,7 +262,7 @@ func payFee(c *gin.Context) {
 
 	voteBits := payFeeRequest.VoteBits
 
-	feeTxBytes, err := hex.DecodeString(payFeeRequest.Hex)
+	feeTxBytes, err := hex.DecodeString(payFeeRequest.FeeTx)
 	if err != nil {
 		log.Warnf("Failed to decode tx: %v", err)
 		sendErrorResponse("failed to decode transaction", http.StatusBadRequest, c)
@@ -279,14 +279,12 @@ func payFee(c *gin.Context) {
 
 	// TODO: DB - check expiration given during fee address request
 
-	validFeeAddrs, err := db.GetInactiveFeeAddresses()
+	ticket, err := db.GetTicketByHash(payFeeRequest.TicketHash)
 	if err != nil {
-		log.Errorf("GetInactiveFeeAddresses error: %v", err)
-		sendErrorResponse("database error", http.StatusInternalServerError, c)
+		log.Warnf("Invalid ticket from %s", c.ClientIP())
+		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
 		return
 	}
-
-	var feeAddr string
 	var feeAmount dcrutil.Amount
 	const scriptVersion = 0
 
@@ -300,28 +298,19 @@ findAddress:
 			return
 		}
 		for _, addr := range addresses {
-			addrStr := addr.Address()
-			for _, validFeeAddr := range validFeeAddrs {
-				if addrStr == validFeeAddr {
-					feeAddr = validFeeAddr
-					feeAmount = dcrutil.Amount(txOut.Value)
-					break findAddress
-				}
+			if addr.Address() == ticket.FeeAddress {
+				feeAmount = dcrutil.Amount(txOut.Value)
+				break findAddress
 			}
 		}
 	}
-	if feeAddr == "" {
-		log.Warnf("feeTx did not include any payments")
-		sendErrorResponse("feeTx did not include any payments", http.StatusBadRequest, c)
+
+	if feeAmount == 0 {
+		log.Warnf("FeeTx for ticket %s did not include any payments for address %s", ticket.Hash, ticket.FeeAddress)
+		sendErrorResponse("feetx did not include any payments for fee address", http.StatusBadRequest, c)
 		return
 	}
 
-	ticket, err := db.GetTicketByFeeAddress(feeAddr)
-	if err != nil {
-		log.Errorf("GetFeeByAddress: %v", err)
-		sendErrorResponse("database error", http.StatusInternalServerError, c)
-		return
-	}
 	voteAddr, err := dcrutil.DecodeAddress(ticket.CommitmentAddress, cfg.NetParams)
 	if err != nil {
 		log.Errorf("DecodeAddress: %v", err)

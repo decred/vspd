@@ -36,9 +36,7 @@ func TestDatabase(t *testing.T) {
 	tests := map[string]func(*testing.T){
 		"testInsertFeeAddress":          testInsertFeeAddress,
 		"testGetTicketByHash":           testGetTicketByHash,
-		"testGetFeesByFeeAddress":       testGetFeesByFeeAddress,
 		"testInsertFeeAddressVotingKey": testInsertFeeAddressVotingKey,
-		"testGetInactiveFeeAddresses":   testGetInactiveFeeAddresses,
 		"testUpdateExpireAndFee":        testUpdateExpireAndFee,
 		"testUpdateVoteBits":            testUpdateVoteBits,
 	}
@@ -121,45 +119,6 @@ func testGetTicketByHash(t *testing.T) {
 	}
 }
 
-func testGetFeesByFeeAddress(t *testing.T) {
-	// Insert a ticket into the database.
-	ticket := exampleTicket()
-	err := db.InsertFeeAddress(ticket)
-	if err != nil {
-		t.Fatalf("error storing ticket in database: %v", err)
-	}
-
-	// Retrieve ticket using its fee address.
-	retrieved, err := db.GetTicketByFeeAddress(ticket.FeeAddress)
-	if err != nil {
-		t.Fatalf("error retrieving ticket by fee address: %v", err)
-	}
-
-	// Check it is the correct ticket.
-	if retrieved.FeeAddress != ticket.FeeAddress {
-		t.Fatal("retrieved ticket FeeAddress didnt match expected")
-	}
-
-	// Error if non-existent ticket requested.
-	_, err = db.GetTicketByFeeAddress("Not a real fee address")
-	if err == nil {
-		t.Fatal("expected an error while retrieving a non-existent ticket")
-	}
-
-	// Insert another ticket into the database with the same fee address.
-	ticket.Hash = ticket.Hash + "2"
-	err = db.InsertFeeAddress(ticket)
-	if err != nil {
-		t.Fatalf("error storing ticket in database: %v", err)
-	}
-
-	// Error when more than one ticket matches
-	_, err = db.GetTicketByFeeAddress(ticket.FeeAddress)
-	if err == nil {
-		t.Fatal("expected an error when multiple tickets are found")
-	}
-}
-
 func testInsertFeeAddressVotingKey(t *testing.T) {
 	// Insert a ticket into the database.
 	ticket := exampleTicket()
@@ -186,39 +145,6 @@ func testInsertFeeAddressVotingKey(t *testing.T) {
 	if newVoteBits != retrieved.VoteBits ||
 		newVotingKey != retrieved.VotingKey {
 		t.Fatal("retrieved ticket value didnt match expected")
-	}
-}
-
-func testGetInactiveFeeAddresses(t *testing.T) {
-	// Insert a ticket into the database.
-	ticket := exampleTicket()
-	err := db.InsertFeeAddress(ticket)
-	if err != nil {
-		t.Fatalf("error storing ticket in database: %v", err)
-	}
-
-	// Insert a ticket with empty voting key into the database.
-	ticket.Hash = ticket.Hash + "2"
-	newFeeAddr := ticket.FeeAddress + "2"
-	ticket.FeeAddress = newFeeAddr
-	ticket.VotingKey = ""
-	err = db.InsertFeeAddress(ticket)
-	if err != nil {
-		t.Fatalf("error storing ticket in database: %v", err)
-	}
-
-	// Retrieve unused fee address from database.
-	feeAddrs, err := db.GetInactiveFeeAddresses()
-	if err != nil {
-		t.Fatalf("error retrieving inactive fee addresses: %v", err)
-	}
-
-	// Check we have one value, and its the expected one.
-	if len(feeAddrs) != 1 {
-		t.Fatal("expected 1 unused fee address")
-	}
-	if feeAddrs[0] != newFeeAddr {
-		t.Fatal("fee address didnt match expected")
 	}
 }
 

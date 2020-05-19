@@ -73,61 +73,6 @@ func (vdb *VspDatabase) InsertFeeAddressVotingKey(address, votingKey string, vot
 	})
 }
 
-func (vdb *VspDatabase) GetInactiveFeeAddresses() ([]string, error) {
-	var addrs []string
-	err := vdb.db.View(func(tx *bolt.Tx) error {
-		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
-		c := ticketBkt.Cursor()
-
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			var ticket Ticket
-			err := json.Unmarshal(v, &ticket)
-			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %v", err)
-			}
-
-			if ticket.VotingKey == "" {
-				addrs = append(addrs, ticket.FeeAddress)
-			}
-		}
-
-		return nil
-	})
-
-	return addrs, err
-}
-
-func (vdb *VspDatabase) GetTicketByFeeAddress(feeAddr string) (*Ticket, error) {
-	var tickets []Ticket
-	err := vdb.db.View(func(tx *bolt.Tx) error {
-		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
-		c := ticketBkt.Cursor()
-
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			var ticket Ticket
-			err := json.Unmarshal(v, &ticket)
-			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %v", err)
-			}
-
-			if ticket.FeeAddress == feeAddr {
-				tickets = append(tickets, ticket)
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if len(tickets) != 1 {
-		return nil, fmt.Errorf("expected 1 ticket with fee address %s, found %d", feeAddr, len(tickets))
-	}
-
-	return &tickets[0], nil
-}
-
 func (vdb *VspDatabase) GetTicketByHash(hash string) (Ticket, error) {
 	var ticket Ticket
 	err := vdb.db.View(func(tx *bolt.Tx) error {
