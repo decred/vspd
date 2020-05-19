@@ -30,5 +30,6 @@ golangci-lint run --disable-all --deadline=10m \
   --enable=unparam \
   --enable=deadcode \
   --enable=unused \
+  --enable=errcheck \
   --enable=asciicheck
-#  --enable=errcheck \
+  

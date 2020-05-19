@@ -9,7 +9,11 @@ import (
 
 var (
 	testDb = "test.db"
-	ticket = Ticket{
+	db     *VspDatabase
+)
+
+func exampleTicket() Ticket {
+	return Ticket{
 		Hash:                "Hash",
 		CommitmentAddress:   "Address",
 		CommitmentSignature: "CommitmentSignature",
@@ -20,8 +24,7 @@ var (
 		VotingKey:           "VotingKey",
 		Expiration:          4,
 	}
-	db *VspDatabase
-)
+}
 
 // TestDatabase runs all database tests.
 func TestDatabase(t *testing.T) {
@@ -60,6 +63,7 @@ func TestDatabase(t *testing.T) {
 
 func testInsertFeeAddress(t *testing.T) {
 	// Insert a ticket into the database.
+	ticket := exampleTicket()
 	err := db.InsertFeeAddress(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
@@ -70,9 +74,17 @@ func testInsertFeeAddress(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error inserting ticket with duplicate hash")
 	}
+
+	// Inserting a ticket with empty hash should fail.
+	ticket.Hash = ""
+	err = db.InsertFeeAddress(ticket)
+	if err == nil {
+		t.Fatal("expected an error inserting ticket with no hash")
+	}
 }
 
 func testGetTicketByHash(t *testing.T) {
+	ticket := exampleTicket()
 	// Insert a ticket into the database.
 	err := db.InsertFeeAddress(ticket)
 	if err != nil {
@@ -107,6 +119,7 @@ func testGetTicketByHash(t *testing.T) {
 
 func testGetFeesByFeeAddress(t *testing.T) {
 	// Insert a ticket into the database.
+	ticket := exampleTicket()
 	err := db.InsertFeeAddress(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
@@ -145,6 +158,7 @@ func testGetFeesByFeeAddress(t *testing.T) {
 
 func testInsertFeeAddressVotingKey(t *testing.T) {
 	// Insert a ticket into the database.
+	ticket := exampleTicket()
 	err := db.InsertFeeAddress(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
@@ -173,6 +187,7 @@ func testInsertFeeAddressVotingKey(t *testing.T) {
 
 func testGetInactiveFeeAddresses(t *testing.T) {
 	// Insert a ticket into the database.
+	ticket := exampleTicket()
 	err := db.InsertFeeAddress(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)

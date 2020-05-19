@@ -27,7 +27,7 @@ var db *database.VspDatabase
 var walletRPC rpc.Client
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, db *database.VspDatabase, wRPC rpc.Client, releaseMode bool, config Config) error {
+	listen string, vdb *database.VspDatabase, wRPC rpc.Client, releaseMode bool, config Config) error {
 
 	// Create TCP listener.
 	var listenConfig net.ListenConfig
@@ -74,6 +74,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	}()
 
 	cfg = config
+	db = vdb
 	walletRPC = wRPC
 
 	return nil

@@ -25,10 +25,11 @@ var (
 )
 
 func (vdb *VspDatabase) InsertFeeAddress(ticket Ticket) error {
+	hashBytes := []byte(ticket.Hash)
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
-		if ticketBkt.Get([]byte(ticket.Hash)) != nil {
+		if ticketBkt.Get(hashBytes) != nil {
 			return fmt.Errorf("ticket already exists with hash %s", ticket.Hash)
 		}
 
@@ -37,7 +38,7 @@ func (vdb *VspDatabase) InsertFeeAddress(ticket Ticket) error {
 			return err
 		}
 
-		return ticketBkt.Put([]byte(ticket.Hash), ticketBytes)
+		return ticketBkt.Put(hashBytes, ticketBytes)
 	})
 }
 
