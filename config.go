@@ -196,6 +196,7 @@ func loadConfig() (*config, error) {
 	// Create a default config file when one does not exist and the user did
 	// not specify an override.
 	if preCfg.ConfigFile == defaultConfigFile && !fileExists(preCfg.ConfigFile) {
+		fmt.Printf("Writing a config file with default values to %s\n", defaultConfigFile)
 		preIni := flags.NewIniParser(preParser)
 		err = preIni.WriteFile(preCfg.ConfigFile,
 			flags.IniIncludeComments|flags.IniIncludeDefaults)
