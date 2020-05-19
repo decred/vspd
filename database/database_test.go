@@ -113,7 +113,7 @@ func testGetFeesByFeeAddress(t *testing.T) {
 	}
 
 	// Retrieve ticket using its fee address.
-	retrieved, err := db.GetFeesByFeeAddress(ticket.FeeAddress)
+	retrieved, err := db.GetTicketByFeeAddress(ticket.FeeAddress)
 	if err != nil {
 		t.Fatalf("error retrieving ticket by fee address: %v", err)
 	}
@@ -124,7 +124,7 @@ func testGetFeesByFeeAddress(t *testing.T) {
 	}
 
 	// Error if non-existent ticket requested.
-	_, err = db.GetFeesByFeeAddress("Not a real fee address")
+	_, err = db.GetTicketByFeeAddress("Not a real fee address")
 	if err == nil {
 		t.Fatal("expected an error while retrieving a non-existent ticket")
 	}
@@ -137,7 +137,7 @@ func testGetFeesByFeeAddress(t *testing.T) {
 	}
 
 	// Error when more than one ticket matches
-	_, err = db.GetFeesByFeeAddress(ticket.FeeAddress)
+	_, err = db.GetTicketByFeeAddress(ticket.FeeAddress)
 	if err == nil {
 		t.Fatal("expected an error when multiple tickets are found")
 	}

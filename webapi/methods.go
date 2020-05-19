@@ -279,13 +279,13 @@ findAddress:
 		return
 	}
 
-	feeEntry, err := db.GetFeesByFeeAddress(feeAddr)
+	ticket, err := db.GetTicketByFeeAddress(feeAddr)
 	if err != nil {
 		fmt.Printf("GetFeeByAddress: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
 		return
 	}
-	voteAddr, err := dcrutil.DecodeAddress(feeEntry.CommitmentAddress, cfg.NetParams)
+	voteAddr, err := dcrutil.DecodeAddress(ticket.CommitmentAddress, cfg.NetParams)
 	if err != nil {
 		fmt.Printf("PayFee: DecodeAddress: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("database error"))
@@ -301,7 +301,7 @@ findAddress:
 
 	// TODO: DB - validate votingkey against ticket submission address
 
-	sDiff := dcrutil.Amount(feeEntry.SDiff)
+	sDiff := dcrutil.Amount(ticket.SDiff)
 
 	// TODO - RPC - get relayfee from wallet
 	relayFee, err := dcrutil.NewAmount(0.0001)
@@ -311,7 +311,7 @@ findAddress:
 		return
 	}
 
-	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(feeEntry.BlockHeight), cfg.VSPFee, cfg.NetParams)
+	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(ticket.BlockHeight), cfg.VSPFee, cfg.NetParams)
 	if feeAmount < minFee {
 		fmt.Printf("too cheap: %v %v", feeAmount, minFee)
 		c.AbortWithError(http.StatusInternalServerError, fmt.Errorf("dont get cheap on me, dodgson (sent:%v required:%v)", feeAmount, minFee))
@@ -319,7 +319,7 @@ findAddress:
 	}
 
 	// Get vote tx to give to wallet
-	ticketHash, err := chainhash.NewHashFromStr(feeEntry.Hash)
+	ticketHash, err := chainhash.NewHashFromStr(ticket.Hash)
 	if err != nil {
 		fmt.Printf("PayFee: NewHashFromStr: %v", err)
 		c.AbortWithError(http.StatusInternalServerError, errors.New("internal error"))
