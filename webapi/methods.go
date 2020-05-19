@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -63,7 +64,7 @@ func feeAddress(c *gin.Context) {
 
 	var feeAddressRequest FeeAddressRequest
 	if err := c.ShouldBindJSON(&feeAddressRequest); err != nil {
-		log.Warnf("Bad request from %s", c.ClientIP())
+		log.Warnf("Bad feeaddress request from %s: %v", c.ClientIP(), err)
 		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
@@ -133,7 +134,7 @@ func feeAddress(c *gin.Context) {
 	var resp dcrdtypes.TxRawResult
 	err = walletClient.Call(ctx, "getrawtransaction", &resp, txHash.String(), 1)
 	if err != nil {
-		log.Warnf("Could not retrieve tx for %s", c.ClientIP())
+		log.Warnf("Could not retrieve tx %s for %s: %v", txHash, c.ClientIP(), err)
 		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
 		return
 	}
@@ -243,7 +244,7 @@ func feeAddress(c *gin.Context) {
 func payFee(c *gin.Context) {
 	var payFeeRequest PayFeeRequest
 	if err := c.ShouldBindJSON(&payFeeRequest); err != nil {
-		log.Warnf("Bad request from %s", c.ClientIP())
+		log.Warnf("Bad payfee request from %s: %v", c.ClientIP(), err)
 		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
@@ -251,18 +252,25 @@ func payFee(c *gin.Context) {
 	votingKey := payFeeRequest.VotingKey
 	votingWIF, err := dcrutil.DecodeWIF(votingKey, cfg.NetParams.PrivateKeyID)
 	if err != nil {
-		log.Errorf("Failed to decode WIF: %v", err)
-		sendErrorResponse("error decoding WIF", http.StatusInternalServerError, c)
+		log.Warnf("Failed to decode WIF: %v", err)
+		sendErrorResponse("error decoding WIF", http.StatusBadRequest, c)
 		return
 	}
 
 	voteBits := payFeeRequest.VoteBits
 
-	feeTx := wire.NewMsgTx()
-	err = feeTx.FromBytes(payFeeRequest.Hex)
+	feeTxBytes, err := hex.DecodeString(payFeeRequest.Hex)
 	if err != nil {
-		log.Errorf("Failed to deserialize tx: %v", err)
-		sendErrorResponse("unable to deserialize transaction", http.StatusInternalServerError, c)
+		log.Warnf("Failed to decode tx: %v", err)
+		sendErrorResponse("failed to decode transaction", http.StatusBadRequest, c)
+		return
+	}
+
+	feeTx := wire.NewMsgTx()
+	err = feeTx.FromBytes(feeTxBytes)
+	if err != nil {
+		log.Warnf("Failed to deserialize tx: %v", err)
+		sendErrorResponse("unable to deserialize transaction", http.StatusBadRequest, c)
 		return
 	}
 
@@ -300,8 +308,8 @@ findAddress:
 		}
 	}
 	if feeAddr == "" {
-		log.Errorf("feeTx did not include any payments")
-		sendErrorResponse("feeTx did not include any payments", http.StatusInternalServerError, c)
+		log.Warnf("feeTx did not include any payments")
+		sendErrorResponse("feeTx did not include any payments", http.StatusBadRequest, c)
 		return
 	}
 
@@ -362,16 +370,16 @@ findAddress:
 	ctx := c.Request.Context()
 	var resp dcrdtypes.TxRawResult
 
-	err = walletClient.Call(ctx, "getrawtransaction", &resp, ticketHash.String(), true)
+	err = walletClient.Call(ctx, "getrawtransaction", &resp, ticketHash.String(), 1)
 	if err != nil {
 		log.Errorf("GetRawTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 
-	err = walletClient.Call(ctx, "addticket", nil, resp.Hex)
+	err = walletClient.Call(ctx, "addtransaction", nil, resp.BlockHash, resp.Hex)
 	if err != nil {
-		log.Errorf("AddTicket failed: %v", err)
+		log.Errorf("AddTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
@@ -393,7 +401,7 @@ findAddress:
 	}
 
 	var res string
-	err = walletClient.Call(ctx, "sendrawtransaction", &res, hex.NewEncoder(feeTxBuf), false)
+	err = walletClient.Call(ctx, "sendrawtransaction", &res, hex.EncodeToString(feeTxBuf.Bytes()), false)
 	if err != nil {
 		log.Errorf("SendRawTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
@@ -417,7 +425,7 @@ findAddress:
 func setVoteBits(c *gin.Context) {
 	var setVoteBitsRequest SetVoteBitsRequest
 	if err := c.ShouldBindJSON(&setVoteBitsRequest); err != nil {
-		log.Warnf("Bad request from %s", c.ClientIP())
+		log.Warnf("Bad setvotebits request from %s: %v", c.ClientIP(), err)
 		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
@@ -483,7 +491,7 @@ func setVoteBits(c *gin.Context) {
 func ticketStatus(c *gin.Context) {
 	var ticketStatusRequest TicketStatusRequest
 	if err := c.ShouldBindJSON(&ticketStatusRequest); err != nil {
-		log.Warnf("Bad request from %s", c.ClientIP())
+		log.Warnf("Bad ticketstatus request from %s: %v", c.ClientIP(), err)
 		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
