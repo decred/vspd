@@ -205,7 +205,7 @@ func feeAddress(c *gin.Context) {
 	}
 
 	var newAddress string
-	err = walletClient.Call(ctx, "getnewaddress", &newAddress, "fees")
+	err = walletClient.Call(ctx, "getnewaddress", &newAddress, cfg.FeeAccountName)
 	if err != nil {
 		log.Errorf("GetNewAddress error: %v", err)
 		sendErrorResponse("unable to generate fee address", http.StatusInternalServerError, c)

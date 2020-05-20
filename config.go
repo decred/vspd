@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -31,8 +32,8 @@ type config struct {
 	Listen     string  `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
 	LogLevel   string  `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
 	Network    string  `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
-	FeeXPub    string  `long:"feexpub" ini-name:"feexpub" description:"cold wallet xpub used for collecting fees"`
-	VSPFee     float64 `long:"vspfee" ini-name:"vspfee" description:"The fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
+	FeeXPub    string  `long:"feexpub" ini-name:"feexpub" description:"Cold wallet xpub used for collecting fees."`
+	VSPFee     float64 `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
 	HomeDir    string  `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile string  `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
 	WalletHost string  `long:"wallethost" ini-name:"wallethost" description:"The ip:port to establish a JSON-RPC connection with dcrwallet."`
@@ -181,11 +182,9 @@ func loadConfig() (*config, error) {
 	}
 
 	// Create the home directory if it doesn't already exist.
-	funcName := "loadConfig"
 	err = os.MkdirAll(cfg.HomeDir, 0700)
 	if err != nil {
-		str := "%s: failed to create home directory: %v"
-		err := fmt.Errorf(str, funcName, err)
+		err := fmt.Errorf("failed to create home directory: %v", err)
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err
 	}
@@ -233,23 +232,17 @@ func loadConfig() (*config, error) {
 
 	// Ensure the dcrwallet RPC username is set.
 	if cfg.WalletUser == "" {
-		str := "%s: the walletuser option is not set"
-		err := fmt.Errorf(str, funcName)
-		return nil, err
+		return nil, errors.New("the walletuser option is not set")
 	}
 
 	// Ensure the dcrwallet RPC password is set.
 	if cfg.WalletPass == "" {
-		str := "%s: the walletpass option is not set"
-		err := fmt.Errorf(str, funcName)
-		return nil, err
+		return nil, errors.New("the walletpass option is not set")
 	}
 
 	// Ensure the dcrwallet RPC cert path is set.
 	if cfg.WalletCert == "" {
-		str := "%s: the walletcert option is not set"
-		err := fmt.Errorf(str, funcName)
-		return nil, err
+		return nil, errors.New("the walletcert option is not set")
 	}
 
 	// Add default port for the active network if there is no port specified.
@@ -259,18 +252,14 @@ func loadConfig() (*config, error) {
 	cfg.WalletCert = cleanAndExpandPath(cfg.WalletCert)
 	cfg.dcrwCert, err = ioutil.ReadFile(cfg.WalletCert)
 	if err != nil {
-		str := "%s: failed to read dcrwallet cert file: %s"
-		err := fmt.Errorf(str, funcName, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to read dcrwallet cert file: %v", err)
 	}
 
 	// Create the data directory.
 	dataDir := filepath.Join(cfg.HomeDir, "data", cfg.netParams.Name)
 	err = os.MkdirAll(dataDir, 0700)
 	if err != nil {
-		str := "%s: failed to create data directory: %v"
-		err := fmt.Errorf(str, funcName, err)
-		return nil, err
+		return nil, fmt.Errorf("failed to create data directory: %v", err)
 	}
 
 	// Initialize loggers and log rotation.
@@ -282,9 +271,12 @@ func loadConfig() (*config, error) {
 	cfg.dbPath = filepath.Join(dataDir, "vsp.db")
 
 	// Validate the cold wallet xpub.
+	if cfg.FeeXPub == "" {
+		return nil, errors.New("the feexpub option is not set")
+	}
 	_, err = hdkeychain.NewKeyFromString(cfg.FeeXPub, cfg.netParams.Params)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse feexpub: %v", err)
 	}
 
 	return &cfg, nil
