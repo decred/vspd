@@ -91,10 +91,7 @@ func run(ctx context.Context) error {
 		NetParams:      cfg.netParams.Params,
 		FeeAccountName: feeAccountName,
 	}
-	// TODO: Make releaseMode properly configurable. Release mode enables very
-	// detailed webserver logging and live reloading of HTML templates.
-	releaseMode := true
-	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, walletRPC, releaseMode, apiCfg)
+	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, walletRPC, cfg.WebServerDebug, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialise webapi: %v", err)
 		requestShutdown()

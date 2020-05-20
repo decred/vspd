@@ -28,7 +28,7 @@ var db *database.VspDatabase
 var walletRPC rpc.Client
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, wRPC rpc.Client, releaseMode bool, config Config) error {
+	listen string, vdb *database.VspDatabase, wRPC rpc.Client, debugMode bool, config Config) error {
 
 	// Create TCP listener.
 	var listenConfig net.ListenConfig
@@ -39,7 +39,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	log.Infof("Listening on %s", listen)
 
 	srv := http.Server{
-		Handler:      router(releaseMode),
+		Handler:      router(debugMode),
 		ReadTimeout:  5 * time.Second,  // slow requests should not hold connections opened
 		WriteTimeout: 60 * time.Second, // hung responses must die
 	}
@@ -81,10 +81,10 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	return nil
 }
 
-func router(releaseMode bool) *gin.Engine {
+func router(debugMode bool) *gin.Engine {
 	// With release mode enabled, gin will only read template files once and cache them.
 	// With release mode disabled, templates will be reloaded on the fly.
-	if releaseMode {
+	if !debugMode {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -96,7 +96,7 @@ func router(releaseMode bool) *gin.Engine {
 	// sending no response at all.
 	router.Use(gin.Recovery())
 
-	if !releaseMode {
+	if debugMode {
 		// Logger middleware outputs very detailed logging of webserver requests
 		// to the terminal. Does not get logged to file.
 		router.Use(gin.Logger())
