@@ -24,9 +24,8 @@ func TestVoteBits(t *testing.T) {
 	}
 
 	params := chaincfg.MainNetParams()
-	voteVersion := currentVoteVersion(params)
 	for _, test := range tests {
-		isValid := isValidVoteBits(params, voteVersion, test.voteBits)
+		isValid := isValidVoteBits(params, test.voteBits)
 		if isValid != test.isValid {
 			t.Fatalf("isValidVoteBits failed for votebits '%d': want %v, got %v",
 				test.voteBits, test.isValid, isValid)

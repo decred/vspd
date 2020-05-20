@@ -39,7 +39,7 @@ func setVoteBits(c *gin.Context) {
 
 	// votebits
 	voteBits := setVoteBitsRequest.VoteBits
-	if !isValidVoteBits(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteBits) {
+	if !isValidVoteBits(cfg.NetParams, voteBits) {
 		log.Warnf("Invalid votebits from %s", c.ClientIP())
 		sendErrorResponse("invalid votebits", http.StatusBadRequest, c)
 		return

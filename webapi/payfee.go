@@ -34,7 +34,7 @@ func payFee(c *gin.Context) {
 	}
 
 	voteBits := payFeeRequest.VoteBits
-	if !isValidVoteBits(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteBits) {
+	if !isValidVoteBits(cfg.NetParams, voteBits) {
 		log.Warnf("Invalid votebits from %s", c.ClientIP())
 		sendErrorResponse("invalid votebits", http.StatusBadRequest, c)
 		return
@@ -138,16 +138,16 @@ findAddress:
 	}
 
 	ctx := c.Request.Context()
-	var resp dcrdtypes.TxRawResult
+	var rawTicket dcrdtypes.TxRawResult
 
-	err = walletClient.Call(ctx, "getrawtransaction", &resp, ticketHash.String(), 1)
+	err = walletClient.Call(ctx, "getrawtransaction", &rawTicket, ticketHash.String(), 1)
 	if err != nil {
 		log.Errorf("GetRawTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 
-	err = walletClient.Call(ctx, "addtransaction", nil, resp.BlockHash, resp.Hex)
+	err = walletClient.Call(ctx, "addtransaction", nil, rawTicket.BlockHash, rawTicket.Hex)
 	if err != nil {
 		log.Errorf("AddTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
@@ -170,8 +170,8 @@ findAddress:
 		return
 	}
 
-	var res string
-	err = walletClient.Call(ctx, "sendrawtransaction", &res, hex.EncodeToString(feeTxBuf.Bytes()), false)
+	var sendTxHash string
+	err = walletClient.Call(ctx, "sendrawtransaction", &sendTxHash, hex.EncodeToString(feeTxBuf.Bytes()), false)
 	if err != nil {
 		log.Errorf("SendRawTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
@@ -187,7 +187,7 @@ findAddress:
 
 	sendJSONResponse(payFeeResponse{
 		Timestamp: time.Now().Unix(),
-		TxHash:    res,
+		TxHash:    sendTxHash,
 		Request:   payFeeRequest,
 	}, c)
 }
