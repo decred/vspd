@@ -20,6 +20,9 @@
   stores it in the database. This key is used to sign all API responses, and the
   signature is included in the response header `VSP-Signature`. Error responses
   are not signed.
+- An xpub key is provided to dcrvsp via config. The first time dcrvsp starts, it
+  imports this xpub to create a new wallet account. This account is used to
+  derive addresses for fee payments.
 - VSP API as described in [dcrstakepool #574](https://github.com/decred/dcrstakepool/issues/574)
   - Request fee amount (`GET /fee`)
   - Request fee address (`POST /feeaddress`)

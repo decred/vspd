@@ -16,10 +16,11 @@ import (
 )
 
 type Config struct {
-	SignKey   ed25519.PrivateKey
-	PubKey    ed25519.PublicKey
-	VSPFee    float64
-	NetParams *chaincfg.Params
+	SignKey        ed25519.PrivateKey
+	PubKey         ed25519.PublicKey
+	VSPFee         float64
+	NetParams      *chaincfg.Params
+	FeeAccountName string
 }
 
 var cfg Config

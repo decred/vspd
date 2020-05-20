@@ -10,6 +10,11 @@ import (
 	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
 	"github.com/jholdstock/dcrvsp/webapi"
+	"github.com/jrick/wsrpc/v2"
+)
+
+const (
+	feeAccountName = "fees"
 )
 
 func main() {
@@ -68,42 +73,23 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
-  
-	// Get the masterpubkey from the fees account, if it exists, and make
-	// sure it matches the configuration.
-	var existingXPub string
-	err = walletClient.Call(ctx, "getmasterpubkey", &existingXPub, "fees")
+
+	// Ensure the wallet account for collecting fees exists and matches config.
+	err = setupFeeAccount(ctx, walletClient, cfg.FeeXPub)
 	if err != nil {
-		// TODO - ignore account not found
-		log.Errorf("dcrwallet RPC error: %v", err)
+		log.Errorf("Fee account error: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return err
 	}
 
-
-		// account exists - make sure it matches the configuration.
-		if existingXPub != cfg.FeeXPub {
-			log.Errorf("fees account xpub differs: %s != %s", existingXPub, cfg.FeeXPub)
-			requestShutdown()
-			shutdownWg.Wait()
-			return err
-	} else {
-		// account does not exist - import xpub from configuration.
-		if err = walletClient.Call(ctx, "importxpub", nil, "fees"); err != nil {
-			log.Errorf("failed to import xpub: %v", err)
-			requestShutdown()
-			shutdownWg.Wait()
-			return err
-		}
- }
-
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
-		SignKey:   signKey,
-		PubKey:    pubKey,
-		VSPFee:    cfg.VSPFee,
-		NetParams: cfg.netParams.Params,
+		SignKey:        signKey,
+		PubKey:         pubKey,
+		VSPFee:         cfg.VSPFee,
+		NetParams:      cfg.netParams.Params,
+		FeeAccountName: feeAccountName,
 	}
 	// TODO: Make releaseMode properly configurable. Release mode enables very
 	// detailed webserver logging and live reloading of HTML templates.
@@ -120,4 +106,38 @@ func run(ctx context.Context) error {
 	shutdownWg.Wait()
 
 	return ctx.Err()
+}
+
+func setupFeeAccount(ctx context.Context, walletClient *wsrpc.Client, feeXpub string) error {
+	// Check if account for fee collection already exists.
+	var accounts map[string]float64
+	err := walletClient.Call(ctx, "listaccounts", &accounts)
+	if err != nil {
+		return fmt.Errorf("dcrwallet RPC error: %v", err)
+	}
+
+	if _, ok := accounts[feeAccountName]; ok {
+		// Account already exists. Check xpub matches xpub from config.
+		var existingXPub string
+		err = walletClient.Call(ctx, "getmasterpubkey", &existingXPub, feeAccountName)
+		if err != nil {
+			return fmt.Errorf("dcrwallet RPC error: %v", err)
+		}
+
+		if existingXPub != feeXpub {
+			return fmt.Errorf("existing account xpub differs from config: %s != %s", existingXPub, feeXpub)
+		}
+
+		log.Debugf("Using existing wallet account %q to collect fees", feeAccountName)
+
+	} else {
+		// Account does not exist. Create it using xpub from config.
+		if err = walletClient.Call(ctx, "importxpub", nil, feeAccountName, feeXpub); err != nil {
+			log.Errorf("Failed to import xpub: %v", err)
+			return err
+		}
+		log.Debugf("Created new wallet account %q to collect fees", feeAccountName)
+	}
+
+	return nil
 }
