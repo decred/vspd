@@ -61,6 +61,14 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	signKey, pubKey, err := db.KeyPair()
+	if err != nil {
+		log.Errorf("Failed to get keypair: %v", err)
+		requestShutdown()
+		shutdownWg.Wait()
+		return err
+	}
+  
 	// Get the masterpubkey from the fees account, if it exists, and make
 	// sure it matches the configuration.
 	var existingXPub string
@@ -72,14 +80,14 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
-	if err == nil {
+
+
 		// account exists - make sure it matches the configuration.
 		if existingXPub != cfg.FeeXPub {
 			log.Errorf("fees account xpub differs: %s != %s", existingXPub, cfg.FeeXPub)
 			requestShutdown()
 			shutdownWg.Wait()
 			return err
-		}
 	} else {
 		// account does not exist - import xpub from configuration.
 		if err = walletClient.Call(ctx, "importxpub", nil, "fees"); err != nil {
@@ -88,12 +96,12 @@ func run(ctx context.Context) error {
 			shutdownWg.Wait()
 			return err
 		}
-	}
+ }
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
-		SignKey:   cfg.signKey,
-		PubKey:    cfg.pubKey,
+		SignKey:   signKey,
+		PubKey:    pubKey,
 		VSPFee:    cfg.VSPFee,
 		NetParams: cfg.netParams.Params,
 	}

@@ -1,9 +1,6 @@
 package main
 
 import (
-	"crypto/ed25519"
-	"crypto/rand"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -43,8 +40,6 @@ type config struct {
 	WalletPass string  `long:"walletpass" ini-name:"walletpass" description:"Password for dcrwallet RPC connections."`
 	WalletCert string  `long:"walletcert" ini-name:"walletcert" description:"The dcrwallet RPC certificate file."`
 
-	signKey   ed25519.PrivateKey
-	pubKey    ed25519.PublicKey
 	dbPath    string
 	netParams *netParams
 	dcrwCert  []byte
@@ -198,6 +193,7 @@ func loadConfig() (*config, error) {
 	// Create a default config file when one does not exist and the user did
 	// not specify an override.
 	if preCfg.ConfigFile == defaultConfigFile && !fileExists(preCfg.ConfigFile) {
+		fmt.Printf("Writing a config file with default values to %s\n", defaultConfigFile)
 		preIni := flags.NewIniParser(preParser)
 		err = preIni.WriteFile(preCfg.ConfigFile,
 			flags.IniIncludeComments|flags.IniIncludeDefaults)
@@ -290,34 +286,6 @@ func loadConfig() (*config, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Set pubKey/signKey. Read from seed file if it exists, otherwise generate
-	// one.
-	seedPath := filepath.Join(cfg.HomeDir, "sign.seed")
-	seed, err := ioutil.ReadFile(seedPath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return nil, errors.New("seedPath does not exist")
-		}
-
-		_, cfg.signKey, err = ed25519.GenerateKey(rand.Reader)
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate signing key: %v", err)
-		}
-		err = ioutil.WriteFile(seedPath, cfg.signKey.Seed(), 0400)
-		if err != nil {
-			return nil, fmt.Errorf("failed to save signing key: %v", err)
-		}
-	} else {
-		cfg.signKey = ed25519.NewKeyFromSeed(seed)
-	}
-
-	// Derive pubKey from signKey
-	pubKey, ok := cfg.signKey.Public().(ed25519.PublicKey)
-	if !ok {
-		return nil, fmt.Errorf("failed to cast signing key: %T", pubKey)
-	}
-	cfg.pubKey = pubKey
 
 	return &cfg, nil
 }

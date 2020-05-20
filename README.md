@@ -7,7 +7,8 @@
 ## Design decisions
 
 - [gin-gonic](https://github.com/gin-gonic/gin) webserver for both front-end and API.
-  - API uses JSON encoded reqs/resps in HTTP body.
+  - Success responses use HTTP status 200 and a JSON encoded body.
+  - Error responses use either HTTP status 500 or 400, and a JSON encoded error in the body (eg. `{"error":"Description"}')
 - [bbolt](https://github.com/etcd-io/bbolt) k/v database.
   - Tickets are stored in a single bucket, using ticket hash as the key and a
     json encoded representation of the ticket as the value.
@@ -15,6 +16,10 @@
 
 ## MVP features
 
+- When dcrvsp is started for the first time, it generates a ed25519 keypair and
+  stores it in the database. This key is used to sign all API responses, and the
+  signature is included in the response header `VSP-Signature`. Error responses
+  are not signed.
 - VSP API as described in [dcrstakepool #574](https://github.com/decred/dcrstakepool/issues/574)
   - Request fee amount (`GET /fee`)
   - Request fee address (`POST /feeaddress`)
@@ -32,6 +37,10 @@
 - Status check API call as described in [dcrstakepool #628](https://github.com/decred/dcrstakepool/issues/628).
 - Accountability for both client and server changes to voting preferences.
 - Consistency checking across connected wallets.
+
+## Notes
+
+- dcrd must have transaction index enabled so `getrawtransaction` can be used.
 
 ## Issue Tracker
 
