@@ -1,41 +1,43 @@
 package webapi
 
 import (
+	"fmt"
+
 	"github.com/decred/dcrd/chaincfg/v3"
-	"github.com/decred/dcrd/dcrutil/v3"
 )
 
-// isValidVoteBits checks if voteBits are valid for the most recent agendas.
-func isValidVoteBits(params *chaincfg.Params, voteBits uint16) bool {
-
-	if !dcrutil.IsFlagSet16(voteBits, dcrutil.BlockValid) {
-		return false
-	}
-	voteBits &= ^uint16(dcrutil.BlockValid)
-
-	// Get the most recent vote version.
-	var voteVersion uint32
+func currentVoteVersion(params *chaincfg.Params) uint32 {
+	var latestVersion uint32
 	for version := range params.Deployments {
-		if voteVersion < version {
-			voteVersion = version
+		if latestVersion < version {
+			latestVersion = version
 		}
 	}
+	return latestVersion
+}
 
-	var availVoteBits uint16
-	for _, vote := range params.Deployments[voteVersion] {
-		availVoteBits |= vote.Vote.Mask
+// isValidVoteChoices returns an error if provided vote choices are not valid for
+// the most recent agendas.
+func isValidVoteChoices(params *chaincfg.Params, voteVersion uint32, voteChoices map[string]string) error {
 
-		isValid := false
-		maskedBits := voteBits & vote.Vote.Mask
-		for _, c := range vote.Vote.Choices {
-			if c.Bits == maskedBits {
-				isValid = true
-				break
+agendaLoop:
+	for agenda, choice := range voteChoices {
+		// Does the agenda exist?
+		for _, v := range params.Deployments[voteVersion] {
+			if v.Vote.Id == agenda {
+				// Agenda exists - does the vote choice exist?
+				for _, c := range v.Vote.Choices {
+					if c.Id == choice {
+						// Valid agenda and choice combo! Check the next one...
+						continue agendaLoop
+					}
+				}
+				return fmt.Errorf("choice %q not found for agenda %q", choice, agenda)
 			}
+
 		}
-		if !isValid {
-			return false
-		}
+		return fmt.Errorf("agenda %q not found for vote version %d", agenda, voteVersion)
 	}
-	return true
+
+	return nil
 }

@@ -33,10 +33,11 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	voteBits := payFeeRequest.VoteBits
-	if !isValidVoteBits(cfg.NetParams, voteBits) {
-		log.Warnf("Invalid votebits from %s", c.ClientIP())
-		sendErrorResponse("invalid votebits", http.StatusBadRequest, c)
+	voteChoices := payFeeRequest.VoteChoices
+	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
+	if err != nil {
+		log.Warnf("Invalid votechoices from %s: %v", c.ClientIP(), err)
+		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
 
@@ -178,7 +179,7 @@ findAddress:
 		return
 	}
 
-	err = db.InsertFeeAddressVotingKey(voteAddr.Address(), votingWIF.String(), voteBits)
+	err = db.InsertFeeAddressVotingKey(voteAddr.Address(), votingWIF.String(), voteChoices)
 	if err != nil {
 		log.Errorf("InsertFeeAddressVotingKey failed: %v", err)
 		sendErrorResponse("database error", http.StatusInternalServerError, c)

@@ -116,7 +116,7 @@ func router(debugMode bool) *gin.Engine {
 		api.POST("/feeaddress", feeAddress)
 		api.GET("/pubkey", pubKey)
 		api.POST("/payfee", payFee)
-		api.POST("/setvotebits", setVoteBits)
+		api.POST("/setvotechoices", setVoteChoices)
 		api.GET("/ticketstatus", ticketStatus)
 	}
 

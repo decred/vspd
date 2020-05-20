@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"os"
+	"reflect"
 	"sync"
 	"testing"
 )
@@ -20,7 +21,7 @@ func exampleTicket() Ticket {
 		FeeAddress:          "FeeAddress",
 		SDiff:               1,
 		BlockHeight:         2,
-		VoteBits:            3,
+		VoteChoices:         map[string]string{"AgendaID": "Choice"},
 		VotingKey:           "VotingKey",
 		VSPFee:              0.1,
 		Expiration:          4,
@@ -38,7 +39,7 @@ func TestDatabase(t *testing.T) {
 		"testGetTicketByHash":           testGetTicketByHash,
 		"testInsertFeeAddressVotingKey": testInsertFeeAddressVotingKey,
 		"testUpdateExpireAndFee":        testUpdateExpireAndFee,
-		"testUpdateVoteBits":            testUpdateVoteBits,
+		"testUpdateVoteChoices":         testUpdateVoteChoices,
 	}
 
 	for testName, test := range tests {
@@ -105,7 +106,7 @@ func testGetTicketByHash(t *testing.T) {
 		retrieved.FeeAddress != ticket.FeeAddress ||
 		retrieved.SDiff != ticket.SDiff ||
 		retrieved.BlockHeight != ticket.BlockHeight ||
-		retrieved.VoteBits != ticket.VoteBits ||
+		!reflect.DeepEqual(retrieved.VoteChoices, ticket.VoteChoices) ||
 		retrieved.VotingKey != ticket.VotingKey ||
 		retrieved.VSPFee != ticket.VSPFee ||
 		retrieved.Expiration != ticket.Expiration {
@@ -129,10 +130,11 @@ func testInsertFeeAddressVotingKey(t *testing.T) {
 
 	// Update values.
 	newVotingKey := ticket.VotingKey + "2"
-	newVoteBits := ticket.VoteBits + 2
-	err = db.InsertFeeAddressVotingKey(ticket.CommitmentAddress, newVotingKey, newVoteBits)
+	newVoteChoices := ticket.VoteChoices
+	newVoteChoices["AgendaID"] = "Different choice"
+	err = db.InsertFeeAddressVotingKey(ticket.CommitmentAddress, newVotingKey, newVoteChoices)
 	if err != nil {
-		t.Fatalf("error updating votingkey and votebits: %v", err)
+		t.Fatalf("error updating votingkey and votechoices: %v", err)
 	}
 
 	// Retrieve ticket from database.
@@ -142,7 +144,7 @@ func testInsertFeeAddressVotingKey(t *testing.T) {
 	}
 
 	// Check ticket fields match expected.
-	if newVoteBits != retrieved.VoteBits ||
+	if !reflect.DeepEqual(newVoteChoices, retrieved.VoteChoices) ||
 		newVotingKey != retrieved.VotingKey {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
@@ -176,7 +178,7 @@ func testUpdateExpireAndFee(t *testing.T) {
 	}
 }
 
-func testUpdateVoteBits(t *testing.T) {
+func testUpdateVoteChoices(t *testing.T) {
 	// Insert a ticket into the database.
 	ticket := exampleTicket()
 	err := db.InsertFeeAddress(ticket)
@@ -184,11 +186,12 @@ func testUpdateVoteBits(t *testing.T) {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
-	// Update ticket with new votebits.
-	newVoteBits := ticket.VoteBits + 1
-	err = db.UpdateVoteBits(ticket.Hash, newVoteBits)
+	// Update ticket with new votechoices.
+	newVoteChoices := ticket.VoteChoices
+	newVoteChoices["AgendaID"] = "Different choice"
+	err = db.UpdateVoteChoices(ticket.Hash, newVoteChoices)
 	if err != nil {
-		t.Fatalf("error updating votebits: %v", err)
+		t.Fatalf("error updating votechoices: %v", err)
 	}
 
 	// Get updated ticket
@@ -198,7 +201,7 @@ func testUpdateVoteBits(t *testing.T) {
 	}
 
 	// Check ticket fields match expected.
-	if retrieved.VoteBits != newVoteBits {
+	if !reflect.DeepEqual(newVoteChoices, retrieved.VoteChoices) {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
 }

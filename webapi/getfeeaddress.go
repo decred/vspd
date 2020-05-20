@@ -179,10 +179,9 @@ func feeAddress(c *gin.Context) {
 		FeeAddress:          newAddress,
 		SDiff:               blockHeader.SBits,
 		BlockHeight:         int64(blockHeader.Height),
-		VoteBits:            dcrutil.BlockValid,
 		VSPFee:              cfg.VSPFee,
 		Expiration:          expire,
-		// VotingKey: set during payfee
+		// VotingKey and VoteChoices: set during payfee
 	}
 
 	err = db.InsertFeeAddress(dbTicket)

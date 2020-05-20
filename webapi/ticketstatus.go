@@ -54,9 +54,9 @@ func ticketStatus(c *gin.Context) {
 	}
 
 	sendJSONResponse(ticketStatusResponse{
-		Timestamp: time.Now().Unix(),
-		Request:   ticketStatusRequest,
-		Status:    "active", // TODO - active, pending, expired (missed, revoked?)
-		VoteBits:  ticket.VoteBits,
+		Timestamp:   time.Now().Unix(),
+		Request:     ticketStatusRequest,
+		Status:      "active", // TODO - active, pending, expired (missed, revoked?)
+		VoteChoices: ticket.VoteChoices,
 	}, c)
 }

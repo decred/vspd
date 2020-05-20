@@ -11,17 +11,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// setVoteBits is the handler for "POST /setvotebits"
-func setVoteBits(c *gin.Context) {
-	var setVoteBitsRequest SetVoteBitsRequest
-	if err := c.ShouldBindJSON(&setVoteBitsRequest); err != nil {
-		log.Warnf("Bad setvotebits request from %s: %v", c.ClientIP(), err)
+// setVoteChoices is the handler for "POST /setvotechoices"
+func setVoteChoices(c *gin.Context) {
+	var setVoteChoicesRequest SetVoteChoicesRequest
+	if err := c.ShouldBindJSON(&setVoteChoicesRequest); err != nil {
+		log.Warnf("Bad setvotechoices request from %s: %v", c.ClientIP(), err)
 		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
 
 	// ticketHash
-	ticketHashStr := setVoteBitsRequest.TicketHash
+	ticketHashStr := setVoteChoicesRequest.TicketHash
 	txHash, err := chainhash.NewHashFromStr(ticketHashStr)
 	if err != nil {
 		log.Warnf("Invalid ticket hash from %s", c.ClientIP())
@@ -30,18 +30,18 @@ func setVoteBits(c *gin.Context) {
 	}
 
 	// signature - sanity check signature is in base64 encoding
-	signature := setVoteBitsRequest.Signature
+	signature := setVoteChoicesRequest.Signature
 	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
 		log.Warnf("Invalid signature from %s", c.ClientIP())
 		sendErrorResponse("invalid signature", http.StatusBadRequest, c)
 		return
 	}
 
-	// votebits
-	voteBits := setVoteBitsRequest.VoteBits
-	if !isValidVoteBits(cfg.NetParams, voteBits) {
-		log.Warnf("Invalid votebits from %s", c.ClientIP())
-		sendErrorResponse("invalid votebits", http.StatusBadRequest, c)
+	voteChoices := setVoteChoicesRequest.VoteChoices
+	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
+	if err != nil {
+		log.Warnf("Invalid votechoices from %s: %v", c.ClientIP(), err)
+		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
 
@@ -53,7 +53,7 @@ func setVoteBits(c *gin.Context) {
 	}
 
 	// verify message
-	message := fmt.Sprintf("vsp v3 setvotebits %d %s %d", setVoteBitsRequest.Timestamp, txHash, voteBits)
+	message := fmt.Sprintf("vsp v3 setvotechoices %d %s %v", setVoteChoicesRequest.Timestamp, txHash, voteChoices)
 	err = dcrutil.VerifyMessage(ticket.CommitmentAddress, signature, message, cfg.NetParams)
 	if err != nil {
 		log.Warnf("Failed to verify message from %s", c.ClientIP())
@@ -61,20 +61,20 @@ func setVoteBits(c *gin.Context) {
 		return
 	}
 
-	err = db.UpdateVoteBits(txHash.String(), voteBits)
+	err = db.UpdateVoteChoices(txHash.String(), voteChoices)
 	if err != nil {
-		log.Errorf("UpdateVoteBits error: %v", err)
+		log.Errorf("UpdateVoteChoices error: %v", err)
 		sendErrorResponse("database error", http.StatusInternalServerError, c)
 		return
 	}
 
 	// TODO: DB - error if given timestamp is older than any previous requests
 
-	// TODO: DB - store setvotebits receipt in log
+	// TODO: DB - store setvotechoices receipt in log
 
-	sendJSONResponse(setVoteBitsResponse{
-		Timestamp: time.Now().Unix(),
-		Request:   setVoteBitsRequest,
-		VoteBits:  voteBits,
+	sendJSONResponse(setVoteChoicesResponse{
+		Timestamp:   time.Now().Unix(),
+		Request:     setVoteChoicesRequest,
+		VoteChoices: voteChoices,
 	}, c)
 }
