@@ -32,7 +32,7 @@ func setVoteChoices(c *gin.Context) {
 	// signature - sanity check signature is in base64 encoding
 	signature := setVoteChoicesRequest.Signature
 	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
-		log.Warnf("Invalid signature from %s", c.ClientIP())
+		log.Warnf("Invalid signature from %s: %v", c.ClientIP(), err)
 		sendErrorResponse("invalid signature", http.StatusBadRequest, c)
 		return
 	}
@@ -56,7 +56,7 @@ func setVoteChoices(c *gin.Context) {
 	message := fmt.Sprintf("vsp v3 setvotechoices %d %s %v", setVoteChoicesRequest.Timestamp, txHash, voteChoices)
 	err = dcrutil.VerifyMessage(ticket.CommitmentAddress, signature, message, cfg.NetParams)
 	if err != nil {
-		log.Warnf("Failed to verify message from %s", c.ClientIP())
+		log.Warnf("Failed to verify message from %s: %v", c.ClientIP(), err)
 		sendErrorResponse("message did not pass verification", http.StatusBadRequest, c)
 		return
 	}

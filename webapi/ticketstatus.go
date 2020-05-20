@@ -32,7 +32,7 @@ func ticketStatus(c *gin.Context) {
 	// signature - sanity check signature is in base64 encoding
 	signature := ticketStatusRequest.Signature
 	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
-		log.Warnf("Invalid signature from %s", c.ClientIP())
+		log.Warnf("Invalid signature from %s: %v", c.ClientIP(), err)
 		sendErrorResponse("invalid signature", http.StatusBadRequest, c)
 		return
 	}
@@ -48,7 +48,7 @@ func ticketStatus(c *gin.Context) {
 	message := fmt.Sprintf("vsp v3 ticketstatus %d %s", ticketStatusRequest.Timestamp, ticketHashStr)
 	err = dcrutil.VerifyMessage(ticket.CommitmentAddress, signature, message, cfg.NetParams)
 	if err != nil {
-		log.Warnf("Invalid signature from %s", c.ClientIP())
+		log.Warnf("Invalid signature from %s: %v", c.ClientIP(), err)
 		sendErrorResponse("invalid signature", http.StatusBadRequest, c)
 		return
 	}
