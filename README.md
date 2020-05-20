@@ -27,7 +27,7 @@
   - Request fee amount (`GET /fee`)
   - Request fee address (`POST /feeaddress`)
   - Pay fee (`POST /payFee`)
-  - Ticket status (`POST /ticketstatus`)
+  - Ticket status (`GET /ticketstatus`)
   - Set voting preferences (`POST /setvotebits`)
 - A minimal, static, web front-end providing pool stats and basic connection instructions.
 - Fees have an expiry period. If the fee is not paid within this period, the

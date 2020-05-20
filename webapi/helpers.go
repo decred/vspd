@@ -5,22 +5,21 @@ import (
 	"github.com/decred/dcrd/dcrutil/v3"
 )
 
-func currentVoteVersion(params *chaincfg.Params) uint32 {
-	var latestVersion uint32
-	for version := range params.Deployments {
-		if latestVersion < version {
-			latestVersion = version
-		}
-	}
-	return latestVersion
-}
+// isValidVoteBits checks if voteBits are valid for the most recent agendas.
+func isValidVoteBits(params *chaincfg.Params, voteBits uint16) bool {
 
-// isValidVoteBits returns an error if voteBits are not valid for agendas
-func isValidVoteBits(params *chaincfg.Params, voteVersion uint32, voteBits uint16) bool {
 	if !dcrutil.IsFlagSet16(voteBits, dcrutil.BlockValid) {
 		return false
 	}
 	voteBits &= ^uint16(dcrutil.BlockValid)
+
+	// Get the most recent vote version.
+	var voteVersion uint32
+	for version := range params.Deployments {
+		if voteVersion < version {
+			voteVersion = version
+		}
+	}
 
 	var availVoteBits uint16
 	for _, vote := range params.Deployments[voteVersion] {
