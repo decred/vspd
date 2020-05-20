@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/dcrd/hdkeychain/v3"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -30,6 +31,7 @@ type config struct {
 	Listen     string  `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
 	LogLevel   string  `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
 	Network    string  `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
+	FeeXPub    string  `long:"feexpub" ini-name:"feexpub" description:"cold wallet xpub used for collecting fees"`
 	VSPFee     float64 `long:"vspfee" ini-name:"vspfee" description:"The fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
 	HomeDir    string  `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile string  `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
@@ -278,6 +280,12 @@ func loadConfig() (*config, error) {
 
 	// Set the database path
 	cfg.dbPath = filepath.Join(dataDir, "vsp.db")
+
+	// Validate the cold wallet xpub.
+	_, err = hdkeychain.NewKeyFromString(cfg.FeeXPub, cfg.netParams.Params)
+	if err != nil {
+		return nil, err
+	}
 
 	return &cfg, nil
 }
