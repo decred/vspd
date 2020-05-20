@@ -61,6 +61,25 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
+	walletClient, err := walletRPC()
+	if err != nil {
+		log.Errorf("Failed to dial dcrwallet RPC: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// Update vote choices on voting wallets.
+	for agenda, choice := range voteChoices {
+		err = walletClient.Call(ctx, "setvotechoice", nil, agenda, choice, ticket.Hash)
+		if err != nil {
+			log.Errorf("setvotechoice failed: %v", err)
+			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+			return
+		}
+	}
+
 	err = db.UpdateVoteChoices(txHash.String(), voteChoices)
 	if err != nil {
 		log.Errorf("UpdateVoteChoices error: %v", err)

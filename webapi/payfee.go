@@ -162,6 +162,16 @@ findAddress:
 		return
 	}
 
+	// Update vote choices on voting wallets.
+	for agenda, choice := range voteChoices {
+		err = walletClient.Call(ctx, "setvotechoice", nil, agenda, choice, ticket.Hash)
+		if err != nil {
+			log.Errorf("setvotechoice failed: %v", err)
+			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+			return
+		}
+	}
+
 	feeTxBuf := new(bytes.Buffer)
 	feeTxBuf.Grow(feeTx.SerializeSize())
 	err = feeTx.Serialize(feeTxBuf)
