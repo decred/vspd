@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	wallettypes "decred.org/dcrwallet/rpc/jsonrpc/types"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/jrick/wsrpc/v2"
 )
@@ -79,22 +80,39 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 		}
 		log.Infof("Dialed RPC websocket %v", addr)
 
+		// Verify dcrwallet at is at the required api version
 		var verMap map[string]dcrdtypes.VersionResult
 		err = c.Call(ctx, "version", &verMap)
 		if err != nil {
 			c.Close()
-			return nil, err
+			return nil, fmt.Errorf("wallet %v version failed: %v",
+				addr, err)
 		}
 		walletVersion, exists := verMap["dcrwalletjsonrpcapi"]
 		if !exists {
 			c.Close()
-			return nil, fmt.Errorf("version missing 'dcrwalletjsonrpcapi'")
+			return nil, fmt.Errorf("wallet %v version response "+
+				"missing 'dcrwalletjsonrpcapi'", addr)
 		}
 		if walletVersion.VersionString != requiredWalletVersion {
 			c.Close()
-			return nil, fmt.Errorf("wallet %v is not at the proper version: %s != %s",
-				addr, walletVersion.VersionString, requiredWalletVersion)
+			return nil, fmt.Errorf("wallet %v is not at the "+
+				"proper version: %s != %s", addr,
+				walletVersion.VersionString, requiredWalletVersion)
 		}
+
+		// Verify dcrwallet is voting
+		var walletInfo wallettypes.WalletInfoResult
+		err = c.Call(ctx, "walletinfo", &walletInfo)
+		if err != nil {
+			c.Close()
+			return nil, err
+		}
+		if !walletInfo.Voting || !walletInfo.Unlocked {
+			c.Close()
+			return nil, fmt.Errorf("wallet %s has voting disabled", addr)
+		}
+
 		return c, nil
 	}
 }
