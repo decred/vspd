@@ -25,21 +25,23 @@ var (
 	defaultConfigFilename = "dcrvsp.conf"
 	defaultConfigFile     = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultWalletHost     = "127.0.0.1"
+	defaultWebServerDebug = false
 )
 
 // config defines the configuration options for the VSP.
 type config struct {
-	Listen     string  `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
-	LogLevel   string  `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
-	Network    string  `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
-	FeeXPub    string  `long:"feexpub" ini-name:"feexpub" description:"Cold wallet xpub used for collecting fees."`
-	VSPFee     float64 `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
-	HomeDir    string  `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
-	ConfigFile string  `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
-	WalletHost string  `long:"wallethost" ini-name:"wallethost" description:"The ip:port to establish a JSON-RPC connection with dcrwallet."`
-	WalletUser string  `long:"walletuser" ini-name:"walletuser" description:"Username for dcrwallet RPC connections."`
-	WalletPass string  `long:"walletpass" ini-name:"walletpass" description:"Password for dcrwallet RPC connections."`
-	WalletCert string  `long:"walletcert" ini-name:"walletcert" description:"The dcrwallet RPC certificate file."`
+	Listen         string  `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
+	LogLevel       string  `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
+	Network        string  `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
+	FeeXPub        string  `long:"feexpub" ini-name:"feexpub" description:"Cold wallet xpub used for collecting fees."`
+	VSPFee         float64 `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
+	HomeDir        string  `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
+	ConfigFile     string  `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
+	WalletHost     string  `long:"wallethost" ini-name:"wallethost" description:"The ip:port to establish a JSON-RPC connection with dcrwallet."`
+	WalletUser     string  `long:"walletuser" ini-name:"walletuser" description:"Username for dcrwallet RPC connections."`
+	WalletPass     string  `long:"walletpass" ini-name:"walletpass" description:"Password for dcrwallet RPC connections."`
+	WalletCert     string  `long:"walletcert" ini-name:"walletcert" description:"The dcrwallet RPC certificate file."`
+	WebServerDebug bool    `long:"webserverdebug" ini-name:"webserverdebug" description:"Enable web server debug mode (verbose logging to terminal and live-reloading templates)."`
 
 	dbPath    string
 	netParams *netParams
@@ -134,13 +136,14 @@ func loadConfig() (*config, error) {
 
 	// Default config.
 	cfg := config{
-		Listen:     defaultListen,
-		LogLevel:   defaultLogLevel,
-		Network:    defaultNetwork,
-		VSPFee:     defaultVSPFee,
-		HomeDir:    defaultHomeDir,
-		ConfigFile: defaultConfigFile,
-		WalletHost: defaultWalletHost,
+		Listen:         defaultListen,
+		LogLevel:       defaultLogLevel,
+		Network:        defaultNetwork,
+		VSPFee:         defaultVSPFee,
+		HomeDir:        defaultHomeDir,
+		ConfigFile:     defaultConfigFile,
+		WalletHost:     defaultWalletHost,
+		WebServerDebug: defaultWebServerDebug,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
