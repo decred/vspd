@@ -261,6 +261,11 @@ func payFee(c *gin.Context) {
 	}
 
 	voteBits := payFeeRequest.VoteBits
+	if !isValidVoteBits(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteBits) {
+		log.Warnf("Invalid votebits from %s", c.ClientIP())
+		sendErrorResponse("invalid votebits", http.StatusBadRequest, c)
+		return
+	}
 
 	feeTxBytes, err := hex.DecodeString(payFeeRequest.FeeTx)
 	if err != nil {
