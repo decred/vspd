@@ -3,6 +3,8 @@ package webapi
 import (
 	"context"
 	"crypto/ed25519"
+	"encoding/hex"
+	"encoding/json"
 	"net"
 	"net/http"
 	"sync"
@@ -16,11 +18,12 @@ import (
 )
 
 type Config struct {
-	SignKey        ed25519.PrivateKey
-	PubKey         ed25519.PublicKey
-	VSPFee         float64
-	NetParams      *chaincfg.Params
-	FeeAccountName string
+	SignKey              ed25519.PrivateKey
+	PubKey               ed25519.PublicKey
+	VSPFee               float64
+	NetParams            *chaincfg.Params
+	FeeAccountName       string
+	FeeAddressExpiration time.Duration
 }
 
 var cfg Config
@@ -114,7 +117,7 @@ func router(debugMode bool) *gin.Engine {
 		api.GET("/pubkey", pubKey)
 		api.POST("/payfee", payFee)
 		api.POST("/setvotebits", setVoteBits)
-		api.POST("/ticketstatus", ticketStatus)
+		api.GET("/ticketstatus", ticketStatus)
 	}
 
 	return router
@@ -124,4 +127,22 @@ func homepage(c *gin.Context) {
 	c.HTML(http.StatusOK, "homepage.html", gin.H{
 		"Message": "Welcome to dcrvsp!",
 	})
+}
+
+func sendJSONResponse(resp interface{}, c *gin.Context) {
+	dec, err := json.Marshal(resp)
+	if err != nil {
+		log.Errorf("JSON marshal error: %v", err)
+		sendErrorResponse("failed to marshal json", http.StatusInternalServerError, c)
+		return
+	}
+
+	sig := ed25519.Sign(cfg.SignKey, dec)
+	c.Writer.Header().Set("VSP-Signature", hex.EncodeToString(sig))
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func sendErrorResponse(errMsg string, code int, c *gin.Context) {
+	c.JSON(code, gin.H{"error": errMsg})
 }

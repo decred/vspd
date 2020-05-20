@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
@@ -15,6 +16,8 @@ import (
 
 const (
 	feeAccountName = "fees"
+	// TODO: Make expiration configurable?
+	defaultFeeAddressExpiration = 24 * time.Hour
 )
 
 func main() {
@@ -85,11 +88,12 @@ func run(ctx context.Context) error {
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
-		SignKey:        signKey,
-		PubKey:         pubKey,
-		VSPFee:         cfg.VSPFee,
-		NetParams:      cfg.netParams.Params,
-		FeeAccountName: feeAccountName,
+		SignKey:              signKey,
+		PubKey:               pubKey,
+		VSPFee:               cfg.VSPFee,
+		NetParams:            cfg.netParams.Params,
+		FeeAccountName:       feeAccountName,
+		FeeAddressExpiration: defaultFeeAddressExpiration,
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, walletRPC, cfg.WebServerDebug, apiCfg)
 	if err != nil {
