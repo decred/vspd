@@ -119,7 +119,7 @@ func run(ctx context.Context) error {
 		FeeAccountName:       feeAccountName,
 		FeeAddressExpiration: defaultFeeAddressExpiration,
 	}
-	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, votingWalletConnect, feeWalletConnect, cfg.WebServerDebug, apiCfg)
+	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, feeWalletConnect, votingWalletConnect, cfg.WebServerDebug, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialise webapi: %v", err)
 		requestShutdown()
