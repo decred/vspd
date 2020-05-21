@@ -33,10 +33,11 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	voteBits := payFeeRequest.VoteBits
-	if !isValidVoteBits(cfg.NetParams, voteBits) {
-		log.Warnf("Invalid votebits from %s", c.ClientIP())
-		sendErrorResponse("invalid votebits", http.StatusBadRequest, c)
+	voteChoices := payFeeRequest.VoteChoices
+	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
+	if err != nil {
+		log.Warnf("Invalid votechoices from %s: %v", c.ClientIP(), err)
+		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
 
@@ -161,6 +162,16 @@ findAddress:
 		return
 	}
 
+	// Update vote choices on voting wallets.
+	for agenda, choice := range voteChoices {
+		err = walletClient.Call(ctx, "setvotechoice", nil, agenda, choice, ticket.Hash)
+		if err != nil {
+			log.Errorf("setvotechoice failed: %v", err)
+			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+			return
+		}
+	}
+
 	feeTxBuf := new(bytes.Buffer)
 	feeTxBuf.Grow(feeTx.SerializeSize())
 	err = feeTx.Serialize(feeTxBuf)
@@ -178,7 +189,7 @@ findAddress:
 		return
 	}
 
-	err = db.InsertFeeAddressVotingKey(voteAddr.Address(), votingWIF.String(), voteBits)
+	err = db.InsertFeeAddressVotingKey(voteAddr.Address(), votingWIF.String(), voteChoices)
 	if err != nil {
 		log.Errorf("InsertFeeAddressVotingKey failed: %v", err)
 		sendErrorResponse("database error", http.StatusInternalServerError, c)

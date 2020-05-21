@@ -9,16 +9,16 @@ import (
 )
 
 type Ticket struct {
-	Hash                string  `json:"hash"`
-	CommitmentSignature string  `json:"commitmentsignature"`
-	CommitmentAddress   string  `json:"commitmentaddress"`
-	FeeAddress          string  `json:"feeaddress"`
-	SDiff               float64 `json:"sdiff"`
-	BlockHeight         int64   `json:"blockheight"`
-	VoteBits            uint16  `json:"votebits"`
-	VotingKey           string  `json:"votingkey"`
-	VSPFee              float64 `json:"vspfee"`
-	Expiration          int64   `json:"expiration"`
+	Hash                string            `json:"hash"`
+	CommitmentSignature string            `json:"commitmentsignature"`
+	CommitmentAddress   string            `json:"commitmentaddress"`
+	FeeAddress          string            `json:"feeaddress"`
+	SDiff               float64           `json:"sdiff"`
+	BlockHeight         int64             `json:"blockheight"`
+	VoteChoices         map[string]string `json:"votechoices"`
+	VotingKey           string            `json:"votingkey"`
+	VSPFee              float64           `json:"vspfee"`
+	Expiration          int64             `json:"expiration"`
 }
 
 var (
@@ -43,7 +43,7 @@ func (vdb *VspDatabase) InsertFeeAddress(ticket Ticket) error {
 	})
 }
 
-func (vdb *VspDatabase) InsertFeeAddressVotingKey(address, votingKey string, voteBits uint16) error {
+func (vdb *VspDatabase) InsertFeeAddressVotingKey(address, votingKey string, voteChoices map[string]string) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 		c := ticketBkt.Cursor()
@@ -57,7 +57,7 @@ func (vdb *VspDatabase) InsertFeeAddressVotingKey(address, votingKey string, vot
 
 			if ticket.CommitmentAddress == address {
 				ticket.VotingKey = votingKey
-				ticket.VoteBits = voteBits
+				ticket.VoteChoices = voteChoices
 				ticketBytes, err := json.Marshal(ticket)
 				if err != nil {
 					return err
@@ -94,7 +94,7 @@ func (vdb *VspDatabase) GetTicketByHash(hash string) (Ticket, error) {
 	return ticket, err
 }
 
-func (vdb *VspDatabase) UpdateVoteBits(hash string, voteBits uint16) error {
+func (vdb *VspDatabase) UpdateVoteChoices(hash string, voteChoices map[string]string) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 		key := []byte(hash)
@@ -109,7 +109,7 @@ func (vdb *VspDatabase) UpdateVoteBits(hash string, voteBits uint16) error {
 		if err != nil {
 			return fmt.Errorf("could not unmarshal ticket: %v", err)
 		}
-		ticket.VoteBits = voteBits
+		ticket.VoteChoices = voteChoices
 
 		ticketBytes, err = json.Marshal(ticket)
 		if err != nil {

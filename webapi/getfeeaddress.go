@@ -38,7 +38,7 @@ func feeAddress(c *gin.Context) {
 	// signature - sanity check signature is in base64 encoding
 	signature := feeAddressRequest.Signature
 	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
-		log.Warnf("Invalid signature from %s", c.ClientIP())
+		log.Warnf("Invalid signature from %s: %v", c.ClientIP(), err)
 		sendErrorResponse("invalid signature", http.StatusBadRequest, c)
 		return
 	}
@@ -145,7 +145,7 @@ func feeAddress(c *gin.Context) {
 	message := fmt.Sprintf("vsp v3 getfeeaddress %s", msgTx.TxHash())
 	err = dcrutil.VerifyMessage(addr.Address(), signature, message, cfg.NetParams)
 	if err != nil {
-		log.Warnf("Invalid signature from %s", c.ClientIP())
+		log.Warnf("Invalid signature from %s: %v", c.ClientIP(), err)
 		sendErrorResponse("invalid signature", http.StatusBadRequest, c)
 		return
 	}
@@ -179,10 +179,9 @@ func feeAddress(c *gin.Context) {
 		FeeAddress:          newAddress,
 		SDiff:               blockHeader.SBits,
 		BlockHeight:         int64(blockHeader.Height),
-		VoteBits:            dcrutil.BlockValid,
 		VSPFee:              cfg.VSPFee,
 		Expiration:          expire,
-		// VotingKey: set during payfee
+		// VotingKey and VoteChoices: set during payfee
 	}
 
 	err = db.InsertFeeAddress(dbTicket)
