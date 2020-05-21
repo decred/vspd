@@ -62,19 +62,24 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
-	walletClient, err := walletRPC()
+	vWalletConn, err := votingWalletConnect()
 	if err != nil {
-		log.Errorf("Failed to dial dcrwallet RPC: %v", err)
+		log.Errorf("Voting wallet connection error: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
-	wRPC := rpc.WalletClient(walletClient)
 
 	ctx := c.Request.Context()
+	vWalletClient, err := rpc.VotingWalletClient(ctx, vWalletConn)
+	if err != nil {
+		log.Errorf("Voting wallet client error: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
 
 	// Update vote choices on voting wallets.
 	for agenda, choice := range voteChoices {
-		err = wRPC.SetVoteChoice(ctx, agenda, choice, ticket.Hash)
+		err = vWalletClient.SetVoteChoice(ctx, agenda, choice, ticket.Hash)
 		if err != nil {
 			log.Errorf("SetVoteChoice failed: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
@@ -82,6 +87,8 @@ func setVoteChoices(c *gin.Context) {
 		}
 	}
 
+	// TODO: Update database before updating wallets. DB is source of truth and
+	// is less likely to error.
 	err = db.UpdateVoteChoices(txHash.String(), voteChoices)
 	if err != nil {
 		log.Errorf("UpdateVoteChoices error: %v", err)

@@ -82,17 +82,21 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	walletClient, err := walletRPC()
+	fWalletConn, err := feeWalletConnect()
 	if err != nil {
-		log.Errorf("Failed to dial dcrwallet RPC: %v", err)
+		log.Errorf("Fee wallet connection error: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
-	wRPC := rpc.WalletClient(walletClient)
-
 	ctx := c.Request.Context()
+	fWalletClient, err := rpc.FeeWalletClient(ctx, fWalletConn)
+	if err != nil {
+		log.Errorf("Fee wallet client error: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
 
-	resp, err := wRPC.GetRawTransaction(ctx, txHash.String())
+	resp, err := fWalletClient.GetRawTransaction(ctx, txHash.String())
 	if err != nil {
 		log.Warnf("Could not retrieve tx %s for %s: %v", txHash, c.ClientIP(), err)
 		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
@@ -153,14 +157,15 @@ func feeAddress(c *gin.Context) {
 	// get blockheight and sdiff which is required by
 	// txrules.StakePoolTicketFee, and store them in the database
 	// for processing by payfee
-	blockHeader, err := wRPC.GetBlockHeader(ctx, resp.BlockHash)
+	blockHeader, err := fWalletClient.GetBlockHeader(ctx, resp.BlockHash)
 	if err != nil {
 		log.Errorf("GetBlockHeader error: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 
-	newAddress, err := wRPC.GetNewAddress(ctx, cfg.FeeAccountName)
+	// TODO: Generate this within dcrvsp without an RPC call?
+	newAddress, err := fWalletClient.GetNewAddress(ctx, cfg.FeeAccountName)
 	if err != nil {
 		log.Errorf("GetNewAddress error: %v", err)
 		sendErrorResponse("unable to generate fee address", http.StatusInternalServerError, c)

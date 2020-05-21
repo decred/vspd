@@ -131,31 +131,49 @@ findAddress:
 		return
 	}
 
-	walletClient, err := walletRPC()
+	fWalletConn, err := feeWalletConnect()
 	if err != nil {
-		log.Errorf("Failed to dial dcrwallet RPC: %v", err)
+		log.Errorf("Fee wallet connection error: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
-	wRPC := rpc.WalletClient(walletClient)
-
 	ctx := c.Request.Context()
 
-	rawTicket, err := wRPC.GetRawTransaction(ctx, ticketHash.String())
+	fWalletClient, err := rpc.FeeWalletClient(ctx, fWalletConn)
+	if err != nil {
+		log.Errorf("Fee wallet client error: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
+
+	rawTicket, err := fWalletClient.GetRawTransaction(ctx, ticketHash.String())
 	if err != nil {
 		log.Warnf("Could not retrieve tx %s for %s: %v", ticketHash.String(), c.ClientIP(), err)
 		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
 		return
 	}
 
-	err = wRPC.AddTransaction(ctx, rawTicket.BlockHash, rawTicket.Hex)
+	vWalletConn, err := votingWalletConnect()
+	if err != nil {
+		log.Errorf("Voting wallet connection error: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
+	vWalletClient, err := rpc.VotingWalletClient(ctx, vWalletConn)
+	if err != nil {
+		log.Errorf("Voting wallet client error: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
+
+	err = vWalletClient.AddTransaction(ctx, rawTicket.BlockHash, rawTicket.Hex)
 	if err != nil {
 		log.Errorf("AddTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 
-	err = wRPC.ImportPrivKey(ctx, votingWIF.String())
+	err = vWalletClient.ImportPrivKey(ctx, votingWIF.String())
 	if err != nil {
 		log.Errorf("ImportPrivKey failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
@@ -164,7 +182,7 @@ findAddress:
 
 	// Update vote choices on voting wallets.
 	for agenda, choice := range voteChoices {
-		err = wRPC.SetVoteChoice(ctx, agenda, choice, ticket.Hash)
+		err = vWalletClient.SetVoteChoice(ctx, agenda, choice, ticket.Hash)
 		if err != nil {
 			log.Errorf("SetVoteChoice failed: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
@@ -181,7 +199,7 @@ findAddress:
 		return
 	}
 
-	sendTxHash, err := wRPC.SendRawTransaction(ctx, hex.EncodeToString(feeTxBuf.Bytes()))
+	sendTxHash, err := fWalletClient.SendRawTransaction(ctx, hex.EncodeToString(feeTxBuf.Bytes()))
 	if err != nil {
 		log.Errorf("SendRawTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
