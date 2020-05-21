@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/gin-gonic/gin"
+	"github.com/jholdstock/dcrvsp/rpc"
 )
 
 // setVoteChoices is the handler for "POST /setvotechoices"
@@ -67,14 +68,15 @@ func setVoteChoices(c *gin.Context) {
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
+	wRPC := rpc.WalletClient(walletClient)
 
 	ctx := c.Request.Context()
 
 	// Update vote choices on voting wallets.
 	for agenda, choice := range voteChoices {
-		err = walletClient.Call(ctx, "setvotechoice", nil, agenda, choice, ticket.Hash)
+		err = wRPC.SetVoteChoice(ctx, agenda, choice, ticket.Hash)
 		if err != nil {
-			log.Errorf("setvotechoice failed: %v", err)
+			log.Errorf("SetVoteChoice failed: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
 		}

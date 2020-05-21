@@ -11,7 +11,6 @@ import (
 	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
 	"github.com/jholdstock/dcrvsp/webapi"
-	"github.com/jrick/wsrpc/v2"
 )
 
 const (
@@ -68,6 +67,7 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
+	wRPC := rpc.WalletClient(walletClient)
 
 	signKey, pubKey, err := db.KeyPair()
 	if err != nil {
@@ -78,7 +78,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Ensure the wallet account for collecting fees exists and matches config.
-	err = setupFeeAccount(ctx, walletClient, cfg.FeeXPub)
+	err = setupFeeAccount(ctx, wRPC, cfg.FeeXPub)
 	if err != nil {
 		log.Errorf("Fee account error: %v", err)
 		requestShutdown()
@@ -109,18 +109,16 @@ func run(ctx context.Context) error {
 	return ctx.Err()
 }
 
-func setupFeeAccount(ctx context.Context, walletClient *wsrpc.Client, feeXpub string) error {
+func setupFeeAccount(ctx context.Context, walletClient *rpc.WalletRPC, feeXpub string) error {
 	// Check if account for fee collection already exists.
-	var accounts map[string]float64
-	err := walletClient.Call(ctx, "listaccounts", &accounts)
+	accounts, err := walletClient.ListAccounts(ctx)
 	if err != nil {
 		return fmt.Errorf("dcrwallet RPC error: %v", err)
 	}
 
 	if _, ok := accounts[feeAccountName]; ok {
 		// Account already exists. Check xpub matches xpub from config.
-		var existingXPub string
-		err = walletClient.Call(ctx, "getmasterpubkey", &existingXPub, feeAccountName)
+		existingXPub, err := walletClient.GetMasterPubKey(ctx, feeAccountName)
 		if err != nil {
 			return fmt.Errorf("dcrwallet RPC error: %v", err)
 		}
@@ -133,7 +131,7 @@ func setupFeeAccount(ctx context.Context, walletClient *wsrpc.Client, feeXpub st
 
 	} else {
 		// Account does not exist. Create it using xpub from config.
-		if err = walletClient.Call(ctx, "importxpub", nil, feeAccountName, feeXpub); err != nil {
+		if err = walletClient.ImportXPub(ctx, feeAccountName, feeXpub); err != nil {
 			log.Errorf("Failed to import xpub: %v", err)
 			return err
 		}

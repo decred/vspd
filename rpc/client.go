@@ -12,7 +12,17 @@ import (
 	"github.com/jrick/wsrpc/v2"
 )
 
-type Client func() (*wsrpc.Client, error)
+// Caller provides a client interface to perform JSON-RPC remote procedure calls.
+type Caller interface {
+	// Call performs the remote procedure call defined by method and
+	// waits for a response or a broken client connection.
+	// Args provides positional parameters for the call.
+	// Res must be a pointer to a struct, slice, or map type to unmarshal
+	// a result (if any), or nil if no result is needed.
+	Call(ctx context.Context, method string, res interface{}, args ...interface{}) error
+}
+
+type Client func() (Caller, error)
 
 const (
 	requiredWalletVersion = "8.1.0"
@@ -59,7 +69,7 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 		shutdownWg.Done()
 	}()
 
-	return func() (*wsrpc.Client, error) {
+	return func() (Caller, error) {
 		defer mu.Unlock()
 		mu.Lock()
 
