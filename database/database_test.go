@@ -25,6 +25,7 @@ func exampleTicket() Ticket {
 		VotingKey:           "VotingKey",
 		VSPFee:              0.1,
 		FeeExpiration:       4,
+		FeeTxHash:           "",
 	}
 }
 
@@ -109,6 +110,7 @@ func testGetTicketByHash(t *testing.T) {
 		!reflect.DeepEqual(retrieved.VoteChoices, ticket.VoteChoices) ||
 		retrieved.VotingKey != ticket.VotingKey ||
 		retrieved.VSPFee != ticket.VSPFee ||
+		retrieved.FeeTxHash != ticket.FeeTxHash ||
 		retrieved.FeeExpiration != ticket.FeeExpiration {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
@@ -131,8 +133,9 @@ func testSetTicketVotingKey(t *testing.T) {
 	// Update values.
 	newVotingKey := ticket.VotingKey + "2"
 	newVoteChoices := ticket.VoteChoices
+	feeTxHash := ticket.FeeTxHash + "3"
 	newVoteChoices["AgendaID"] = "Different choice"
-	err = db.SetTicketVotingKey(ticket.Hash, newVotingKey, newVoteChoices)
+	err = db.SetTicketVotingKey(ticket.Hash, newVotingKey, newVoteChoices, feeTxHash)
 	if err != nil {
 		t.Fatalf("error updating votingkey and votechoices: %v", err)
 	}
@@ -145,6 +148,7 @@ func testSetTicketVotingKey(t *testing.T) {
 
 	// Check ticket fields match expected.
 	if !reflect.DeepEqual(newVoteChoices, retrieved.VoteChoices) ||
+		feeTxHash != retrieved.FeeTxHash ||
 		newVotingKey != retrieved.VotingKey {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}

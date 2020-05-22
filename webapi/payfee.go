@@ -24,8 +24,21 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	// TODO: Respond early if the fee tx has already been broadcast for this
-	// ticket. Maybe indicate status - mempool/awaiting confs/confirmed.
+	ticket, err := db.GetTicketByHash(payFeeRequest.TicketHash)
+	if err != nil {
+		log.Warnf("Invalid ticket from %s", c.ClientIP())
+		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
+		return
+	}
+
+	// Fee transaction has already been broadcast for this ticket.
+	if ticket.FeeTxHash != "" {
+		sendJSONResponse(payFeeResponse{
+			Timestamp: time.Now().Unix(),
+			TxHash:    ticket.FeeTxHash,
+			Request:   payFeeRequest,
+		}, c)
+	}
 
 	// Validate VotingKey.
 	votingKey := payFeeRequest.VotingKey
@@ -67,13 +80,6 @@ func payFee(c *gin.Context) {
 	if err != nil {
 		log.Errorf("Serialize tx failed: %v", err)
 		sendErrorResponse("serialize tx error", http.StatusInternalServerError, c)
-		return
-	}
-
-	ticket, err := db.GetTicketByHash(payFeeRequest.TicketHash)
-	if err != nil {
-		log.Warnf("Invalid ticket from %s", c.ClientIP())
-		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
 		return
 	}
 
@@ -156,17 +162,17 @@ findAddress:
 	// pays sufficient fees to the expected address.
 	// Proceed to update the database and broadcast the transaction.
 
-	err = db.SetTicketVotingKey(ticket.Hash, votingWIF.String(), voteChoices)
-	if err != nil {
-		log.Errorf("SetTicketVotingKey failed: %v", err)
-		sendErrorResponse("database error", http.StatusInternalServerError, c)
-		return
-	}
-
-	sendTxHash, err := fWalletClient.SendRawTransaction(hex.EncodeToString(feeTxBuf.Bytes()))
+	feeTxHash, err := fWalletClient.SendRawTransaction(hex.EncodeToString(feeTxBuf.Bytes()))
 	if err != nil {
 		log.Errorf("SendRawTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
+
+	err = db.SetTicketVotingKey(ticket.Hash, votingWIF.String(), voteChoices, feeTxHash)
+	if err != nil {
+		log.Errorf("SetTicketVotingKey failed: %v", err)
+		sendErrorResponse("database error", http.StatusInternalServerError, c)
 		return
 	}
 
@@ -220,7 +226,7 @@ findAddress:
 
 	sendJSONResponse(payFeeResponse{
 		Timestamp: time.Now().Unix(),
-		TxHash:    sendTxHash,
+		TxHash:    feeTxHash,
 		Request:   payFeeRequest,
 	}, c)
 }

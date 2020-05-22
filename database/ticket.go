@@ -20,6 +20,7 @@ type Ticket struct {
 	VotingKey           string            `json:"votingkey"`
 	VSPFee              float64           `json:"vspfee"`
 	FeeExpiration       int64             `json:"feeexpiration"`
+	FeeTxHash           string            `json:"feetxhash"`
 }
 
 func (t *Ticket) FeeExpired() bool {
@@ -40,6 +41,8 @@ func (vdb *VspDatabase) InsertTicket(ticket Ticket) error {
 			return fmt.Errorf("ticket already exists with hash %s", ticket.Hash)
 		}
 
+		// TODO: Error if a ticket already exists with the same fee address.
+
 		ticketBytes, err := json.Marshal(ticket)
 		if err != nil {
 			return err
@@ -49,7 +52,7 @@ func (vdb *VspDatabase) InsertTicket(ticket Ticket) error {
 	})
 }
 
-func (vdb *VspDatabase) SetTicketVotingKey(ticketHash, votingKey string, voteChoices map[string]string) error {
+func (vdb *VspDatabase) SetTicketVotingKey(ticketHash, votingKey string, voteChoices map[string]string, feeTxHash string) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
@@ -68,6 +71,8 @@ func (vdb *VspDatabase) SetTicketVotingKey(ticketHash, votingKey string, voteCho
 
 		ticket.VotingKey = votingKey
 		ticket.VoteChoices = voteChoices
+		ticket.FeeTxHash = feeTxHash
+
 		ticketBytes, err = json.Marshal(ticket)
 		if err != nil {
 			return fmt.Errorf("could not marshal ticket: %v", err)
