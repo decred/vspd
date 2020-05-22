@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -18,7 +19,12 @@ type Ticket struct {
 	VoteChoices         map[string]string `json:"votechoices"`
 	VotingKey           string            `json:"votingkey"`
 	VSPFee              float64           `json:"vspfee"`
-	Expiration          int64             `json:"expiration"`
+	FeeExpiration       int64             `json:"feeexpiration"`
+}
+
+func (t *Ticket) FeeExpired() bool {
+	now := time.Now()
+	return now.After(time.Unix(t.FeeExpiration, 0))
 }
 
 var (
@@ -133,7 +139,7 @@ func (vdb *VspDatabase) UpdateExpireAndFee(ticketHash string, expiration int64, 
 		if err != nil {
 			return fmt.Errorf("could not unmarshal ticket: %v", err)
 		}
-		ticket.Expiration = expiration
+		ticket.FeeExpiration = expiration
 		ticket.VSPFee = vspFee
 
 		ticketBytes, err = json.Marshal(ticket)

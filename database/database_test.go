@@ -24,7 +24,7 @@ func exampleTicket() Ticket {
 		VoteChoices:         map[string]string{"AgendaID": "Choice"},
 		VotingKey:           "VotingKey",
 		VSPFee:              0.1,
-		Expiration:          4,
+		FeeExpiration:       4,
 	}
 }
 
@@ -109,7 +109,7 @@ func testGetTicketByHash(t *testing.T) {
 		!reflect.DeepEqual(retrieved.VoteChoices, ticket.VoteChoices) ||
 		retrieved.VotingKey != ticket.VotingKey ||
 		retrieved.VSPFee != ticket.VSPFee ||
-		retrieved.Expiration != ticket.Expiration {
+		retrieved.FeeExpiration != ticket.FeeExpiration {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
 
@@ -159,7 +159,7 @@ func testUpdateExpireAndFee(t *testing.T) {
 	}
 
 	// Update ticket with new values.
-	newExpiry := ticket.Expiration + 1
+	newExpiry := ticket.FeeExpiration + 1
 	newFee := ticket.VSPFee + 1
 	err = db.UpdateExpireAndFee(ticket.Hash, newExpiry, newFee)
 	if err != nil {
@@ -173,7 +173,7 @@ func testUpdateExpireAndFee(t *testing.T) {
 	}
 
 	// Check ticket fields match expected.
-	if retrieved.VSPFee != newFee || retrieved.Expiration != newExpiry {
+	if retrieved.VSPFee != newFee || retrieved.FeeExpiration != newExpiry {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
 }

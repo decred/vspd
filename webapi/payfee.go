@@ -70,12 +70,16 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	// TODO: DB - check expiration given during fee address request
-
 	ticket, err := db.GetTicketByHash(payFeeRequest.TicketHash)
 	if err != nil {
 		log.Warnf("Invalid ticket from %s", c.ClientIP())
 		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
+		return
+	}
+
+	if ticket.FeeExpired() {
+		log.Warnf("Expired payfee request from %s", c.ClientIP())
+		sendErrorResponse("fee has expired", http.StatusBadRequest, c)
 		return
 	}
 
