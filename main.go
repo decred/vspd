@@ -14,8 +14,7 @@ import (
 )
 
 const (
-	feeAccountName = "fees"
-	// TODO: Make expiration configurable?
+	feeAccountName              = "fees"
 	defaultFeeAddressExpiration = 24 * time.Hour
 )
 

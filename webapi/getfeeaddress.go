@@ -54,9 +54,9 @@ func feeAddress(c *gin.Context) {
 		// Ticket already exists
 		if signature == ticket.CommitmentSignature {
 			now := time.Now()
-			expire := ticket.Expiration
+			expire := ticket.FeeExpiration
 			VSPFee := ticket.VSPFee
-			if now.After(time.Unix(ticket.Expiration, 0)) {
+			if ticket.FeeExpired() {
 				expire = now.Add(cfg.FeeAddressExpiration).Unix()
 				VSPFee = cfg.VSPFee
 
@@ -183,7 +183,7 @@ func feeAddress(c *gin.Context) {
 		SDiff:               blockHeader.SBits,
 		BlockHeight:         int64(blockHeader.Height),
 		VSPFee:              cfg.VSPFee,
-		Expiration:          expire,
+		FeeExpiration:       expire,
 		// VotingKey and VoteChoices: set during payfee
 	}
 
