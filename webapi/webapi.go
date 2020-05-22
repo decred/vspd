@@ -142,9 +142,9 @@ func sendJSONResponse(resp interface{}, c *gin.Context) {
 	sig := ed25519.Sign(cfg.SignKey, dec)
 	c.Writer.Header().Set("VSP-Signature", hex.EncodeToString(sig))
 
-	c.JSON(http.StatusOK, resp)
+	c.AbortWithStatusJSON(http.StatusOK, resp)
 }
 
 func sendErrorResponse(errMsg string, code int, c *gin.Context) {
-	c.JSON(code, gin.H{"error": errMsg})
+	c.AbortWithStatusJSON(code, gin.H{"error": errMsg})
 }

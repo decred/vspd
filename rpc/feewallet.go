@@ -16,6 +16,7 @@ const (
 // of JSON encoding.
 type FeeWalletRPC struct {
 	Caller
+	ctx context.Context
 }
 
 // FeeWalletClient creates a new WalletRPC client instance from a caller.
@@ -48,64 +49,64 @@ func FeeWalletClient(ctx context.Context, c Caller) (*FeeWalletRPC, error) {
 
 	// TODO: Ensure correct network.
 
-	return &FeeWalletRPC{c}, nil
+	return &FeeWalletRPC{c, ctx}, nil
 }
 
-func (c *FeeWalletRPC) ImportXPub(ctx context.Context, account, xpub string) error {
-	return c.Call(ctx, "importxpub", nil, account, xpub)
+func (c *FeeWalletRPC) ImportXPub(account, xpub string) error {
+	return c.Call(c.ctx, "importxpub", nil, account, xpub)
 }
 
-func (c *FeeWalletRPC) GetMasterPubKey(ctx context.Context, account string) (string, error) {
+func (c *FeeWalletRPC) GetMasterPubKey(account string) (string, error) {
 	var pubKey string
-	err := c.Call(ctx, "getmasterpubkey", &pubKey, account)
+	err := c.Call(c.ctx, "getmasterpubkey", &pubKey, account)
 	if err != nil {
 		return "", err
 	}
 	return pubKey, nil
 }
 
-func (c *FeeWalletRPC) ListAccounts(ctx context.Context) (map[string]float64, error) {
+func (c *FeeWalletRPC) ListAccounts() (map[string]float64, error) {
 	var accounts map[string]float64
-	err := c.Call(ctx, "listaccounts", &accounts)
+	err := c.Call(c.ctx, "listaccounts", &accounts)
 	if err != nil {
 		return nil, err
 	}
 	return accounts, nil
 }
 
-func (c *FeeWalletRPC) GetNewAddress(ctx context.Context, account string) (string, error) {
+func (c *FeeWalletRPC) GetNewAddress(account string) (string, error) {
 	var newAddress string
-	err := c.Call(ctx, "getnewaddress", &newAddress, account)
+	err := c.Call(c.ctx, "getnewaddress", &newAddress, account)
 	if err != nil {
 		return "", err
 	}
 	return newAddress, nil
 }
 
-func (c *FeeWalletRPC) GetBlockHeader(ctx context.Context, blockHash string) (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
+func (c *FeeWalletRPC) GetBlockHeader(blockHash string) (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
 	verbose := true
 	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
-	err := c.Call(ctx, "getblockheader", &blockHeader, blockHash, verbose)
+	err := c.Call(c.ctx, "getblockheader", &blockHeader, blockHash, verbose)
 	if err != nil {
 		return nil, err
 	}
 	return &blockHeader, nil
 }
 
-func (c *FeeWalletRPC) GetRawTransaction(ctx context.Context, txHash string) (*dcrdtypes.TxRawResult, error) {
+func (c *FeeWalletRPC) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, error) {
 	verbose := 1
 	var resp dcrdtypes.TxRawResult
-	err := c.Call(ctx, "getrawtransaction", &resp, txHash, verbose)
+	err := c.Call(c.ctx, "getrawtransaction", &resp, txHash, verbose)
 	if err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
 
-func (c *FeeWalletRPC) SendRawTransaction(ctx context.Context, txHex string) (string, error) {
+func (c *FeeWalletRPC) SendRawTransaction(txHex string) (string, error) {
 	allowHighFees := false
 	var txHash string
-	err := c.Call(ctx, "sendrawtransaction", &txHash, txHex, allowHighFees)
+	err := c.Call(c.ctx, "sendrawtransaction", &txHash, txHex, allowHighFees)
 	if err != nil {
 		return "", err
 	}
