@@ -35,11 +35,11 @@ func TestDatabase(t *testing.T) {
 
 	// All sub-tests to run.
 	tests := map[string]func(*testing.T){
-		"testInsertFeeAddress":          testInsertFeeAddress,
-		"testGetTicketByHash":           testGetTicketByHash,
-		"testInsertFeeAddressVotingKey": testInsertFeeAddressVotingKey,
-		"testUpdateExpireAndFee":        testUpdateExpireAndFee,
-		"testUpdateVoteChoices":         testUpdateVoteChoices,
+		"testInsertTicket":       testInsertTicket,
+		"testGetTicketByHash":    testGetTicketByHash,
+		"testSetTicketVotingKey": testSetTicketVotingKey,
+		"testUpdateExpireAndFee": testUpdateExpireAndFee,
+		"testUpdateVoteChoices":  testUpdateVoteChoices,
 	}
 
 	for testName, test := range tests {
@@ -63,23 +63,23 @@ func TestDatabase(t *testing.T) {
 	}
 }
 
-func testInsertFeeAddress(t *testing.T) {
+func testInsertTicket(t *testing.T) {
 	// Insert a ticket into the database.
 	ticket := exampleTicket()
-	err := db.InsertFeeAddress(ticket)
+	err := db.InsertTicket(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
 	// Inserting a ticket with the same hash should fail.
-	err = db.InsertFeeAddress(ticket)
+	err = db.InsertTicket(ticket)
 	if err == nil {
 		t.Fatal("expected an error inserting ticket with duplicate hash")
 	}
 
 	// Inserting a ticket with empty hash should fail.
 	ticket.Hash = ""
-	err = db.InsertFeeAddress(ticket)
+	err = db.InsertTicket(ticket)
 	if err == nil {
 		t.Fatal("expected an error inserting ticket with no hash")
 	}
@@ -88,7 +88,7 @@ func testInsertFeeAddress(t *testing.T) {
 func testGetTicketByHash(t *testing.T) {
 	ticket := exampleTicket()
 	// Insert a ticket into the database.
-	err := db.InsertFeeAddress(ticket)
+	err := db.InsertTicket(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
@@ -120,10 +120,10 @@ func testGetTicketByHash(t *testing.T) {
 	}
 }
 
-func testInsertFeeAddressVotingKey(t *testing.T) {
+func testSetTicketVotingKey(t *testing.T) {
 	// Insert a ticket into the database.
 	ticket := exampleTicket()
-	err := db.InsertFeeAddress(ticket)
+	err := db.InsertTicket(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
@@ -132,7 +132,7 @@ func testInsertFeeAddressVotingKey(t *testing.T) {
 	newVotingKey := ticket.VotingKey + "2"
 	newVoteChoices := ticket.VoteChoices
 	newVoteChoices["AgendaID"] = "Different choice"
-	err = db.InsertFeeAddressVotingKey(ticket.CommitmentAddress, newVotingKey, newVoteChoices)
+	err = db.SetTicketVotingKey(ticket.Hash, newVotingKey, newVoteChoices)
 	if err != nil {
 		t.Fatalf("error updating votingkey and votechoices: %v", err)
 	}
@@ -153,7 +153,7 @@ func testInsertFeeAddressVotingKey(t *testing.T) {
 func testUpdateExpireAndFee(t *testing.T) {
 	// Insert a ticket into the database.
 	ticket := exampleTicket()
-	err := db.InsertFeeAddress(ticket)
+	err := db.InsertTicket(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
@@ -181,7 +181,7 @@ func testUpdateExpireAndFee(t *testing.T) {
 func testUpdateVoteChoices(t *testing.T) {
 	// Insert a ticket into the database.
 	ticket := exampleTicket()
-	err := db.InsertFeeAddress(ticket)
+	err := db.InsertTicket(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}

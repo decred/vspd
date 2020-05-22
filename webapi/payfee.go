@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"decred.org/dcrwallet/wallet/txrules"
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/txscript/v3"
@@ -16,7 +15,7 @@ import (
 	"github.com/jholdstock/dcrvsp/rpc"
 )
 
-// payFee is the handler for "POST /payfee"
+// payFee is the handler for "POST /payfee".
 func payFee(c *gin.Context) {
 	var payFeeRequest PayFeeRequest
 	if err := c.ShouldBindJSON(&payFeeRequest); err != nil {
@@ -25,6 +24,10 @@ func payFee(c *gin.Context) {
 		return
 	}
 
+	// TODO: Respond early if the fee tx has already been broadcast for this
+	// ticket. Maybe indicate status - mempool/awaiting confs/confirmed.
+
+	// Validate VotingKey.
 	votingKey := payFeeRequest.VotingKey
 	votingWIF, err := dcrutil.DecodeWIF(votingKey, cfg.NetParams.PrivateKeyID)
 	if err != nil {
@@ -33,6 +36,7 @@ func payFee(c *gin.Context) {
 		return
 	}
 
+	// Validate VoteChoices.
 	voteChoices := payFeeRequest.VoteChoices
 	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
 	if err != nil {
@@ -41,6 +45,7 @@ func payFee(c *gin.Context) {
 		return
 	}
 
+	// Validate FeeTx.
 	feeTxBytes, err := hex.DecodeString(payFeeRequest.FeeTx)
 	if err != nil {
 		log.Warnf("Failed to decode tx: %v", err)
@@ -56,6 +61,15 @@ func payFee(c *gin.Context) {
 		return
 	}
 
+	feeTxBuf := new(bytes.Buffer)
+	feeTxBuf.Grow(feeTx.SerializeSize())
+	err = feeTx.Serialize(feeTxBuf)
+	if err != nil {
+		log.Errorf("Serialize tx failed: %v", err)
+		sendErrorResponse("serialize tx error", http.StatusInternalServerError, c)
+		return
+	}
+
 	// TODO: DB - check expiration given during fee address request
 
 	ticket, err := db.GetTicketByHash(payFeeRequest.TicketHash)
@@ -64,6 +78,9 @@ func payFee(c *gin.Context) {
 		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
 		return
 	}
+
+	// Loop through transaction outputs until we find one which pays to the
+	// expected fee address. Record how much is being paid to the fee address.
 	var feeAmount dcrutil.Amount
 	const scriptVersion = 0
 
@@ -90,12 +107,6 @@ findAddress:
 		return
 	}
 
-	voteAddr, err := dcrutil.DecodeAddress(ticket.CommitmentAddress, cfg.NetParams)
-	if err != nil {
-		log.Errorf("DecodeAddress: %v", err)
-		sendErrorResponse("database error", http.StatusInternalServerError, c)
-		return
-	}
 	_, err = dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), cfg.NetParams,
 		dcrec.STEcdsaSecp256k1)
 	if err != nil {
@@ -107,29 +118,6 @@ findAddress:
 	// TODO: DB - validate votingkey against ticket submission address
 
 	sDiff := dcrutil.Amount(ticket.SDiff)
-
-	// TODO - RPC - get relayfee from wallet
-	relayFee, err := dcrutil.NewAmount(0.0001)
-	if err != nil {
-		log.Errorf("NewAmount failed: %v", err)
-		sendErrorResponse("failed to create new amount", http.StatusInternalServerError, c)
-		return
-	}
-
-	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(ticket.BlockHeight), cfg.VSPFee, cfg.NetParams)
-	if feeAmount < minFee {
-		log.Errorf("Fee too small: was %v, expected %v", feeAmount, minFee)
-		sendErrorResponse("fee too small", http.StatusInternalServerError, c)
-		return
-	}
-
-	// Get vote tx to give to wallet
-	ticketHash, err := chainhash.NewHashFromStr(ticket.Hash)
-	if err != nil {
-		log.Errorf("NewHashFromStr failed: %v", err)
-		sendErrorResponse("failed to create hash", http.StatusInternalServerError, c)
-		return
-	}
 
 	fWalletConn, err := feeWalletConnect()
 	if err != nil {
@@ -146,9 +134,45 @@ findAddress:
 		return
 	}
 
-	rawTicket, err := fWalletClient.GetRawTransaction(ticketHash.String())
+	relayFee, err := fWalletClient.GetWalletFee()
 	if err != nil {
-		log.Warnf("Could not retrieve tx %s for %s: %v", ticketHash.String(), c.ClientIP(), err)
+		log.Errorf("GetWalletFee failed: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
+
+	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(ticket.BlockHeight), cfg.VSPFee, cfg.NetParams)
+	if feeAmount < minFee {
+		log.Errorf("Fee too small: was %v, expected %v", feeAmount, minFee)
+		sendErrorResponse("fee too small", http.StatusInternalServerError, c)
+		return
+	}
+
+	// At this point we are satisfied that the request is valid and the FeeTx
+	// pays sufficient fees to the expected address.
+	// Proceed to update the database and broadcast the transaction.
+
+	err = db.SetTicketVotingKey(ticket.Hash, votingWIF.String(), voteChoices)
+	if err != nil {
+		log.Errorf("SetTicketVotingKey failed: %v", err)
+		sendErrorResponse("database error", http.StatusInternalServerError, c)
+		return
+	}
+
+	sendTxHash, err := fWalletClient.SendRawTransaction(hex.EncodeToString(feeTxBuf.Bytes()))
+	if err != nil {
+		log.Errorf("SendRawTransaction failed: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
+
+	// TODO: Should return a response here. We don't want to add the ticket to
+	// the voting wallets until the fee tx has been confirmed.
+
+	// Add ticket to voting wallets.
+	rawTicket, err := fWalletClient.GetRawTransaction(ticket.Hash)
+	if err != nil {
+		log.Warnf("Could not retrieve tx %s for %s: %v", ticket.Hash, c.ClientIP(), err)
 		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
 		return
 	}
@@ -188,29 +212,6 @@ findAddress:
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
 		}
-	}
-
-	feeTxBuf := new(bytes.Buffer)
-	feeTxBuf.Grow(feeTx.SerializeSize())
-	err = feeTx.Serialize(feeTxBuf)
-	if err != nil {
-		log.Errorf("Serialize tx failed: %v", err)
-		sendErrorResponse("serialize tx error", http.StatusInternalServerError, c)
-		return
-	}
-
-	sendTxHash, err := fWalletClient.SendRawTransaction(hex.EncodeToString(feeTxBuf.Bytes()))
-	if err != nil {
-		log.Errorf("SendRawTransaction failed: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-
-	err = db.InsertFeeAddressVotingKey(voteAddr.Address(), votingWIF.String(), voteChoices)
-	if err != nil {
-		log.Errorf("InsertFeeAddressVotingKey failed: %v", err)
-		sendErrorResponse("database error", http.StatusInternalServerError, c)
-		return
 	}
 
 	sendJSONResponse(payFeeResponse{

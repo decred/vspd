@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	wallettypes "decred.org/dcrwallet/rpc/jsonrpc/types"
+	"github.com/decred/dcrd/dcrutil/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 )
 
@@ -111,4 +112,20 @@ func (c *FeeWalletRPC) SendRawTransaction(txHex string) (string, error) {
 		return "", err
 	}
 	return txHash, nil
+}
+
+func (c *FeeWalletRPC) GetWalletFee() (dcrutil.Amount, error) {
+	var amount dcrutil.Amount
+	var feeF float64
+	err := c.Call(c.ctx, "getwalletfee", &feeF)
+	if err != nil {
+		return amount, err
+	}
+
+	amount, err = dcrutil.NewAmount(feeF)
+	if err != nil {
+		return amount, err
+	}
+
+	return amount, nil
 }
