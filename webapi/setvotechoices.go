@@ -77,6 +77,15 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
+	// Update VoteChoices in the database before updating the wallets. DB is
+	// source of truth and is less likely to error.
+	err = db.UpdateVoteChoices(txHash.String(), voteChoices)
+	if err != nil {
+		log.Errorf("UpdateVoteChoices error: %v", err)
+		sendErrorResponse("database error", http.StatusInternalServerError, c)
+		return
+	}
+
 	// Update vote choices on voting wallets.
 	for agenda, choice := range voteChoices {
 		err = vWalletClient.SetVoteChoice(agenda, choice, ticket.Hash)
@@ -85,15 +94,6 @@ func setVoteChoices(c *gin.Context) {
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
 		}
-	}
-
-	// TODO: Update database before updating wallets. DB is source of truth and
-	// is less likely to error.
-	err = db.UpdateVoteChoices(txHash.String(), voteChoices)
-	if err != nil {
-		log.Errorf("UpdateVoteChoices error: %v", err)
-		sendErrorResponse("database error", http.StatusInternalServerError, c)
-		return
 	}
 
 	// TODO: DB - error if given timestamp is older than any previous requests
