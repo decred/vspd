@@ -16,6 +16,7 @@ const (
 // of JSON encoding.
 type VotingWalletRPC struct {
 	Caller
+	ctx context.Context
 }
 
 // VotingWalletClient creates a new VotingWalletRPC client instance from a caller.
@@ -54,20 +55,20 @@ func VotingWalletClient(ctx context.Context, c Caller) (*VotingWalletRPC, error)
 
 	// TODO: Ensure correct network.
 
-	return &VotingWalletRPC{c}, nil
+	return &VotingWalletRPC{c, ctx}, nil
 }
 
-func (c *VotingWalletRPC) AddTransaction(ctx context.Context, blockHash, txHex string) error {
-	return c.Call(ctx, "addtransaction", nil, blockHash, txHex)
+func (c *VotingWalletRPC) AddTransaction(blockHash, txHex string) error {
+	return c.Call(c.ctx, "addtransaction", nil, blockHash, txHex)
 }
 
-func (c *VotingWalletRPC) ImportPrivKey(ctx context.Context, votingWIF string) error {
+func (c *VotingWalletRPC) ImportPrivKey(votingWIF string) error {
 	label := "imported"
 	rescan := false
 	scanFrom := 0
-	return c.Call(ctx, "importprivkey", nil, votingWIF, label, rescan, scanFrom)
+	return c.Call(c.ctx, "importprivkey", nil, votingWIF, label, rescan, scanFrom)
 }
 
-func (c *VotingWalletRPC) SetVoteChoice(ctx context.Context, agenda, choice, ticketHash string) error {
-	return c.Call(ctx, "setvotechoice", nil, agenda, choice, ticketHash)
+func (c *VotingWalletRPC) SetVoteChoice(agenda, choice, ticketHash string) error {
+	return c.Call(c.ctx, "setvotechoice", nil, agenda, choice, ticketHash)
 }

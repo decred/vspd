@@ -102,7 +102,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Ensure the wallet account for collecting fees exists and matches config.
-	err = setupFeeAccount(ctx, feeWalletClient, cfg.FeeXPub)
+	err = setupFeeAccount(feeWalletClient, cfg.FeeXPub)
 	if err != nil {
 		log.Errorf("Fee account error: %v", err)
 		requestShutdown()
@@ -133,16 +133,16 @@ func run(ctx context.Context) error {
 	return ctx.Err()
 }
 
-func setupFeeAccount(ctx context.Context, walletClient *rpc.FeeWalletRPC, feeXpub string) error {
+func setupFeeAccount(walletClient *rpc.FeeWalletRPC, feeXpub string) error {
 	// Check if account for fee collection already exists.
-	accounts, err := walletClient.ListAccounts(ctx)
+	accounts, err := walletClient.ListAccounts()
 	if err != nil {
 		return fmt.Errorf("ListAccounts error: %v", err)
 	}
 
 	if _, ok := accounts[feeAccountName]; ok {
 		// Account already exists. Check xpub matches xpub from config.
-		existingXPub, err := walletClient.GetMasterPubKey(ctx, feeAccountName)
+		existingXPub, err := walletClient.GetMasterPubKey(feeAccountName)
 		if err != nil {
 			return fmt.Errorf("GetMasterPubKey error: %v", err)
 		}
@@ -155,7 +155,7 @@ func setupFeeAccount(ctx context.Context, walletClient *rpc.FeeWalletRPC, feeXpu
 
 	} else {
 		// Account does not exist. Create it using xpub from config.
-		if err = walletClient.ImportXPub(ctx, feeAccountName, feeXpub); err != nil {
+		if err = walletClient.ImportXPub(feeAccountName, feeXpub); err != nil {
 			log.Errorf("ImportXPub error: %v", err)
 			return err
 		}

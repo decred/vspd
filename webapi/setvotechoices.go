@@ -79,7 +79,7 @@ func setVoteChoices(c *gin.Context) {
 
 	// Update vote choices on voting wallets.
 	for agenda, choice := range voteChoices {
-		err = vWalletClient.SetVoteChoice(ctx, agenda, choice, ticket.Hash)
+		err = vWalletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 		if err != nil {
 			log.Errorf("SetVoteChoice failed: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
