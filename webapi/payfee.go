@@ -13,78 +13,41 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
 )
 
 // payFee is the handler for "POST /payfee".
 func payFee(c *gin.Context) {
 
-	ctx := c.Request.Context()
+	// Get values which have been added to context by middleware.
+	rawRequest := c.MustGet("RawRequest").([]byte)
+	ticket := c.MustGet("Ticket").(database.Ticket)
+	knownTicket := c.MustGet("KnownTicket").(bool)
+	fWalletClient := c.MustGet("FeeWalletClient").(*rpc.FeeWalletRPC)
+	vWalletClient := c.MustGet("VotingWalletClient").(*rpc.VotingWalletRPC)
 
-	reqBytes, err := c.GetRawData()
-	if err != nil {
-		log.Warnf("Error reading request from %s: %v", c.ClientIP(), err)
-		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
+	if !knownTicket {
+		log.Warnf("Invalid ticket from %s", c.ClientIP())
+		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
 		return
 	}
 
 	var payFeeRequest PayFeeRequest
-	if err := binding.JSON.BindBody(reqBytes, &payFeeRequest); err != nil {
+	if err := binding.JSON.BindBody(rawRequest, &payFeeRequest); err != nil {
 		log.Warnf("Bad payfee request from %s: %v", c.ClientIP(), err)
 		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
 
-	// Create a fee wallet client.
-	fWalletConn, err := feeWalletConnect()
-	if err != nil {
-		log.Errorf("Fee wallet connection error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-	fWalletClient, err := rpc.FeeWalletClient(ctx, fWalletConn)
-	if err != nil {
-		log.Errorf("Fee wallet client error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-
-	// Check if this ticket already appears in the database.
-	ticket, ticketFound, err := db.GetTicketByHash(payFeeRequest.TicketHash)
-	if err != nil {
-		log.Errorf("GetTicketByHash error: %v", err)
-		sendErrorResponse("database error", http.StatusInternalServerError, c)
-		return
-	}
-
-	// If the ticket was found in the database we already know its commitment
-	// address. Otherwise we need to get it from the chain.
-	var commitmentAddress string
-	if ticketFound {
-		commitmentAddress = ticket.CommitmentAddress
-	} else {
-		commitmentAddress, err = fWalletClient.GetTicketCommitmentAddress(payFeeRequest.TicketHash, cfg.NetParams)
-		if err != nil {
-			log.Errorf("GetTicketCommitmentAddress error: %v", err)
-			sendErrorResponse("database error", http.StatusInternalServerError, c)
-			return
-		}
-	}
-
-	// Validate request signature to ensure ticket ownership.
-	err = validateSignature(reqBytes, commitmentAddress, c)
-	if err != nil {
-		log.Warnf("Bad signature from %s: %v", c.ClientIP(), err)
-		sendErrorResponse("bad signature", http.StatusBadRequest, c)
-		return
-	}
-
-	// TODO: Respond early if the fee tx has already been broadcast for this
-	// ticket. Maybe indicate status - mempool/awaiting confs/confirmed.
-
-	if !ticketFound {
-		log.Warnf("Invalid ticket from %s", c.ClientIP())
-		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
+	// Respond early if fee transaction has already been broadcast for this
+	// ticket.
+	if ticket.FeeTxHash != "" {
+		sendJSONResponse(payFeeResponse{
+			Timestamp: time.Now().Unix(),
+			TxHash:    ticket.FeeTxHash,
+			Request:   payFeeRequest,
+		}, c)
 		return
 	}
 
@@ -217,19 +180,6 @@ findAddress:
 	if err != nil {
 		log.Warnf("Could not retrieve tx %s for %s: %v", ticket.Hash, c.ClientIP(), err)
 		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
-		return
-	}
-
-	vWalletConn, err := votingWalletConnect()
-	if err != nil {
-		log.Errorf("Voting wallet connection error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-	vWalletClient, err := rpc.VotingWalletClient(ctx, vWalletConn)
-	if err != nil {
-		log.Errorf("Voting wallet client error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 
