@@ -17,7 +17,7 @@ import (
 	"github.com/jholdstock/dcrvsp/rpc"
 )
 
-// feeAddress is the handler for "POST /feeaddress"
+// feeAddress is the handler for "POST /feeaddress".
 func feeAddress(c *gin.Context) {
 	var feeAddressRequest FeeAddressRequest
 	if err := c.ShouldBindJSON(&feeAddressRequest); err != nil {
@@ -26,7 +26,7 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	// ticketHash
+	// Validate TicketHash.
 	ticketHashStr := feeAddressRequest.TicketHash
 	txHash, err := chainhash.NewHashFromStr(ticketHashStr)
 	if err != nil {
@@ -35,7 +35,7 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	// signature - sanity check signature is in base64 encoding
+	// Validate Signature - sanity check signature is in base64 encoding.
 	signature := feeAddressRequest.Signature
 	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
 		log.Warnf("Invalid signature from %s: %v", c.ClientIP(), err)
@@ -189,7 +189,7 @@ func feeAddress(c *gin.Context) {
 
 	err = db.InsertTicket(dbTicket)
 	if err != nil {
-		log.Errorf("InsertFeeAddress error: %v", err)
+		log.Errorf("InsertTicket error: %v", err)
 		sendErrorResponse("database error", http.StatusInternalServerError, c)
 		return
 	}

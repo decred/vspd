@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ticketStatus is the handler for "GET /ticketstatus"
+// ticketStatus is the handler for "GET /ticketstatus".
 func ticketStatus(c *gin.Context) {
 	var ticketStatusRequest TicketStatusRequest
 	if err := c.ShouldBindJSON(&ticketStatusRequest); err != nil {
@@ -20,7 +20,7 @@ func ticketStatus(c *gin.Context) {
 		return
 	}
 
-	// ticketHash
+	// Validate TicketHash.
 	ticketHashStr := ticketStatusRequest.TicketHash
 	_, err := chainhash.NewHashFromStr(ticketHashStr)
 	if err != nil {
@@ -29,7 +29,7 @@ func ticketStatus(c *gin.Context) {
 		return
 	}
 
-	// signature - sanity check signature is in base64 encoding
+	// Validate Signature - sanity check signature is in base64 encoding.
 	signature := ticketStatusRequest.Signature
 	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
 		log.Warnf("Invalid signature from %s: %v", c.ClientIP(), err)

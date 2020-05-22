@@ -16,7 +16,7 @@ import (
 	"github.com/jholdstock/dcrvsp/rpc"
 )
 
-// payFee is the handler for "POST /payfee"
+// payFee is the handler for "POST /payfee".
 func payFee(c *gin.Context) {
 	var payFeeRequest PayFeeRequest
 	if err := c.ShouldBindJSON(&payFeeRequest); err != nil {
@@ -25,6 +25,10 @@ func payFee(c *gin.Context) {
 		return
 	}
 
+	// TODO: Respond early if the fee tx has already been broadcast for this
+	// ticket. Maybe indicate status - mempool/awaiting confs/confirmed.
+
+	// Validate VotingKey.
 	votingKey := payFeeRequest.VotingKey
 	votingWIF, err := dcrutil.DecodeWIF(votingKey, cfg.NetParams.PrivateKeyID)
 	if err != nil {
@@ -33,6 +37,7 @@ func payFee(c *gin.Context) {
 		return
 	}
 
+	// Validate VoteChoices.
 	voteChoices := payFeeRequest.VoteChoices
 	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
 	if err != nil {
@@ -41,6 +46,7 @@ func payFee(c *gin.Context) {
 		return
 	}
 
+	// Validate FeeTx.
 	feeTxBytes, err := hex.DecodeString(payFeeRequest.FeeTx)
 	if err != nil {
 		log.Warnf("Failed to decode tx: %v", err)

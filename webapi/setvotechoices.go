@@ -12,7 +12,7 @@ import (
 	"github.com/jholdstock/dcrvsp/rpc"
 )
 
-// setVoteChoices is the handler for "POST /setvotechoices"
+// setVoteChoices is the handler for "POST /setvotechoices".
 func setVoteChoices(c *gin.Context) {
 	var setVoteChoicesRequest SetVoteChoicesRequest
 	if err := c.ShouldBindJSON(&setVoteChoicesRequest); err != nil {
@@ -21,7 +21,7 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
-	// ticketHash
+	// Validate TicketHash.
 	ticketHashStr := setVoteChoicesRequest.TicketHash
 	txHash, err := chainhash.NewHashFromStr(ticketHashStr)
 	if err != nil {
@@ -30,7 +30,7 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
-	// signature - sanity check signature is in base64 encoding
+	// Validate Signature - sanity check signature is in base64 encoding.
 	signature := setVoteChoicesRequest.Signature
 	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
 		log.Warnf("Invalid signature from %s: %v", c.ClientIP(), err)
