@@ -155,3 +155,31 @@ func (vdb *VspDatabase) UpdateExpireAndFee(ticketHash string, expiration int64, 
 		return ticketBkt.Put(hashBytes, ticketBytes)
 	})
 }
+
+func (vdb *VspDatabase) CountTickets() (int, int, error) {
+	var total, feePaid int
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+
+		return ticketBkt.ForEach(func(k, v []byte) error {
+			total++
+			var ticket Ticket
+			err := json.Unmarshal(v, &ticket)
+			if err != nil {
+				return fmt.Errorf("could not unmarshal ticket: %v", err)
+			}
+
+			if ticket.FeeTxHash != "" {
+				feePaid++
+			}
+
+			return nil
+		})
+	})
+
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return total, feePaid, nil
+}

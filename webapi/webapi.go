@@ -5,6 +5,7 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	"sync"
@@ -26,6 +27,8 @@ type Config struct {
 	FeeAddressExpiration time.Duration
 }
 
+var homepageData *gin.H
+
 var cfg Config
 var db *database.VspDatabase
 var feeWalletConnect rpc.Connect
@@ -33,6 +36,13 @@ var votingWalletConnect rpc.Connect
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
 	listen string, vdb *database.VspDatabase, fWalletConnect rpc.Connect, vWalletConnect rpc.Connect, debugMode bool, config Config) error {
+
+	// Populate template data before starting webserver.
+	var err error
+	homepageData, err = updateHomepageData(vdb, config)
+	if err != nil {
+		return fmt.Errorf("could not initialize homepage data: %v", err)
+	}
 
 	// Create TCP listener.
 	var listenConfig net.ListenConfig
@@ -75,6 +85,31 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 		if err != nil && err != http.ErrServerClosed {
 			log.Errorf("Unexpected webserver error: %v", err)
 			requestShutdownChan <- struct{}{}
+		}
+	}()
+
+	// Use a ticker to update template data.
+	var refresh time.Duration
+	if debugMode {
+		refresh = 1 * time.Second
+	} else {
+		refresh = 5 * time.Minute
+	}
+	shutdownWg.Add(1)
+	go func() {
+		ticker := time.NewTicker(refresh)
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				shutdownWg.Done()
+				return
+			case <-ticker.C:
+				homepageData, err = updateHomepageData(db, cfg)
+				if err != nil {
+					log.Errorf("Failed to update homepage data: %v", err)
+				}
+			}
 		}
 	}()
 
@@ -125,10 +160,23 @@ func router(debugMode bool) *gin.Engine {
 	return router
 }
 
+func updateHomepageData(db *database.VspDatabase, cfg Config) (*gin.H, error) {
+	total, feePaid, err := db.CountTickets()
+	if err != nil {
+		return nil, err
+	}
+	return &gin.H{
+		"Message":        "Welcome to dcrvsp!",
+		"TotalTickets":   total,
+		"FeePaidTickets": feePaid,
+		"VSPFee":         cfg.VSPFee,
+		"Network":        cfg.NetParams.Name,
+		"UpdateTime":     time.Now().Format("Mon Jan _2 15:04:05 2006"),
+	}, nil
+}
+
 func homepage(c *gin.Context) {
-	c.HTML(http.StatusOK, "homepage.html", gin.H{
-		"Message": "Welcome to dcrvsp!",
-	})
+	c.HTML(http.StatusOK, "homepage.html", homepageData)
 }
 
 func sendJSONResponse(resp interface{}, c *gin.Context) {

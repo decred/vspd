@@ -39,7 +39,7 @@ func run(ctx context.Context) error {
 	// Load config file and parse CLI args.
 	cfg, err := loadConfig()
 	if err != nil {
-		// Don't use logger here because it may not be initialised.
+		// Don't use logger here because it may not be initialized.
 		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
 		return err
 	}
@@ -120,7 +120,7 @@ func run(ctx context.Context) error {
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, feeWalletConnect, votingWalletConnect, cfg.WebServerDebug, apiCfg)
 	if err != nil {
-		log.Errorf("Failed to initialise webapi: %v", err)
+		log.Errorf("Failed to initialize webapi: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return err
