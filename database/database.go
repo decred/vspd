@@ -31,7 +31,7 @@ var (
 	privateKeyK = []byte("privatekey")
 )
 
-// Open initialises and returns an open database. If no database file is found
+// Open initializes and returns an open database. If no database file is found
 // at the provided path, a new one will be created.
 func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string) (*VspDatabase, error) {
 
@@ -61,14 +61,14 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string) (*VspD
 	// Create all storage buckets of the VSP if they don't already exist.
 	err = db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(vspBktK) == nil {
-			log.Debug("Initialising new database")
+			log.Debug("Initializing new database")
 			// Create parent bucket.
 			vspBkt, err := tx.CreateBucket(vspBktK)
 			if err != nil {
 				return fmt.Errorf("failed to create %s bucket: %v", string(vspBktK), err)
 			}
 
-			// Initialise with database version 1.
+			// Initialize with database version 1.
 			vbytes := make([]byte, 4)
 			binary.LittleEndian.PutUint32(vbytes, uint32(1))
 			err = vspBkt.Put(versionK, vbytes)
