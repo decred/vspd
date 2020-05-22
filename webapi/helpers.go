@@ -1,9 +1,12 @@
 package webapi
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/gin-gonic/gin"
 )
 
 func currentVoteVersion(params *chaincfg.Params) uint32 {
@@ -39,5 +42,19 @@ agendaLoop:
 		return fmt.Errorf("agenda %q not found for vote version %d", agenda, voteVersion)
 	}
 
+	return nil
+}
+
+func validateSignature(reqBytes []byte, commitmentAddress string, c *gin.Context) error {
+	// Ensure a signature is provided.
+	signature := c.GetHeader("VSP-Client-Signature")
+	if signature == "" {
+		return errors.New("no VSP-Client-Signature header")
+	}
+
+	err := dcrutil.VerifyMessage(commitmentAddress, signature, string(reqBytes), cfg.NetParams)
+	if err != nil {
+		return err
+	}
 	return nil
 }

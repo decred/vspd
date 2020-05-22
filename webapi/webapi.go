@@ -150,8 +150,9 @@ func router(debugMode bool) *gin.Engine {
 	api := router.Group("/api")
 	{
 		api.GET("/fee", fee)
-		api.POST("/feeaddress", feeAddress)
 		api.GET("/pubkey", pubKey)
+		// The following 4 calls require valid VSP-Client-Signature headers.
+		api.POST("/feeaddress", feeAddress)
 		api.POST("/payfee", payFee)
 		api.POST("/setvotechoices", setVoteChoices)
 		api.GET("/ticketstatus", ticketStatus)
@@ -188,7 +189,7 @@ func sendJSONResponse(resp interface{}, c *gin.Context) {
 	}
 
 	sig := ed25519.Sign(cfg.SignKey, dec)
-	c.Writer.Header().Set("VSP-Signature", hex.EncodeToString(sig))
+	c.Writer.Header().Set("VSP-Server-Signature", hex.EncodeToString(sig))
 
 	c.AbortWithStatusJSON(http.StatusOK, resp)
 }

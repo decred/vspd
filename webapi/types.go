@@ -13,7 +13,6 @@ type feeResponse struct {
 type FeeAddressRequest struct {
 	Timestamp  int64  `json:"timestamp" binding:"required"`
 	TicketHash string `json:"tickethash" binding:"required"`
-	Signature  string `json:"signature" binding:"required"`
 }
 
 type feeAddressResponse struct {
@@ -41,7 +40,6 @@ type payFeeResponse struct {
 type SetVoteChoicesRequest struct {
 	Timestamp   int64             `json:"timestamp" binding:"required"`
 	TicketHash  string            `json:"tickethash" binding:"required"`
-	Signature   string            `json:"commitmentsignature" binding:"required"`
 	VoteChoices map[string]string `json:"votechoices" binding:"required"`
 }
 
@@ -54,7 +52,6 @@ type setVoteChoicesResponse struct {
 type TicketStatusRequest struct {
 	Timestamp  int64  `json:"timestamp" binding:"required"`
 	TicketHash string `json:"tickethash" binding:"required"`
-	Signature  string `json:"signature" binding:"required"`
 }
 
 type ticketStatusResponse struct {

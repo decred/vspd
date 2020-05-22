@@ -2,11 +2,15 @@ package rpc
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 
 	wallettypes "decred.org/dcrwallet/rpc/jsonrpc/types"
+	"github.com/decred/dcrd/blockchain/stake/v3"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -128,4 +132,26 @@ func (c *FeeWalletRPC) GetWalletFee() (dcrutil.Amount, error) {
 	}
 
 	return amount, nil
+}
+
+func (c *FeeWalletRPC) GetTicketCommitmentAddress(ticketHash string, netParams *chaincfg.Params) (string, error) {
+	resp, err := c.GetRawTransaction(ticketHash)
+	if err != nil {
+		return "", err
+	}
+
+	msgHex, err := hex.DecodeString(resp.Hex)
+	if err != nil {
+		return "", err
+	}
+	msgTx := wire.NewMsgTx()
+	if err = msgTx.FromBytes(msgHex); err != nil {
+		return "", err
+	}
+	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, netParams)
+	if err != nil {
+		return "", err
+	}
+
+	return addr.Address(), nil
 }

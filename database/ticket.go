@@ -10,17 +10,16 @@ import (
 )
 
 type Ticket struct {
-	Hash                string            `json:"hash"`
-	CommitmentSignature string            `json:"commitmentsignature"`
-	CommitmentAddress   string            `json:"commitmentaddress"`
-	FeeAddress          string            `json:"feeaddress"`
-	SDiff               float64           `json:"sdiff"`
-	BlockHeight         int64             `json:"blockheight"`
-	VoteChoices         map[string]string `json:"votechoices"`
-	VotingKey           string            `json:"votingkey"`
-	VSPFee              float64           `json:"vspfee"`
-	FeeExpiration       int64             `json:"feeexpiration"`
-	FeeTxHash           string            `json:"feetxhash"`
+	Hash              string            `json:"hash"`
+	CommitmentAddress string            `json:"commitmentaddress"`
+	FeeAddress        string            `json:"feeaddress"`
+	SDiff             float64           `json:"sdiff"`
+	BlockHeight       int64             `json:"blockheight"`
+	VoteChoices       map[string]string `json:"votechoices"`
+	VotingKey         string            `json:"votingkey"`
+	VSPFee            float64           `json:"vspfee"`
+	FeeExpiration     int64             `json:"feeexpiration"`
+	FeeTxHash         string            `json:"feetxhash"`
 }
 
 func (t *Ticket) FeeExpired() bool {
@@ -82,14 +81,15 @@ func (vdb *VspDatabase) SetTicketVotingKey(ticketHash, votingKey string, voteCho
 	})
 }
 
-func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, error) {
+func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, bool, error) {
 	var ticket Ticket
+	var found bool
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
 		ticketBytes := ticketBkt.Get([]byte(ticketHash))
 		if ticketBytes == nil {
-			return ErrNoTicketFound
+			return nil
 		}
 
 		err := json.Unmarshal(ticketBytes, &ticket)
@@ -97,10 +97,12 @@ func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, error) {
 			return fmt.Errorf("could not unmarshal ticket: %v", err)
 		}
 
+		found = true
+
 		return nil
 	})
 
-	return ticket, err
+	return ticket, found, err
 }
 
 func (vdb *VspDatabase) UpdateVoteChoices(ticketHash string, voteChoices map[string]string) error {
