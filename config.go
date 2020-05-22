@@ -17,35 +17,41 @@ import (
 )
 
 var (
-	defaultListen         = ":3000"
-	defaultLogLevel       = "debug"
-	defaultVSPFee         = 0.01
-	defaultNetwork        = "testnet"
-	defaultHomeDir        = dcrutil.AppDataDir("dcrvsp", false)
-	defaultConfigFilename = "dcrvsp.conf"
-	defaultConfigFile     = filepath.Join(defaultHomeDir, defaultConfigFilename)
-	defaultWalletHost     = "127.0.0.1"
-	defaultWebServerDebug = false
+	defaultListen           = ":3000"
+	defaultLogLevel         = "debug"
+	defaultVSPFee           = 0.01
+	defaultNetwork          = "testnet"
+	defaultHomeDir          = dcrutil.AppDataDir("dcrvsp", false)
+	defaultConfigFilename   = "dcrvsp.conf"
+	defaultConfigFile       = filepath.Join(defaultHomeDir, defaultConfigFilename)
+	defaultFeeWalletHost    = "127.0.0.1"
+	defaultVotingWalletHost = "127.0.0.1"
+	defaultWebServerDebug   = false
 )
 
 // config defines the configuration options for the VSP.
 type config struct {
-	Listen         string  `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
-	LogLevel       string  `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
-	Network        string  `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
-	FeeXPub        string  `long:"feexpub" ini-name:"feexpub" description:"Cold wallet xpub used for collecting fees."`
-	VSPFee         float64 `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
-	HomeDir        string  `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
-	ConfigFile     string  `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
-	WalletHost     string  `long:"wallethost" ini-name:"wallethost" description:"The ip:port to establish a JSON-RPC connection with dcrwallet."`
-	WalletUser     string  `long:"walletuser" ini-name:"walletuser" description:"Username for dcrwallet RPC connections."`
-	WalletPass     string  `long:"walletpass" ini-name:"walletpass" description:"Password for dcrwallet RPC connections."`
-	WalletCert     string  `long:"walletcert" ini-name:"walletcert" description:"The dcrwallet RPC certificate file."`
-	WebServerDebug bool    `long:"webserverdebug" ini-name:"webserverdebug" description:"Enable web server debug mode (verbose logging to terminal and live-reloading templates)."`
+	Listen           string  `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
+	LogLevel         string  `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
+	Network          string  `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
+	FeeXPub          string  `long:"feexpub" ini-name:"feexpub" description:"Cold wallet xpub used for collecting fees."`
+	VSPFee           float64 `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
+	HomeDir          string  `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
+	ConfigFile       string  `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
+	FeeWalletHost    string  `long:"feewallethost" ini-name:"feewallethost" description:"The ip:port to establish a JSON-RPC connection with fee dcrwallet."`
+	FeeWalletUser    string  `long:"feewalletuser" ini-name:"feewalletuser" description:"Username for fee dcrwallet RPC connections."`
+	FeeWalletPass    string  `long:"feewalletpass" ini-name:"feewalletpass" description:"Password for fee dcrwallet RPC connections."`
+	FeeWalletCert    string  `long:"feewalletcert" ini-name:"feewalletcert" description:"The fee dcrwallet RPC certificate file."`
+	VotingWalletHost string  `long:"votingwallethost" ini-name:"votingwallethost" description:"The ip:port to establish a JSON-RPC connection with voting dcrwallet."`
+	VotingWalletUser string  `long:"votingwalletuser" ini-name:"votingwalletuser" description:"Username for voting dcrwallet RPC connections."`
+	VotingWalletPass string  `long:"votingwalletpass" ini-name:"votingwalletpass" description:"Password for voting dcrwallet RPC connections."`
+	VotingWalletCert string  `long:"votingwalletcert" ini-name:"votingwalletcert" description:"The voting dcrwallet RPC certificate file."`
+	WebServerDebug   bool    `long:"webserverdebug" ini-name:"webserverdebug" description:"Enable web server debug mode (verbose logging to terminal and live-reloading templates)."`
 
-	dbPath    string
-	netParams *netParams
-	dcrwCert  []byte
+	dbPath           string
+	netParams        *netParams
+	feeWalletCert    []byte
+	votingWalletCert []byte
 }
 
 // fileExists reports whether the named file or directory exists.
@@ -136,14 +142,15 @@ func loadConfig() (*config, error) {
 
 	// Default config.
 	cfg := config{
-		Listen:         defaultListen,
-		LogLevel:       defaultLogLevel,
-		Network:        defaultNetwork,
-		VSPFee:         defaultVSPFee,
-		HomeDir:        defaultHomeDir,
-		ConfigFile:     defaultConfigFile,
-		WalletHost:     defaultWalletHost,
-		WebServerDebug: defaultWebServerDebug,
+		Listen:           defaultListen,
+		LogLevel:         defaultLogLevel,
+		Network:          defaultNetwork,
+		VSPFee:           defaultVSPFee,
+		HomeDir:          defaultHomeDir,
+		ConfigFile:       defaultConfigFile,
+		FeeWalletHost:    defaultFeeWalletHost,
+		VotingWalletHost: defaultVotingWalletHost,
+		WebServerDebug:   defaultWebServerDebug,
 	}
 
 	// Pre-parse the command line options to see if an alternative config
@@ -233,30 +240,53 @@ func loadConfig() (*config, error) {
 		cfg.netParams = &simNetParams
 	}
 
-	// Ensure the dcrwallet RPC username is set.
-	if cfg.WalletUser == "" {
-		return nil, errors.New("the walletuser option is not set")
+	// Ensure the fee dcrwallet RPC username is set.
+	if cfg.FeeWalletUser == "" {
+		return nil, errors.New("the feewalletuser option is not set")
 	}
 
-	// Ensure the dcrwallet RPC password is set.
-	if cfg.WalletPass == "" {
-		return nil, errors.New("the walletpass option is not set")
+	// Ensure the fee dcrwallet RPC password is set.
+	if cfg.FeeWalletPass == "" {
+		return nil, errors.New("the feewalletpass option is not set")
 	}
 
-	// Ensure the dcrwallet RPC cert path is set.
-	if cfg.WalletCert == "" {
-		return nil, errors.New("the walletcert option is not set")
+	// Ensure the fee dcrwallet RPC cert path is set.
+	if cfg.FeeWalletCert == "" {
+		return nil, errors.New("the feewalletcert option is not set")
+	}
+
+	// Load fee dcrwallet RPC certificate.
+	cfg.FeeWalletCert = cleanAndExpandPath(cfg.FeeWalletCert)
+	cfg.feeWalletCert, err = ioutil.ReadFile(cfg.FeeWalletCert)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read fee dcrwallet cert file: %v", err)
+	}
+
+	// Ensure the voting dcrwallet RPC username is set.
+	if cfg.VotingWalletUser == "" {
+		return nil, errors.New("the votingwalletuser option is not set")
+	}
+
+	// Ensure the voting dcrwallet RPC password is set.
+	if cfg.VotingWalletPass == "" {
+		return nil, errors.New("the votingwalletpass option is not set")
+	}
+
+	// Ensure the voting dcrwallet RPC cert path is set.
+	if cfg.VotingWalletCert == "" {
+		return nil, errors.New("the votingwalletcert option is not set")
+	}
+
+	// Load voting dcrwallet RPC certificate.
+	cfg.VotingWalletCert = cleanAndExpandPath(cfg.VotingWalletCert)
+	cfg.votingWalletCert, err = ioutil.ReadFile(cfg.VotingWalletCert)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read voting dcrwallet cert file: %v", err)
 	}
 
 	// Add default port for the active network if there is no port specified.
-	cfg.WalletHost = normalizeAddress(cfg.WalletHost, cfg.netParams.WalletRPCServerPort)
-
-	// Load dcrwallet RPC certificate.
-	cfg.WalletCert = cleanAndExpandPath(cfg.WalletCert)
-	cfg.dcrwCert, err = ioutil.ReadFile(cfg.WalletCert)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read dcrwallet cert file: %v", err)
-	}
+	cfg.FeeWalletHost = normalizeAddress(cfg.FeeWalletHost, cfg.netParams.WalletRPCServerPort)
+	cfg.VotingWalletHost = normalizeAddress(cfg.VotingWalletHost, cfg.netParams.WalletRPCServerPort)
 
 	// Create the data directory.
 	dataDir := filepath.Join(cfg.HomeDir, "data", cfg.netParams.Name)

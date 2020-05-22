@@ -28,10 +28,11 @@ type Config struct {
 
 var cfg Config
 var db *database.VspDatabase
-var walletRPC rpc.Client
+var feeWalletConnect rpc.Connect
+var votingWalletConnect rpc.Connect
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, wRPC rpc.Client, debugMode bool, config Config) error {
+	listen string, vdb *database.VspDatabase, fWalletConnect rpc.Connect, vWalletConnect rpc.Connect, debugMode bool, config Config) error {
 
 	// Create TCP listener.
 	var listenConfig net.ListenConfig
@@ -79,7 +80,8 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 
 	cfg = config
 	db = vdb
-	walletRPC = wRPC
+	feeWalletConnect = fWalletConnect
+	votingWalletConnect = vWalletConnect
 
 	return nil
 }

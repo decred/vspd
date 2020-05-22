@@ -10,10 +10,10 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil/v3"
-	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/gin-gonic/gin"
+	"github.com/jholdstock/dcrvsp/rpc"
 )
 
 // payFee is the handler for "POST /payfee"
@@ -131,31 +131,49 @@ findAddress:
 		return
 	}
 
-	walletClient, err := walletRPC()
+	fWalletConn, err := feeWalletConnect()
 	if err != nil {
-		log.Errorf("Failed to dial dcrwallet RPC: %v", err)
+		log.Errorf("Fee wallet connection error: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
-
 	ctx := c.Request.Context()
-	var rawTicket dcrdtypes.TxRawResult
 
-	err = walletClient.Call(ctx, "getrawtransaction", &rawTicket, ticketHash.String(), 1)
+	fWalletClient, err := rpc.FeeWalletClient(ctx, fWalletConn)
 	if err != nil {
-		log.Errorf("GetRawTransaction failed: %v", err)
+		log.Errorf("Fee wallet client error: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 
-	err = walletClient.Call(ctx, "addtransaction", nil, rawTicket.BlockHash, rawTicket.Hex)
+	rawTicket, err := fWalletClient.GetRawTransaction(ctx, ticketHash.String())
+	if err != nil {
+		log.Warnf("Could not retrieve tx %s for %s: %v", ticketHash.String(), c.ClientIP(), err)
+		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
+		return
+	}
+
+	vWalletConn, err := votingWalletConnect()
+	if err != nil {
+		log.Errorf("Voting wallet connection error: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
+	vWalletClient, err := rpc.VotingWalletClient(ctx, vWalletConn)
+	if err != nil {
+		log.Errorf("Voting wallet client error: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
+
+	err = vWalletClient.AddTransaction(ctx, rawTicket.BlockHash, rawTicket.Hex)
 	if err != nil {
 		log.Errorf("AddTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 
-	err = walletClient.Call(ctx, "importprivkey", nil, votingWIF.String(), "imported", false, 0)
+	err = vWalletClient.ImportPrivKey(ctx, votingWIF.String())
 	if err != nil {
 		log.Errorf("ImportPrivKey failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
@@ -164,9 +182,9 @@ findAddress:
 
 	// Update vote choices on voting wallets.
 	for agenda, choice := range voteChoices {
-		err = walletClient.Call(ctx, "setvotechoice", nil, agenda, choice, ticket.Hash)
+		err = vWalletClient.SetVoteChoice(ctx, agenda, choice, ticket.Hash)
 		if err != nil {
-			log.Errorf("setvotechoice failed: %v", err)
+			log.Errorf("SetVoteChoice failed: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
 		}
@@ -181,8 +199,7 @@ findAddress:
 		return
 	}
 
-	var sendTxHash string
-	err = walletClient.Call(ctx, "sendrawtransaction", &sendTxHash, hex.EncodeToString(feeTxBuf.Bytes()), false)
+	sendTxHash, err := fWalletClient.SendRawTransaction(ctx, hex.EncodeToString(feeTxBuf.Bytes()))
 	if err != nil {
 		log.Errorf("SendRawTransaction failed: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)

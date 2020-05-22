@@ -9,6 +9,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/gin-gonic/gin"
+	"github.com/jholdstock/dcrvsp/rpc"
 )
 
 // setVoteChoices is the handler for "POST /setvotechoices"
@@ -61,25 +62,33 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
-	walletClient, err := walletRPC()
+	vWalletConn, err := votingWalletConnect()
 	if err != nil {
-		log.Errorf("Failed to dial dcrwallet RPC: %v", err)
+		log.Errorf("Voting wallet connection error: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 
 	ctx := c.Request.Context()
+	vWalletClient, err := rpc.VotingWalletClient(ctx, vWalletConn)
+	if err != nil {
+		log.Errorf("Voting wallet client error: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
 
 	// Update vote choices on voting wallets.
 	for agenda, choice := range voteChoices {
-		err = walletClient.Call(ctx, "setvotechoice", nil, agenda, choice, ticket.Hash)
+		err = vWalletClient.SetVoteChoice(ctx, agenda, choice, ticket.Hash)
 		if err != nil {
-			log.Errorf("setvotechoice failed: %v", err)
+			log.Errorf("SetVoteChoice failed: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
 		}
 	}
 
+	// TODO: Update database before updating wallets. DB is source of truth and
+	// is less likely to error.
 	err = db.UpdateVoteChoices(txHash.String(), voteChoices)
 	if err != nil {
 		log.Errorf("UpdateVoteChoices error: %v", err)

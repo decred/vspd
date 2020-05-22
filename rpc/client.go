@@ -4,25 +4,29 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"sync"
 
-	wallettypes "decred.org/dcrwallet/rpc/jsonrpc/types"
-	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/jrick/wsrpc/v2"
 )
 
-type Client func() (*wsrpc.Client, error)
+// Caller provides a client interface to perform JSON-RPC remote procedure calls.
+type Caller interface {
+	// Call performs the remote procedure call defined by method and
+	// waits for a response or a broken client connection.
+	// Args provides positional parameters for the call.
+	// Res must be a pointer to a struct, slice, or map type to unmarshal
+	// a result (if any), or nil if no result is needed.
+	Call(ctx context.Context, method string, res interface{}, args ...interface{}) error
+}
 
-const (
-	requiredWalletVersion = "8.1.0"
-)
+// Connect dials and returns a connected RPC client.
+type Connect func() (Caller, error)
 
 // Setup accepts RPC connection details, creates an RPC client, and returns a
 // function which can be called to access the client. The returned function will
 // try to handle any client disconnects by attempting to reconnect, but will
 // return an error if a new connection cannot be established.
-func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr string, cert []byte) Client {
+func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr string, cert []byte) Connect {
 
 	// Create TLS options.
 	pool := x509.NewCertPool()
@@ -32,6 +36,8 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 
 	// Create authentication options.
 	authOpt := wsrpc.WithBasicAuth(user, pass)
+
+	fullAddr := "wss://" + addr + "/ws"
 
 	var mu sync.Mutex
 	var c *wsrpc.Client
@@ -59,7 +65,7 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 		shutdownWg.Done()
 	}()
 
-	return func() (*wsrpc.Client, error) {
+	return func() (Caller, error) {
 		defer mu.Unlock()
 		mu.Lock()
 
@@ -73,44 +79,10 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 			}
 		}
 
-		fullAddr := "wss://" + addr + "/ws"
-		c, err := wsrpc.Dial(ctx, fullAddr, tlsOpt, authOpt)
+		var err error
+		c, err = wsrpc.Dial(ctx, fullAddr, tlsOpt, authOpt)
 		if err != nil {
 			return nil, err
-		}
-		log.Infof("Dialed RPC websocket %v", addr)
-
-		// Verify dcrwallet at is at the required api version
-		var verMap map[string]dcrdtypes.VersionResult
-		err = c.Call(ctx, "version", &verMap)
-		if err != nil {
-			c.Close()
-			return nil, fmt.Errorf("wallet %v version failed: %v",
-				addr, err)
-		}
-		walletVersion, exists := verMap["dcrwalletjsonrpcapi"]
-		if !exists {
-			c.Close()
-			return nil, fmt.Errorf("wallet %v version response "+
-				"missing 'dcrwalletjsonrpcapi'", addr)
-		}
-		if walletVersion.VersionString != requiredWalletVersion {
-			c.Close()
-			return nil, fmt.Errorf("wallet %v is not at the "+
-				"proper version: %s != %s", addr,
-				walletVersion.VersionString, requiredWalletVersion)
-		}
-
-		// Verify dcrwallet is voting
-		var walletInfo wallettypes.WalletInfoResult
-		err = c.Call(ctx, "walletinfo", &walletInfo)
-		if err != nil {
-			c.Close()
-			return nil, err
-		}
-		if !walletInfo.Voting || !walletInfo.Unlocked {
-			c.Close()
-			return nil, fmt.Errorf("wallet %s has voting disabled", addr)
 		}
 
 		return c, nil

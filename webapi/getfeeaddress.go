@@ -11,10 +11,10 @@ import (
 	"github.com/decred/dcrd/blockchain/stake/v3"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/dcrutil/v3"
-	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/gin-gonic/gin"
 	"github.com/jholdstock/dcrvsp/database"
+	"github.com/jholdstock/dcrvsp/rpc"
 )
 
 // feeAddress is the handler for "POST /feeaddress"
@@ -82,17 +82,21 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	walletClient, err := walletRPC()
+	fWalletConn, err := feeWalletConnect()
 	if err != nil {
-		log.Errorf("Failed to dial dcrwallet RPC: %v", err)
+		log.Errorf("Fee wallet connection error: %v", err)
+		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+		return
+	}
+	ctx := c.Request.Context()
+	fWalletClient, err := rpc.FeeWalletClient(ctx, fWalletConn)
+	if err != nil {
+		log.Errorf("Fee wallet client error: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 
-	ctx := c.Request.Context()
-
-	var resp dcrdtypes.TxRawResult
-	err = walletClient.Call(ctx, "getrawtransaction", &resp, txHash.String(), 1)
+	resp, err := fWalletClient.GetRawTransaction(ctx, txHash.String())
 	if err != nil {
 		log.Warnf("Could not retrieve tx %s for %s: %v", txHash, c.ClientIP(), err)
 		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
@@ -153,16 +157,15 @@ func feeAddress(c *gin.Context) {
 	// get blockheight and sdiff which is required by
 	// txrules.StakePoolTicketFee, and store them in the database
 	// for processing by payfee
-	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
-	err = walletClient.Call(ctx, "getblockheader", &blockHeader, resp.BlockHash, true)
+	blockHeader, err := fWalletClient.GetBlockHeader(ctx, resp.BlockHash)
 	if err != nil {
 		log.Errorf("GetBlockHeader error: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 
-	var newAddress string
-	err = walletClient.Call(ctx, "getnewaddress", &newAddress, "fees")
+	// TODO: Generate this within dcrvsp without an RPC call?
+	newAddress, err := fWalletClient.GetNewAddress(ctx, cfg.FeeAccountName)
 	if err != nil {
 		log.Errorf("GetNewAddress error: %v", err)
 		sendErrorResponse("unable to generate fee address", http.StatusInternalServerError, c)

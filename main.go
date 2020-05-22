@@ -11,7 +11,6 @@ import (
 	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
 	"github.com/jholdstock/dcrvsp/webapi"
-	"github.com/jrick/wsrpc/v2"
 )
 
 const (
@@ -59,11 +58,36 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	// Create dcrwallet RPC client.
-	walletRPC := rpc.Setup(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass, cfg.WalletHost, cfg.dcrwCert)
-	walletClient, err := walletRPC()
+	// Create RPC client for local dcrwallet instance (used for generating fee
+	// addresses and broadcasting fee transactions).
+	feeWalletConnect := rpc.Setup(ctx, &shutdownWg, cfg.FeeWalletUser, cfg.FeeWalletPass, cfg.FeeWalletHost, cfg.feeWalletCert)
+	feeWalletConn, err := feeWalletConnect()
 	if err != nil {
-		log.Errorf("dcrwallet RPC error: %v", err)
+		log.Errorf("Fee wallet connection error: %v", err)
+		requestShutdown()
+		shutdownWg.Wait()
+		return err
+	}
+	feeWalletClient, err := rpc.FeeWalletClient(ctx, feeWalletConn)
+	if err != nil {
+		log.Errorf("Fee wallet client error: %v", err)
+		requestShutdown()
+		shutdownWg.Wait()
+		return err
+	}
+
+	// Create RPC client for remote dcrwallet instance (used for voting).
+	votingWalletConnect := rpc.Setup(ctx, &shutdownWg, cfg.VotingWalletUser, cfg.VotingWalletPass, cfg.VotingWalletHost, cfg.votingWalletCert)
+	votingWalletConn, err := votingWalletConnect()
+	if err != nil {
+		log.Errorf("Voting wallet connection error: %v", err)
+		requestShutdown()
+		shutdownWg.Wait()
+		return err
+	}
+	_, err = rpc.VotingWalletClient(ctx, votingWalletConn)
+	if err != nil {
+		log.Errorf("Voting wallet client error: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return err
@@ -78,7 +102,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Ensure the wallet account for collecting fees exists and matches config.
-	err = setupFeeAccount(ctx, walletClient, cfg.FeeXPub)
+	err = setupFeeAccount(ctx, feeWalletClient, cfg.FeeXPub)
 	if err != nil {
 		log.Errorf("Fee account error: %v", err)
 		requestShutdown()
@@ -95,7 +119,7 @@ func run(ctx context.Context) error {
 		FeeAccountName:       feeAccountName,
 		FeeAddressExpiration: defaultFeeAddressExpiration,
 	}
-	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, walletRPC, cfg.WebServerDebug, apiCfg)
+	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, feeWalletConnect, votingWalletConnect, cfg.WebServerDebug, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialise webapi: %v", err)
 		requestShutdown()
@@ -109,20 +133,18 @@ func run(ctx context.Context) error {
 	return ctx.Err()
 }
 
-func setupFeeAccount(ctx context.Context, walletClient *wsrpc.Client, feeXpub string) error {
+func setupFeeAccount(ctx context.Context, walletClient *rpc.FeeWalletRPC, feeXpub string) error {
 	// Check if account for fee collection already exists.
-	var accounts map[string]float64
-	err := walletClient.Call(ctx, "listaccounts", &accounts)
+	accounts, err := walletClient.ListAccounts(ctx)
 	if err != nil {
-		return fmt.Errorf("dcrwallet RPC error: %v", err)
+		return fmt.Errorf("ListAccounts error: %v", err)
 	}
 
 	if _, ok := accounts[feeAccountName]; ok {
 		// Account already exists. Check xpub matches xpub from config.
-		var existingXPub string
-		err = walletClient.Call(ctx, "getmasterpubkey", &existingXPub, feeAccountName)
+		existingXPub, err := walletClient.GetMasterPubKey(ctx, feeAccountName)
 		if err != nil {
-			return fmt.Errorf("dcrwallet RPC error: %v", err)
+			return fmt.Errorf("GetMasterPubKey error: %v", err)
 		}
 
 		if existingXPub != feeXpub {
@@ -133,8 +155,8 @@ func setupFeeAccount(ctx context.Context, walletClient *wsrpc.Client, feeXpub st
 
 	} else {
 		// Account does not exist. Create it using xpub from config.
-		if err = walletClient.Call(ctx, "importxpub", nil, feeAccountName, feeXpub); err != nil {
-			log.Errorf("Failed to import xpub: %v", err)
+		if err = walletClient.ImportXPub(ctx, feeAccountName, feeXpub); err != nil {
+			log.Errorf("ImportXPub error: %v", err)
 			return err
 		}
 		log.Debugf("Created new wallet account %q to collect fees", feeAccountName)
