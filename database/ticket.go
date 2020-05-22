@@ -25,7 +25,7 @@ var (
 	ErrNoTicketFound = errors.New("no ticket found")
 )
 
-func (vdb *VspDatabase) InsertFeeAddress(ticket Ticket) error {
+func (vdb *VspDatabase) InsertTicket(ticket Ticket) error {
 	hashBytes := []byte(ticket.Hash)
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
@@ -43,42 +43,40 @@ func (vdb *VspDatabase) InsertFeeAddress(ticket Ticket) error {
 	})
 }
 
-func (vdb *VspDatabase) InsertFeeAddressVotingKey(address, votingKey string, voteChoices map[string]string) error {
+func (vdb *VspDatabase) SetTicketVotingKey(ticketHash, votingKey string, voteChoices map[string]string) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
-		c := ticketBkt.Cursor()
 
-		for k, v := c.First(); k != nil; k, v = c.Next() {
-			var ticket Ticket
-			err := json.Unmarshal(v, &ticket)
-			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %v", err)
-			}
+		hashBytes := []byte(ticketHash)
 
-			if ticket.CommitmentAddress == address {
-				ticket.VotingKey = votingKey
-				ticket.VoteChoices = voteChoices
-				ticketBytes, err := json.Marshal(ticket)
-				if err != nil {
-					return err
-				}
-				err = ticketBkt.Put(k, ticketBytes)
-				if err != nil {
-					return err
-				}
-			}
+		ticketBytes := ticketBkt.Get(hashBytes)
+		if ticketBytes == nil {
+			return ErrNoTicketFound
 		}
 
-		return nil
+		var ticket Ticket
+		err := json.Unmarshal(ticketBytes, &ticket)
+		if err != nil {
+			return fmt.Errorf("could not unmarshal ticket: %v", err)
+		}
+
+		ticket.VotingKey = votingKey
+		ticket.VoteChoices = voteChoices
+		ticketBytes, err = json.Marshal(ticket)
+		if err != nil {
+			return fmt.Errorf("could not marshal ticket: %v", err)
+		}
+
+		return ticketBkt.Put(hashBytes, ticketBytes)
 	})
 }
 
-func (vdb *VspDatabase) GetTicketByHash(hash string) (Ticket, error) {
+func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, error) {
 	var ticket Ticket
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
-		ticketBytes := ticketBkt.Get([]byte(hash))
+		ticketBytes := ticketBkt.Get([]byte(ticketHash))
 		if ticketBytes == nil {
 			return ErrNoTicketFound
 		}
@@ -94,12 +92,12 @@ func (vdb *VspDatabase) GetTicketByHash(hash string) (Ticket, error) {
 	return ticket, err
 }
 
-func (vdb *VspDatabase) UpdateVoteChoices(hash string, voteChoices map[string]string) error {
+func (vdb *VspDatabase) UpdateVoteChoices(ticketHash string, voteChoices map[string]string) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
-		key := []byte(hash)
+		hashBytes := []byte(ticketHash)
 
-		ticketBytes := ticketBkt.Get(key)
+		ticketBytes := ticketBkt.Get(hashBytes)
 		if ticketBytes == nil {
 			return ErrNoTicketFound
 		}
@@ -116,16 +114,16 @@ func (vdb *VspDatabase) UpdateVoteChoices(hash string, voteChoices map[string]st
 			return fmt.Errorf("could not marshal ticket: %v", err)
 		}
 
-		return ticketBkt.Put(key, ticketBytes)
+		return ticketBkt.Put(hashBytes, ticketBytes)
 	})
 }
 
-func (vdb *VspDatabase) UpdateExpireAndFee(hash string, expiration int64, vspFee float64) error {
+func (vdb *VspDatabase) UpdateExpireAndFee(ticketHash string, expiration int64, vspFee float64) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
-		key := []byte(hash)
+		hashBytes := []byte(ticketHash)
 
-		ticketBytes := ticketBkt.Get(key)
+		ticketBytes := ticketBkt.Get(hashBytes)
 		if ticketBytes == nil {
 			return ErrNoTicketFound
 		}
@@ -143,6 +141,6 @@ func (vdb *VspDatabase) UpdateExpireAndFee(hash string, expiration int64, vspFee
 			return fmt.Errorf("could not marshal ticket: %v", err)
 		}
 
-		return ticketBkt.Put(key, ticketBytes)
+		return ticketBkt.Put(hashBytes, ticketBytes)
 	})
 }

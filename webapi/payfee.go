@@ -90,12 +90,6 @@ findAddress:
 		return
 	}
 
-	voteAddr, err := dcrutil.DecodeAddress(ticket.CommitmentAddress, cfg.NetParams)
-	if err != nil {
-		log.Errorf("DecodeAddress: %v", err)
-		sendErrorResponse("database error", http.StatusInternalServerError, c)
-		return
-	}
 	_, err = dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), cfg.NetParams,
 		dcrec.STEcdsaSecp256k1)
 	if err != nil {
@@ -206,7 +200,7 @@ findAddress:
 		return
 	}
 
-	err = db.InsertFeeAddressVotingKey(voteAddr.Address(), votingWIF.String(), voteChoices)
+	err = db.SetTicketVotingKey(ticket.Hash, votingWIF.String(), voteChoices)
 	if err != nil {
 		log.Errorf("InsertFeeAddressVotingKey failed: %v", err)
 		sendErrorResponse("database error", http.StatusInternalServerError, c)

@@ -187,7 +187,7 @@ func feeAddress(c *gin.Context) {
 		// VotingKey and VoteChoices: set during payfee
 	}
 
-	err = db.InsertFeeAddress(dbTicket)
+	err = db.InsertTicket(dbTicket)
 	if err != nil {
 		log.Errorf("InsertFeeAddress error: %v", err)
 		sendErrorResponse("database error", http.StatusInternalServerError, c)

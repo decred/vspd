@@ -15,9 +15,12 @@ ticket details + fee to a VSP, and the VSP will take the fee and vote in return.
 
 ### For Administrators
 
-- bbolt db.
+- bbolt db - no database admin required.
+- Database is not used outside of dcrvsp server.
 - No stakepoold.
 - Client accountability.
+- No need to use the same wallet seed on each voting wallet.
+- Fees can change regularly - previously cached by wallet.
 
 ### For Users
 
