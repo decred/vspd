@@ -179,9 +179,5 @@ func (vdb *VspDatabase) CountTickets() (int, int, error) {
 		})
 	})
 
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return total, feePaid, nil
+	return total, feePaid, err
 }
