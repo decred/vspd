@@ -27,8 +27,10 @@ var (
 	ticketBktK = []byte("ticketbkt")
 	// version is the current database version.
 	versionK = []byte("version")
-	// privateKeyK is the private key.
+	// privatekey is the private key.
 	privateKeyK = []byte("privatekey")
+	// lastaddressindex is the index of the last address used for fees.
+	lastAddressIndexK = []byte("lastaddressindex")
 )
 
 // Open initializes and returns an open database. If no database file is found

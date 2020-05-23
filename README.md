@@ -49,9 +49,9 @@ ticket details + fee to a VSP, and the VSP will take the fee and vote in return.
 
 ## Architecture
 
-- Single server running dcrvsp, dcrwallet and dcrd. dcrd requires txindex so
+- Single server running dcrvsp and dcrd. dcrd requires txindex so
   `getrawtransaction` can be used.
-- Multiple remote "Voting servers", each running dcrwallet and dcrd. dcrwallet
+- Multiple remote voting servers, each running dcrwallet and dcrd. dcrwallet
   on these servers should be constantly unlocked and have voting enabled.
 
 ## MVP Features
@@ -63,9 +63,8 @@ ticket details + fee to a VSP, and the VSP will take the fee and vote in return.
 - Every client request which references a ticket should include a HTTP header
   `VSP-Client-Signature`. The value of this header must be a signature of the
   request body, signed with the commitment address of the referenced ticket.
-- An xpub key is provided to dcrvsp via config. The first time dcrvsp starts, it
-  imports this xpub to create a new wallet account. This account is used to
-  derive addresses for fee payments.
+- An xpub key is provided to dcrvsp via config. dcrvsp will use this key to
+  derive addresses for fee payments. A new address is generated for each fee.
 - VSP API as described in [dcrstakepool #574](https://github.com/decred/dcrstakepool/issues/574)
   - Request fee amount (`GET /fee`)
   - Request fee address (`POST /feeaddress`)
@@ -82,14 +81,11 @@ ticket details + fee to a VSP, and the VSP will take the fee and vote in return.
 - Write database backups to disk periodically.
 - Backup over http.
 - Status check API call as described in [dcrstakepool #628](https://github.com/decred/dcrstakepool/issues/628).
-- Accountability for both client and server changes to voting preferences.
 - Consistency checking across connected wallets.
 
-## Backup and Recovery
+## Backup
 
-- Regular backups of bbolt database.
-- Restore requires manual repair of fee wallet. Import xpub into account "fees",
-  and rescan with a very large gap limit.
+- Regular backups of bbolt database and feexpub.
 
 ## Issue Tracker
 
