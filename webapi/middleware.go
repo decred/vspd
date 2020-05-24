@@ -12,45 +12,45 @@ type ticketHashRequest struct {
 	TicketHash string `json:"tickethash" binding:"required"`
 }
 
-// withFeeWalletClient middleware adds a fee wallet client to the request
+// withDcrdClient middleware adds a dcrd client to the request
 // context for downstream handlers to make use of.
-func withFeeWalletClient() gin.HandlerFunc {
+func withDcrdClient() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fWalletConn, err := feeWalletConnect()
+		dcrdConn, err := dcrdConnect()
 		if err != nil {
-			log.Errorf("Fee wallet connection error: %v", err)
-			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+			log.Errorf("dcrd connection error: %v", err)
+			sendErrorResponse("dcrd RPC error", http.StatusInternalServerError, c)
 			return
 		}
-		fWalletClient, err := rpc.FeeWalletClient(c, fWalletConn)
+		dcrdClient, err := rpc.DcrdClient(c, dcrdConn)
 		if err != nil {
-			log.Errorf("Fee wallet client error: %v", err)
-			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+			log.Errorf("dcrd client error: %v", err)
+			sendErrorResponse("dcrd RPC error", http.StatusInternalServerError, c)
 			return
 		}
 
-		c.Set("FeeWalletClient", fWalletClient)
+		c.Set("DcrdClient", dcrdClient)
 	}
 }
 
-// withVotingWalletClient middleware adds a voting wallet client to the request
+// withWalletClient middleware adds a voting wallet client to the request
 // context for downstream handlers to make use of.
-func withVotingWalletClient() gin.HandlerFunc {
+func withWalletClient() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		vWalletConn, err := votingWalletConnect()
+		walletConn, err := walletConnect()
 		if err != nil {
-			log.Errorf("Voting wallet connection error: %v", err)
+			log.Errorf("dcrwallet connection error: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
 		}
-		vWalletClient, err := rpc.VotingWalletClient(c, vWalletConn)
+		walletClient, err := rpc.WalletClient(c, walletConn)
 		if err != nil {
-			log.Errorf("Voting wallet client error: %v", err)
+			log.Errorf("dcrwallet client error: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
 		}
 
-		c.Set("VotingWalletClient", vWalletClient)
+		c.Set("WalletClient", walletClient)
 	}
 }
 
@@ -97,8 +97,8 @@ func vspAuth() gin.HandlerFunc {
 		if ticketFound {
 			commitmentAddress = ticket.CommitmentAddress
 		} else {
-			fWalletClient := c.MustGet("FeeWalletClient").(*rpc.FeeWalletRPC)
-			commitmentAddress, err = fWalletClient.GetTicketCommitmentAddress(hash, cfg.NetParams)
+			dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
+			commitmentAddress, err = dcrdClient.GetTicketCommitmentAddress(hash, cfg.NetParams)
 			if err != nil {
 				log.Errorf("GetTicketCommitmentAddress error: %v", err)
 				sendErrorResponse("database error", http.StatusInternalServerError, c)

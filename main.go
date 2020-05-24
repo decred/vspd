@@ -56,20 +56,20 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	// Create RPC client for local dcrwallet instance (used for broadcasting fee transactions).
+	// Create RPC client for local dcrd instance (used for broadcasting and
+	// checking the status of fee transactions).
 	// Dial once just to validate config.
-	// TODO: Replace with dcrd.
-	feeWalletConnect := rpc.Setup(ctx, &shutdownWg, cfg.FeeWalletUser, cfg.FeeWalletPass, cfg.FeeWalletHost, cfg.feeWalletCert)
-	feeWalletConn, err := feeWalletConnect()
+	dcrdConnect := rpc.Setup(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert)
+	dcrdConn, err := dcrdConnect()
 	if err != nil {
-		log.Errorf("Fee wallet connection error: %v", err)
+		log.Errorf("dcrd connection error: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return err
 	}
-	_, err = rpc.FeeWalletClient(ctx, feeWalletConn)
+	_, err = rpc.DcrdClient(ctx, dcrdConn)
 	if err != nil {
-		log.Errorf("Fee wallet client error: %v", err)
+		log.Errorf("dcrd client error: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return err
@@ -77,17 +77,17 @@ func run(ctx context.Context) error {
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
 	// Dial once just to validate config.
-	votingWalletConnect := rpc.Setup(ctx, &shutdownWg, cfg.VotingWalletUser, cfg.VotingWalletPass, cfg.VotingWalletHost, cfg.votingWalletCert)
-	votingWalletConn, err := votingWalletConnect()
+	walletConnect := rpc.Setup(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass, cfg.WalletHost, cfg.walletCert)
+	walletConn, err := walletConnect()
 	if err != nil {
-		log.Errorf("Voting wallet connection error: %v", err)
+		log.Errorf("dcrwallet connection error: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return err
 	}
-	_, err = rpc.VotingWalletClient(ctx, votingWalletConn)
+	_, err = rpc.WalletClient(ctx, walletConn)
 	if err != nil {
-		log.Errorf("Voting wallet client error: %v", err)
+		log.Errorf("dcrwallet client error: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return err
@@ -111,7 +111,7 @@ func run(ctx context.Context) error {
 		FeeAddressExpiration: defaultFeeAddressExpiration,
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
-		feeWalletConnect, votingWalletConnect, cfg.WebServerDebug, cfg.FeeXPub, apiCfg)
+		dcrdConnect, walletConnect, cfg.WebServerDebug, cfg.FeeXPub, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialize webapi: %v", err)
 		requestShutdown()

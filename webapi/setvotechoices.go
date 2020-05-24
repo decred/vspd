@@ -17,7 +17,7 @@ func setVoteChoices(c *gin.Context) {
 	rawRequest := c.MustGet("RawRequest").([]byte)
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
-	vWalletClient := c.MustGet("VotingWalletClient").(*rpc.VotingWalletRPC)
+	walletClient := c.MustGet("WalletClient").(*rpc.WalletRPC)
 
 	if !knownTicket {
 		log.Warnf("Invalid ticket from %s", c.ClientIP())
@@ -51,7 +51,7 @@ func setVoteChoices(c *gin.Context) {
 
 	// Update vote choices on voting wallets.
 	for agenda, choice := range voteChoices {
-		err = vWalletClient.SetVoteChoice(agenda, choice, ticket.Hash)
+		err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 		if err != nil {
 			log.Errorf("SetVoteChoice failed: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
