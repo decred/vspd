@@ -100,7 +100,7 @@ func feeAddress(c *gin.Context) {
 
 	// Check if ticket is fully confirmed.
 	var confirmed bool
-	if rawTx.Confirmations >= 6 {
+	if rawTx.Confirmations >= requiredConfs {
 		confirmed = true
 	}
 

@@ -18,6 +18,12 @@ type NotificationHandler struct {
 	dcrdClient    *rpc.DcrdRPC
 }
 
+// The number of confirmations required to consider a ticket purchase or a fee
+// transaction to be final.
+const (
+	requiredConfs = 6
+)
+
 // Notify is called every time a block notification is received from dcrd.
 // Notify is never called concurrently. Notify should not return an error
 // because that will cause the client to close and no further notifications will
@@ -49,7 +55,7 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 			log.Errorf("GetRawTransaction error: %v", err)
 			continue
 		}
-		if tktTx.Confirmations >= 6 {
+		if tktTx.Confirmations >= requiredConfs {
 			ticket.Confirmed = true
 			err = n.Db.UpdateTicket(ticket)
 			if err != nil {
@@ -123,7 +129,7 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 
 		// If fee is confirmed, update the database and add ticket to voting
 		// wallets.
-		if feeTx.Confirmations >= 6 {
+		if feeTx.Confirmations >= requiredConfs {
 			ticket.FeeConfirmed = true
 			err = n.Db.UpdateTicket(ticket)
 			if err != nil {

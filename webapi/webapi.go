@@ -27,6 +27,12 @@ type Config struct {
 	FeeAddressExpiration time.Duration
 }
 
+// The number of confirmations required to consider a ticket purchase or a fee
+// transaction to be final.
+const (
+	requiredConfs = 6
+)
+
 var homepageData *gin.H
 
 var cfg Config
