@@ -12,6 +12,7 @@ import (
 type Ticket struct {
 	Hash              string            `json:"hash"`
 	CommitmentAddress string            `json:"commitmentaddress"`
+	FeeAddressIndex   uint32            `json:"feeaddressindex"`
 	FeeAddress        string            `json:"feeaddress"`
 	SDiff             float64           `json:"sdiff"`
 	BlockHeight       int64             `json:"blockheight"`
@@ -179,9 +180,5 @@ func (vdb *VspDatabase) CountTickets() (int, int, error) {
 		})
 	})
 
-	if err != nil {
-		return 0, 0, err
-	}
-
-	return total, feePaid, nil
+	return total, feePaid, err
 }

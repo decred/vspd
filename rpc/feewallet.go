@@ -57,37 +57,6 @@ func FeeWalletClient(ctx context.Context, c Caller) (*FeeWalletRPC, error) {
 	return &FeeWalletRPC{c, ctx}, nil
 }
 
-func (c *FeeWalletRPC) ImportXPub(account, xpub string) error {
-	return c.Call(c.ctx, "importxpub", nil, account, xpub)
-}
-
-func (c *FeeWalletRPC) GetMasterPubKey(account string) (string, error) {
-	var pubKey string
-	err := c.Call(c.ctx, "getmasterpubkey", &pubKey, account)
-	if err != nil {
-		return "", err
-	}
-	return pubKey, nil
-}
-
-func (c *FeeWalletRPC) ListAccounts() (map[string]float64, error) {
-	var accounts map[string]float64
-	err := c.Call(c.ctx, "listaccounts", &accounts)
-	if err != nil {
-		return nil, err
-	}
-	return accounts, nil
-}
-
-func (c *FeeWalletRPC) GetNewAddress(account string) (string, error) {
-	var newAddress string
-	err := c.Call(c.ctx, "getnewaddress", &newAddress, account)
-	if err != nil {
-		return "", err
-	}
-	return newAddress, nil
-}
-
 func (c *FeeWalletRPC) GetBlockHeader(blockHash string) (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
 	verbose := true
 	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult

@@ -33,15 +33,27 @@ var cfg Config
 var db *database.VspDatabase
 var feeWalletConnect rpc.Connect
 var votingWalletConnect rpc.Connect
+var addrGen *addressGenerator
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, fWalletConnect rpc.Connect, vWalletConnect rpc.Connect, debugMode bool, config Config) error {
+	listen string, vdb *database.VspDatabase, fWalletConnect rpc.Connect, vWalletConnect rpc.Connect, debugMode bool, feeXPub string, config Config) error {
 
 	// Populate template data before starting webserver.
 	var err error
 	homepageData, err = updateHomepageData(vdb, config)
 	if err != nil {
 		return fmt.Errorf("could not initialize homepage data: %v", err)
+	}
+
+	// Get the last used address index from the database, and use it to
+	// initialize the address generator.
+	idx, err := vdb.GetLastAddressIndex()
+	if err != nil {
+		return fmt.Errorf("GetLastAddressIndex error: %v", err)
+	}
+	addrGen, err = newAddressGenerator(feeXPub, config.NetParams, idx)
+	if err != nil {
+		return fmt.Errorf("failed to initialize fee address generator: %v", err)
 	}
 
 	// Create TCP listener.

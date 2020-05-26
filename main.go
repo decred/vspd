@@ -14,7 +14,6 @@ import (
 )
 
 const (
-	feeAccountName              = "fees"
 	defaultFeeAddressExpiration = 24 * time.Hour
 )
 
@@ -57,8 +56,9 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	// Create RPC client for local dcrwallet instance (used for generating fee
-	// addresses and broadcasting fee transactions).
+	// Create RPC client for local dcrwallet instance (used for broadcasting fee transactions).
+	// Dial once just to validate config.
+	// TODO: Replace with dcrd.
 	feeWalletConnect := rpc.Setup(ctx, &shutdownWg, cfg.FeeWalletUser, cfg.FeeWalletPass, cfg.FeeWalletHost, cfg.feeWalletCert)
 	feeWalletConn, err := feeWalletConnect()
 	if err != nil {
@@ -67,7 +67,7 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
-	feeWalletClient, err := rpc.FeeWalletClient(ctx, feeWalletConn)
+	_, err = rpc.FeeWalletClient(ctx, feeWalletConn)
 	if err != nil {
 		log.Errorf("Fee wallet client error: %v", err)
 		requestShutdown()
@@ -76,6 +76,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
+	// Dial once just to validate config.
 	votingWalletConnect := rpc.Setup(ctx, &shutdownWg, cfg.VotingWalletUser, cfg.VotingWalletPass, cfg.VotingWalletHost, cfg.votingWalletCert)
 	votingWalletConn, err := votingWalletConnect()
 	if err != nil {
@@ -92,18 +93,10 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	// TODO: This can move into webapi.Start()
 	signKey, pubKey, err := db.KeyPair()
 	if err != nil {
 		log.Errorf("Failed to get keypair: %v", err)
-		requestShutdown()
-		shutdownWg.Wait()
-		return err
-	}
-
-	// Ensure the wallet account for collecting fees exists and matches config.
-	err = setupFeeAccount(feeWalletClient, cfg.FeeXPub)
-	if err != nil {
-		log.Errorf("Fee account error: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return err
@@ -115,10 +108,10 @@ func run(ctx context.Context) error {
 		PubKey:               pubKey,
 		VSPFee:               cfg.VSPFee,
 		NetParams:            cfg.netParams.Params,
-		FeeAccountName:       feeAccountName,
 		FeeAddressExpiration: defaultFeeAddressExpiration,
 	}
-	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db, feeWalletConnect, votingWalletConnect, cfg.WebServerDebug, apiCfg)
+	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
+		feeWalletConnect, votingWalletConnect, cfg.WebServerDebug, cfg.FeeXPub, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialize webapi: %v", err)
 		requestShutdown()
@@ -130,36 +123,4 @@ func run(ctx context.Context) error {
 	shutdownWg.Wait()
 
 	return ctx.Err()
-}
-
-func setupFeeAccount(walletClient *rpc.FeeWalletRPC, feeXpub string) error {
-	// Check if account for fee collection already exists.
-	accounts, err := walletClient.ListAccounts()
-	if err != nil {
-		return fmt.Errorf("ListAccounts error: %v", err)
-	}
-
-	if _, ok := accounts[feeAccountName]; ok {
-		// Account already exists. Check xpub matches xpub from config.
-		existingXPub, err := walletClient.GetMasterPubKey(feeAccountName)
-		if err != nil {
-			return fmt.Errorf("GetMasterPubKey error: %v", err)
-		}
-
-		if existingXPub != feeXpub {
-			return fmt.Errorf("existing account xpub differs from config: %s != %s", existingXPub, feeXpub)
-		}
-
-		log.Debugf("Using existing wallet account %q to collect fees", feeAccountName)
-
-	} else {
-		// Account does not exist. Create it using xpub from config.
-		if err = walletClient.ImportXPub(feeAccountName, feeXpub); err != nil {
-			log.Errorf("ImportXPub error: %v", err)
-			return err
-		}
-		log.Debugf("Created new wallet account %q to collect fees", feeAccountName)
-	}
-
-	return nil
 }

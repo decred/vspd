@@ -3,6 +3,7 @@ package webapi
 import (
 	"encoding/hex"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/decred/dcrd/blockchain/stake/v3"
@@ -12,6 +13,30 @@ import (
 	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
 )
+
+// addrMtx protects getNewFeeAddress.
+var addrMtx sync.Mutex
+
+// getNewFeeAddress gets a new address from the address generator and stores the
+// new address index in the database. In order to maintain consistency between
+// the internal counter of address generator and the database, this function
+// cannot be run concurrently.
+func getNewFeeAddress(db *database.VspDatabase, addrGen *addressGenerator) (string, uint32, error) {
+	addrMtx.Lock()
+	defer addrMtx.Unlock()
+
+	addr, idx, err := addrGen.NextAddress()
+	if err != nil {
+		return "", 0, err
+	}
+
+	err = db.SetLastAddressIndex(idx)
+	if err != nil {
+		return "", 0, err
+	}
+
+	return addr, idx, nil
+}
 
 // feeAddress is the handler for "POST /feeaddress".
 func feeAddress(c *gin.Context) {
@@ -115,12 +140,9 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	// TODO: Generate this within dcrvsp without an RPC call?
-	newAddress, err := fWalletClient.GetNewAddress(cfg.FeeAccountName)
+	newAddress, newAddressIdx, err := getNewFeeAddress(db, addrGen)
 	if err != nil {
-		log.Errorf("GetNewAddress error: %v", err)
-		sendErrorResponse("unable to generate fee address", http.StatusInternalServerError, c)
-		return
+		log.Errorf("getNewFeeAddress error: %v", err)
 	}
 
 	now := time.Now()
@@ -129,6 +151,7 @@ func feeAddress(c *gin.Context) {
 	dbTicket := database.Ticket{
 		Hash:              ticketHash,
 		CommitmentAddress: commitmentAddress,
+		FeeAddressIndex:   newAddressIdx,
 		FeeAddress:        newAddress,
 		SDiff:             blockHeader.SBits,
 		BlockHeight:       int64(blockHeader.Height),
@@ -143,6 +166,9 @@ func feeAddress(c *gin.Context) {
 		sendErrorResponse("database error", http.StatusInternalServerError, c)
 		return
 	}
+
+	log.Debugf("Fee address created for new ticket: feeAddrIdx=%d, "+
+		"feeAddr=%s, ticketHash=%s", newAddressIdx, newAddress, ticketHash)
 
 	sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),

@@ -17,6 +17,7 @@ func exampleTicket() Ticket {
 	return Ticket{
 		Hash:              "Hash",
 		CommitmentAddress: "Address",
+		FeeAddressIndex:   12345,
 		FeeAddress:        "FeeAddress",
 		SDiff:             1,
 		BlockHeight:       2,
@@ -105,6 +106,7 @@ func testGetTicketByHash(t *testing.T) {
 	// Check ticket fields match expected.
 	if retrieved.Hash != ticket.Hash ||
 		retrieved.CommitmentAddress != ticket.CommitmentAddress ||
+		retrieved.FeeAddressIndex != ticket.FeeAddressIndex ||
 		retrieved.FeeAddress != ticket.FeeAddress ||
 		retrieved.SDiff != ticket.SDiff ||
 		retrieved.BlockHeight != ticket.BlockHeight ||
