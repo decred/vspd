@@ -48,12 +48,19 @@ func (m *addressGenerator) NextAddress() (string, uint32, error) {
 	// There is a small chance that generating addresses for a given index can
 	// fail with ErrInvalidChild, so loop until we find an index which works.
 	// See the hdkeychain.ExtendedKey.Child docs for more info.
+	invalidChildren := 0
 	for {
 		m.lastUsedIndex++
 		key, err = m.external.Child(m.lastUsedIndex)
 		if err != nil {
 			if err == hdkeychain.ErrInvalidChild {
+				invalidChildren++
 				log.Warnf("Generating address for index %d failed: %v", m.lastUsedIndex, err)
+				// If this happens 3 times, something is seriously wrong, so
+				// return an error.
+				if invalidChildren > 2 {
+					return "", 0, errors.New("multiple invalid children generated for key")
+				}
 				continue
 			}
 			return "", 0, err
