@@ -168,13 +168,13 @@ func router(debugMode bool) *gin.Engine {
 	)
 	feeOnly.POST("/feeaddress", feeAddress)
 	feeOnly.GET("/ticketstatus", ticketStatus)
+	feeOnly.POST("/payfee", payFee)
 
 	// These API routes access dcrd and the voting wallets, and they need
 	// authentication.
 	both := router.Group("/api").Use(
 		withDcrdClient(), withWalletClient(), vspAuth(),
 	)
-	both.POST("/payfee", payFee)
 	both.POST("/setvotechoices", setVoteChoices)
 
 	return router

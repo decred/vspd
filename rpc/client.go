@@ -26,7 +26,7 @@ type Connect func() (Caller, error)
 // function which can be called to access the client. The returned function will
 // try to handle any client disconnects by attempting to reconnect, but will
 // return an error if a new connection cannot be established.
-func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr string, cert []byte) Connect {
+func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr string, cert []byte, n wsrpc.Notifier) Connect {
 
 	// Create TLS options.
 	pool := x509.NewCertPool()
@@ -54,7 +54,6 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 				log.Debugf("RPC already closed (%s)", addr)
 
 			default:
-				log.Debugf("Closing RPC (%s)...", addr)
 				if err := c.Close(); err != nil {
 					log.Errorf("Failed to close RPC (%s): %v", addr, err)
 				} else {
@@ -72,7 +71,7 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 		if c != nil {
 			select {
 			case <-c.Done():
-				log.Infof("RPC client errored (%v); reconnecting...", c.Err())
+				log.Debugf("RPC client errored (%v); reconnecting...", c.Err())
 				c = nil
 			default:
 				return c, nil
@@ -80,7 +79,7 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 		}
 
 		var err error
-		c, err = wsrpc.Dial(ctx, fullAddr, tlsOpt, authOpt)
+		c, err = wsrpc.Dial(ctx, fullAddr, tlsOpt, authOpt, wsrpc.WithNotifier(n))
 		if err != nil {
 			return nil, err
 		}

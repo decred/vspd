@@ -19,13 +19,14 @@ func exampleTicket() Ticket {
 		CommitmentAddress: "Address",
 		FeeAddressIndex:   12345,
 		FeeAddress:        "FeeAddress",
-		SDiff:             1,
-		BlockHeight:       2,
-		VoteChoices:       map[string]string{"AgendaID": "Choice"},
-		VotingKey:         "VotingKey",
 		VSPFee:            0.1,
 		FeeExpiration:     4,
+		Confirmed:         false,
+		VoteChoices:       map[string]string{"AgendaID": "Choice"},
+		VotingWIF:         "VotingKey",
+		FeeTxHex:          "FeeTransction",
 		FeeTxHash:         "",
+		FeeConfirmed:      true,
 	}
 }
 
@@ -36,11 +37,8 @@ func TestDatabase(t *testing.T) {
 
 	// All sub-tests to run.
 	tests := map[string]func(*testing.T){
-		"testInsertTicket":       testInsertTicket,
-		"testGetTicketByHash":    testGetTicketByHash,
-		"testSetTicketVotingKey": testSetTicketVotingKey,
-		"testUpdateExpireAndFee": testUpdateExpireAndFee,
-		"testUpdateVoteChoices":  testUpdateVoteChoices,
+		"testInsertNewTicket": testInsertNewTicket,
+		"testGetTicketByHash": testGetTicketByHash,
 	}
 
 	for testName, test := range tests {
@@ -64,23 +62,23 @@ func TestDatabase(t *testing.T) {
 	}
 }
 
-func testInsertTicket(t *testing.T) {
+func testInsertNewTicket(t *testing.T) {
 	// Insert a ticket into the database.
 	ticket := exampleTicket()
-	err := db.InsertTicket(ticket)
+	err := db.InsertNewTicket(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
 	// Inserting a ticket with the same hash should fail.
-	err = db.InsertTicket(ticket)
+	err = db.InsertNewTicket(ticket)
 	if err == nil {
 		t.Fatal("expected an error inserting ticket with duplicate hash")
 	}
 
 	// Inserting a ticket with empty hash should fail.
 	ticket.Hash = ""
-	err = db.InsertTicket(ticket)
+	err = db.InsertNewTicket(ticket)
 	if err == nil {
 		t.Fatal("expected an error inserting ticket with no hash")
 	}
@@ -89,7 +87,7 @@ func testInsertTicket(t *testing.T) {
 func testGetTicketByHash(t *testing.T) {
 	ticket := exampleTicket()
 	// Insert a ticket into the database.
-	err := db.InsertTicket(ticket)
+	err := db.InsertNewTicket(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
@@ -108,13 +106,14 @@ func testGetTicketByHash(t *testing.T) {
 		retrieved.CommitmentAddress != ticket.CommitmentAddress ||
 		retrieved.FeeAddressIndex != ticket.FeeAddressIndex ||
 		retrieved.FeeAddress != ticket.FeeAddress ||
-		retrieved.SDiff != ticket.SDiff ||
-		retrieved.BlockHeight != ticket.BlockHeight ||
-		!reflect.DeepEqual(retrieved.VoteChoices, ticket.VoteChoices) ||
-		retrieved.VotingKey != ticket.VotingKey ||
 		retrieved.VSPFee != ticket.VSPFee ||
+		retrieved.FeeExpiration != ticket.FeeExpiration ||
+		retrieved.Confirmed != ticket.Confirmed ||
+		!reflect.DeepEqual(retrieved.VoteChoices, ticket.VoteChoices) ||
+		retrieved.VotingWIF != ticket.VotingWIF ||
+		retrieved.FeeTxHex != ticket.FeeTxHex ||
 		retrieved.FeeTxHash != ticket.FeeTxHash ||
-		retrieved.FeeExpiration != ticket.FeeExpiration {
+		retrieved.FeeConfirmed != ticket.FeeConfirmed {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
 
@@ -128,90 +127,7 @@ func testGetTicketByHash(t *testing.T) {
 	}
 }
 
-func testSetTicketVotingKey(t *testing.T) {
-	// Insert a ticket into the database.
-	ticket := exampleTicket()
-	err := db.InsertTicket(ticket)
-	if err != nil {
-		t.Fatalf("error storing ticket in database: %v", err)
-	}
+// TODO: Add tests for UpdateTicket, CountTickets, GetUnconfirmedTickets,
+// GetPendingFees, GetUnconfirmedFees.
 
-	// Update values.
-	newVotingKey := ticket.VotingKey + "2"
-	newVoteChoices := ticket.VoteChoices
-	feeTxHash := ticket.FeeTxHash + "3"
-	newVoteChoices["AgendaID"] = "Different choice"
-	err = db.SetTicketVotingKey(ticket.Hash, newVotingKey, newVoteChoices, feeTxHash)
-	if err != nil {
-		t.Fatalf("error updating votingkey and votechoices: %v", err)
-	}
-
-	// Retrieve ticket from database.
-	retrieved, _, err := db.GetTicketByHash(ticket.Hash)
-	if err != nil {
-		t.Fatalf("error retrieving ticket by ticket hash: %v", err)
-	}
-
-	// Check ticket fields match expected.
-	if !reflect.DeepEqual(newVoteChoices, retrieved.VoteChoices) ||
-		feeTxHash != retrieved.FeeTxHash ||
-		newVotingKey != retrieved.VotingKey {
-		t.Fatal("retrieved ticket value didnt match expected")
-	}
-}
-
-func testUpdateExpireAndFee(t *testing.T) {
-	// Insert a ticket into the database.
-	ticket := exampleTicket()
-	err := db.InsertTicket(ticket)
-	if err != nil {
-		t.Fatalf("error storing ticket in database: %v", err)
-	}
-
-	// Update ticket with new values.
-	newExpiry := ticket.FeeExpiration + 1
-	newFee := ticket.VSPFee + 1
-	err = db.UpdateExpireAndFee(ticket.Hash, newExpiry, newFee)
-	if err != nil {
-		t.Fatalf("error updating expiry and fee: %v", err)
-	}
-
-	// Get updated ticket
-	retrieved, _, err := db.GetTicketByHash(ticket.Hash)
-	if err != nil {
-		t.Fatalf("error retrieving updated ticket: %v", err)
-	}
-
-	// Check ticket fields match expected.
-	if retrieved.VSPFee != newFee || retrieved.FeeExpiration != newExpiry {
-		t.Fatal("retrieved ticket value didnt match expected")
-	}
-}
-
-func testUpdateVoteChoices(t *testing.T) {
-	// Insert a ticket into the database.
-	ticket := exampleTicket()
-	err := db.InsertTicket(ticket)
-	if err != nil {
-		t.Fatalf("error storing ticket in database: %v", err)
-	}
-
-	// Update ticket with new votechoices.
-	newVoteChoices := ticket.VoteChoices
-	newVoteChoices["AgendaID"] = "Different choice"
-	err = db.UpdateVoteChoices(ticket.Hash, newVoteChoices)
-	if err != nil {
-		t.Fatalf("error updating votechoices: %v", err)
-	}
-
-	// Get updated ticket
-	retrieved, _, err := db.GetTicketByHash(ticket.Hash)
-	if err != nil {
-		t.Fatalf("error retrieving updated ticket: %v", err)
-	}
-
-	// Check ticket fields match expected.
-	if !reflect.DeepEqual(newVoteChoices, retrieved.VoteChoices) {
-		t.Fatal("retrieved ticket value didnt match expected")
-	}
-}
+// TODO: Add tests for ticket.FeeExpired.

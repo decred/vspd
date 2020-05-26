@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/decred/dcrd/blockchain/stake/v3"
@@ -45,16 +46,6 @@ func DcrdClient(ctx context.Context, c Caller) (*DcrdRPC, error) {
 	return &DcrdRPC{c, ctx}, nil
 }
 
-func (c *DcrdRPC) GetBlockHeader(blockHash string) (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
-	verbose := true
-	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
-	err := c.Call(c.ctx, "getblockheader", &blockHeader, blockHash, verbose)
-	if err != nil {
-		return nil, err
-	}
-	return &blockHeader, nil
-}
-
 func (c *DcrdRPC) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, error) {
 	verbose := 1
 	var resp dcrdtypes.TxRawResult
@@ -76,11 +67,11 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) (string, error) {
 }
 
 func (c *DcrdRPC) GetTicketCommitmentAddress(ticketHash string, netParams *chaincfg.Params) (string, error) {
+	// Retrieve and parse the transaction.
 	resp, err := c.GetRawTransaction(ticketHash)
 	if err != nil {
 		return "", err
 	}
-
 	msgHex, err := hex.DecodeString(resp.Hex)
 	if err != nil {
 		return "", err
@@ -89,10 +80,24 @@ func (c *DcrdRPC) GetTicketCommitmentAddress(ticketHash string, netParams *chain
 	if err = msgTx.FromBytes(msgHex); err != nil {
 		return "", err
 	}
+
+	// Ensure transaction is a valid ticket.
+	if !stake.IsSStx(msgTx) {
+		return "", errors.New("invalid transcation - not sstx")
+	}
+	if len(msgTx.TxOut) != 3 {
+		return "", fmt.Errorf("invalid transcation - expected 3 outputs, got %d", len(msgTx.TxOut))
+	}
+
+	// Get ticket commitment address.
 	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, netParams)
 	if err != nil {
 		return "", err
 	}
 
 	return addr.Address(), nil
+}
+
+func (c *DcrdRPC) NotifyBlocks() error {
+	return c.Call(c.ctx, "notifyblocks", nil)
 }

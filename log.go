@@ -8,6 +8,7 @@ import (
 	"github.com/decred/slog"
 	"github.com/jrick/logrotate/rotator"
 
+	"github.com/jholdstock/dcrvsp/background"
 	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
 	"github.com/jholdstock/dcrvsp/webapi"
@@ -42,6 +43,7 @@ var (
 
 	log    = backendLog.Logger("VSP")
 	dbLog  = backendLog.Logger(" DB")
+	bgLog  = backendLog.Logger(" BG")
 	apiLog = backendLog.Logger("API")
 	rpcLog = backendLog.Logger("RPC")
 )
@@ -49,6 +51,7 @@ var (
 // Initialize package-global logger variables.
 func init() {
 	database.UseLogger(dbLog)
+	background.UseLogger(bgLog)
 	webapi.UseLogger(apiLog)
 	rpc.UseLogger(rpcLog)
 }
@@ -57,6 +60,7 @@ func init() {
 var subsystemLoggers = map[string]slog.Logger{
 	"VSP": log,
 	" DB": dbLog,
+	" BG": bgLog,
 	"API": apiLog,
 	"RPC": rpcLog,
 }

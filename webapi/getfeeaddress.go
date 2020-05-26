@@ -1,13 +1,10 @@
 package webapi
 
 import (
-	"encoding/hex"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/stake/v3"
-	"github.com/decred/dcrd/wire"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/jholdstock/dcrvsp/database"
@@ -59,15 +56,13 @@ func feeAddress(c *gin.Context) {
 	if knownTicket {
 		// If the expiry period has passed we need to issue a new fee.
 		now := time.Now()
-		expire := ticket.FeeExpiration
-		VSPFee := ticket.VSPFee
-		if now.After(time.Unix(ticket.FeeExpiration, 0)) {
-			expire = now.Add(cfg.FeeAddressExpiration).Unix()
-			VSPFee = cfg.VSPFee
+		if ticket.FeeExpired() {
+			ticket.FeeExpiration = now.Add(cfg.FeeAddressExpiration).Unix()
+			ticket.VSPFee = cfg.VSPFee
 
-			err := db.UpdateExpireAndFee(ticket.Hash, expire, VSPFee)
+			err := db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("UpdateExpireAndFee error: %v", err)
+				log.Errorf("UpdateTicket error: %v", err)
 				sendErrorResponse("database error", http.StatusInternalServerError, c)
 				return
 			}
@@ -76,8 +71,8 @@ func feeAddress(c *gin.Context) {
 			Timestamp:  now.Unix(),
 			Request:    feeAddressRequest,
 			FeeAddress: ticket.FeeAddress,
-			Fee:        VSPFee,
-			Expiration: expire,
+			Fee:        ticket.VSPFee,
+			Expiration: ticket.FeeExpiration,
 		}, c)
 
 		return
@@ -88,56 +83,25 @@ func feeAddress(c *gin.Context) {
 
 	ticketHash := feeAddressRequest.TicketHash
 
-	// Ensure ticket exists and is mined.
-	resp, err := dcrdClient.GetRawTransaction(ticketHash)
+	// Get transaction details.
+	rawTx, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
 		log.Warnf("Could not retrieve tx %s for %s: %v", ticketHash, c.ClientIP(), err)
 		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
 		return
 	}
-	if resp.Confirmations < 2 || resp.BlockHeight < 0 {
-		log.Warnf("Not enough confs for tx from %s", c.ClientIP())
-		sendErrorResponse("transaction does not have minimum confirmations", http.StatusBadRequest, c)
-		return
-	}
-	if resp.Confirmations > int64(uint32(cfg.NetParams.TicketMaturity)+cfg.NetParams.TicketExpiry) {
+
+	// Don't accept tickets which are too old.
+	if rawTx.Confirmations > int64(uint32(cfg.NetParams.TicketMaturity)+cfg.NetParams.TicketExpiry) {
 		log.Warnf("Too old tx from %s", c.ClientIP())
 		sendErrorResponse("transaction too old", http.StatusBadRequest, c)
 		return
 	}
 
-	msgHex, err := hex.DecodeString(resp.Hex)
-	if err != nil {
-		log.Errorf("Failed to decode tx: %v", err)
-		sendErrorResponse("unable to decode transaction", http.StatusInternalServerError, c)
-		return
-	}
-
-	msgTx := wire.NewMsgTx()
-	if err = msgTx.FromBytes(msgHex); err != nil {
-		log.Errorf("Failed to deserialize tx: %v", err)
-		sendErrorResponse("failed to deserialize transaction", http.StatusInternalServerError, c)
-		return
-	}
-	if !stake.IsSStx(msgTx) {
-		log.Warnf("Non-ticket tx from %s", c.ClientIP())
-		sendErrorResponse("transaction is not a ticket", http.StatusBadRequest, c)
-		return
-	}
-	if len(msgTx.TxOut) != 3 {
-		log.Warnf("Invalid ticket from %s", c.ClientIP())
-		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
-		return
-	}
-
-	// get blockheight and sdiff which is required by
-	// txrules.StakePoolTicketFee, and store them in the database
-	// for processing by payfee
-	blockHeader, err := dcrdClient.GetBlockHeader(resp.BlockHash)
-	if err != nil {
-		log.Errorf("GetBlockHeader error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
+	// Check if ticket is fully confirmed.
+	var confirmed bool
+	if rawTx.Confirmations >= 6 {
+		confirmed = true
 	}
 
 	newAddress, newAddressIdx, err := getNewFeeAddress(db, addrGen)
@@ -153,22 +117,21 @@ func feeAddress(c *gin.Context) {
 		CommitmentAddress: commitmentAddress,
 		FeeAddressIndex:   newAddressIdx,
 		FeeAddress:        newAddress,
-		SDiff:             blockHeader.SBits,
-		BlockHeight:       int64(blockHeader.Height),
+		Confirmed:         confirmed,
 		VSPFee:            cfg.VSPFee,
 		FeeExpiration:     expire,
 		// VotingKey and VoteChoices: set during payfee
 	}
 
-	err = db.InsertTicket(dbTicket)
+	err = db.InsertNewTicket(dbTicket)
 	if err != nil {
 		log.Errorf("InsertTicket error: %v", err)
 		sendErrorResponse("database error", http.StatusInternalServerError, c)
 		return
 	}
 
-	log.Debugf("Fee address created for new ticket: feeAddrIdx=%d, "+
-		"feeAddr=%s, ticketHash=%s", newAddressIdx, newAddress, ticketHash)
+	log.Debugf("Fee address created for new ticket: tktConfirmed=%t, feeAddrIdx=%d, "+
+		"feeAddr=%s, ticketHash=%s", confirmed, newAddressIdx, newAddress, ticketHash)
 
 	sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),

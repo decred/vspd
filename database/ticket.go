@@ -9,18 +9,32 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+// TODO: Properly document ticket lifecycle.
+// TODO: Shorten json keys, they are stored in the db and duplicated many times.
+
 type Ticket struct {
-	Hash              string            `json:"hash"`
-	CommitmentAddress string            `json:"commitmentaddress"`
-	FeeAddressIndex   uint32            `json:"feeaddressindex"`
-	FeeAddress        string            `json:"feeaddress"`
-	SDiff             float64           `json:"sdiff"`
-	BlockHeight       int64             `json:"blockheight"`
-	VoteChoices       map[string]string `json:"votechoices"`
-	VotingKey         string            `json:"votingkey"`
-	VSPFee            float64           `json:"vspfee"`
-	FeeExpiration     int64             `json:"feeexpiration"`
-	FeeTxHash         string            `json:"feetxhash"`
+	Hash              string  `json:"hash"`
+	CommitmentAddress string  `json:"commitmentaddress"`
+	FeeAddressIndex   uint32  `json:"feeaddressindex"`
+	FeeAddress        string  `json:"feeaddress"`
+	VSPFee            float64 `json:"vspfee"`
+	FeeExpiration     int64   `json:"feeexpiration"`
+
+	// Confirmed will be set when the ticket has 6+ confirmations.
+	Confirmed bool `json:"confirmed"`
+
+	// VoteChoices and VotingWIF are set in /payfee.
+	VoteChoices map[string]string `json:"votechoices"`
+	VotingWIF   string            `json:"votingwif"`
+
+	// FeeTxHex will be set when the fee tx has been received from the user.
+	FeeTxHex string `json:"feetxhex"`
+
+	// FeeTxHash will be set when the fee tx has been broadcast.
+	FeeTxHash string `json:"feetxhash"`
+
+	// FeeConfirmed will be set when the fee tx has 6+ confirmations.
+	FeeConfirmed bool `json:"feeconfirmed"`
 }
 
 func (t *Ticket) FeeExpired() bool {
@@ -32,10 +46,11 @@ var (
 	ErrNoTicketFound = errors.New("no ticket found")
 )
 
-func (vdb *VspDatabase) InsertTicket(ticket Ticket) error {
-	hashBytes := []byte(ticket.Hash)
+func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+
+		hashBytes := []byte(ticket.Hash)
 
 		if ticketBkt.Get(hashBytes) != nil {
 			return fmt.Errorf("ticket already exists with hash %s", ticket.Hash)
@@ -45,35 +60,26 @@ func (vdb *VspDatabase) InsertTicket(ticket Ticket) error {
 
 		ticketBytes, err := json.Marshal(ticket)
 		if err != nil {
-			return err
+			return fmt.Errorf("could not marshal ticket: %v", err)
 		}
 
 		return ticketBkt.Put(hashBytes, ticketBytes)
 	})
 }
 
-func (vdb *VspDatabase) SetTicketVotingKey(ticketHash, votingKey string, voteChoices map[string]string, feeTxHash string) error {
+func (vdb *VspDatabase) UpdateTicket(ticket Ticket) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
-		hashBytes := []byte(ticketHash)
+		hashBytes := []byte(ticket.Hash)
 
-		ticketBytes := ticketBkt.Get(hashBytes)
-		if ticketBytes == nil {
-			return ErrNoTicketFound
+		if ticketBkt.Get(hashBytes) == nil {
+			return fmt.Errorf("ticket does not exist with hash %s", ticket.Hash)
 		}
 
-		var ticket Ticket
-		err := json.Unmarshal(ticketBytes, &ticket)
-		if err != nil {
-			return fmt.Errorf("could not unmarshal ticket: %v", err)
-		}
+		// TODO: Error if a ticket already exists with the same fee address.
 
-		ticket.VotingKey = votingKey
-		ticket.VoteChoices = voteChoices
-		ticket.FeeTxHash = feeTxHash
-
-		ticketBytes, err = json.Marshal(ticket)
+		ticketBytes, err := json.Marshal(ticket)
 		if err != nil {
 			return fmt.Errorf("could not marshal ticket: %v", err)
 		}
@@ -106,59 +112,6 @@ func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, bool, error)
 	return ticket, found, err
 }
 
-func (vdb *VspDatabase) UpdateVoteChoices(ticketHash string, voteChoices map[string]string) error {
-	return vdb.db.Update(func(tx *bolt.Tx) error {
-		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
-		hashBytes := []byte(ticketHash)
-
-		ticketBytes := ticketBkt.Get(hashBytes)
-		if ticketBytes == nil {
-			return ErrNoTicketFound
-		}
-
-		var ticket Ticket
-		err := json.Unmarshal(ticketBytes, &ticket)
-		if err != nil {
-			return fmt.Errorf("could not unmarshal ticket: %v", err)
-		}
-		ticket.VoteChoices = voteChoices
-
-		ticketBytes, err = json.Marshal(ticket)
-		if err != nil {
-			return fmt.Errorf("could not marshal ticket: %v", err)
-		}
-
-		return ticketBkt.Put(hashBytes, ticketBytes)
-	})
-}
-
-func (vdb *VspDatabase) UpdateExpireAndFee(ticketHash string, expiration int64, vspFee float64) error {
-	return vdb.db.Update(func(tx *bolt.Tx) error {
-		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
-		hashBytes := []byte(ticketHash)
-
-		ticketBytes := ticketBkt.Get(hashBytes)
-		if ticketBytes == nil {
-			return ErrNoTicketFound
-		}
-
-		var ticket Ticket
-		err := json.Unmarshal(ticketBytes, &ticket)
-		if err != nil {
-			return fmt.Errorf("could not unmarshal ticket: %v", err)
-		}
-		ticket.FeeExpiration = expiration
-		ticket.VSPFee = vspFee
-
-		ticketBytes, err = json.Marshal(ticket)
-		if err != nil {
-			return fmt.Errorf("could not marshal ticket: %v", err)
-		}
-
-		return ticketBkt.Put(hashBytes, ticketBytes)
-	})
-}
-
 func (vdb *VspDatabase) CountTickets() (int, int, error) {
 	var total, feePaid int
 	err := vdb.db.View(func(tx *bolt.Tx) error {
@@ -181,4 +134,79 @@ func (vdb *VspDatabase) CountTickets() (int, int, error) {
 	})
 
 	return total, feePaid, err
+}
+
+func (vdb *VspDatabase) GetUnconfirmedTickets() ([]Ticket, error) {
+	var tickets []Ticket
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+
+		return ticketBkt.ForEach(func(k, v []byte) error {
+			var ticket Ticket
+			err := json.Unmarshal(v, &ticket)
+			if err != nil {
+				return fmt.Errorf("could not unmarshal ticket: %v", err)
+			}
+
+			if !ticket.Confirmed {
+				tickets = append(tickets, ticket)
+			}
+
+			return nil
+		})
+	})
+
+	return tickets, err
+}
+
+func (vdb *VspDatabase) GetPendingFees() ([]Ticket, error) {
+	var tickets []Ticket
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+
+		return ticketBkt.ForEach(func(k, v []byte) error {
+			var ticket Ticket
+			err := json.Unmarshal(v, &ticket)
+			if err != nil {
+				return fmt.Errorf("could not unmarshal ticket: %v", err)
+			}
+
+			// Add ticket if it is confirmed, and we have a fee tx, and the tx
+			// is not broadcast yet.
+			if ticket.Confirmed &&
+				ticket.FeeTxHex != "" &&
+				ticket.FeeTxHash == "" {
+				tickets = append(tickets, ticket)
+			}
+
+			return nil
+		})
+	})
+
+	return tickets, err
+}
+
+func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
+	var tickets []Ticket
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+
+		return ticketBkt.ForEach(func(k, v []byte) error {
+			var ticket Ticket
+			err := json.Unmarshal(v, &ticket)
+			if err != nil {
+				return fmt.Errorf("could not unmarshal ticket: %v", err)
+			}
+
+			// Add ticket if fee tx is broadcast but not confirmed yet.
+			if ticket.FeeTxHash != "" &&
+				!ticket.FeeConfirmed {
+				tickets = append(tickets, ticket)
+			}
+
+			return nil
+		})
+	})
+
+	return tickets, err
 }
