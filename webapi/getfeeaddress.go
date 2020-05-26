@@ -46,7 +46,7 @@ func feeAddress(c *gin.Context) {
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
 	commitmentAddress := c.MustGet("CommitmentAddress").(string)
-	fWalletClient := c.MustGet("FeeWalletClient").(*rpc.FeeWalletRPC)
+	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
 
 	var feeAddressRequest FeeAddressRequest
 	if err := binding.JSON.BindBody(rawRequest, &feeAddressRequest); err != nil {
@@ -89,7 +89,7 @@ func feeAddress(c *gin.Context) {
 	ticketHash := feeAddressRequest.TicketHash
 
 	// Ensure ticket exists and is mined.
-	resp, err := fWalletClient.GetRawTransaction(ticketHash)
+	resp, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
 		log.Warnf("Could not retrieve tx %s for %s: %v", ticketHash, c.ClientIP(), err)
 		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
@@ -133,7 +133,7 @@ func feeAddress(c *gin.Context) {
 	// get blockheight and sdiff which is required by
 	// txrules.StakePoolTicketFee, and store them in the database
 	// for processing by payfee
-	blockHeader, err := fWalletClient.GetBlockHeader(resp.BlockHash)
+	blockHeader, err := dcrdClient.GetBlockHeader(resp.BlockHash)
 	if err != nil {
 		log.Errorf("GetBlockHeader error: %v", err)
 		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)

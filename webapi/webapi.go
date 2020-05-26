@@ -31,12 +31,12 @@ var homepageData *gin.H
 
 var cfg Config
 var db *database.VspDatabase
-var feeWalletConnect rpc.Connect
-var votingWalletConnect rpc.Connect
+var dcrdConnect rpc.Connect
+var walletConnect rpc.Connect
 var addrGen *addressGenerator
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, fWalletConnect rpc.Connect, vWalletConnect rpc.Connect, debugMode bool, feeXPub string, config Config) error {
+	listen string, vdb *database.VspDatabase, dConnect rpc.Connect, wConnect rpc.Connect, debugMode bool, feeXPub string, config Config) error {
 
 	// Populate template data before starting webserver.
 	var err error
@@ -127,8 +127,8 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 
 	cfg = config
 	db = vdb
-	feeWalletConnect = fWalletConnect
-	votingWalletConnect = vWalletConnect
+	dcrdConnect = dConnect
+	walletConnect = wConnect
 
 	return nil
 }
@@ -162,17 +162,17 @@ func router(debugMode bool) *gin.Engine {
 	router.GET("/api/fee", fee)
 	router.GET("/api/pubkey", pubKey)
 
-	// These API routes access the fee wallet and they need authentication.
+	// These API routes access dcrd and they need authentication.
 	feeOnly := router.Group("/api").Use(
-		withFeeWalletClient(), vspAuth(),
+		withDcrdClient(), vspAuth(),
 	)
 	feeOnly.POST("/feeaddress", feeAddress)
 	feeOnly.GET("/ticketstatus", ticketStatus)
 
-	// These API routes access the fee wallet and the voting wallets, and they
-	// need authentication.
+	// These API routes access dcrd and the voting wallets, and they need
+	// authentication.
 	both := router.Group("/api").Use(
-		withFeeWalletClient(), withVotingWalletClient(), vspAuth(),
+		withDcrdClient(), withWalletClient(), vspAuth(),
 	)
 	both.POST("/payfee", payFee)
 	both.POST("/setvotechoices", setVoteChoices)
