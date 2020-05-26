@@ -145,17 +145,25 @@ func router(debugMode bool) *gin.Engine {
 	// Serve static web resources
 	router.Static("/public", "webapi/public/")
 
+	// These routes have no extra middleware. They can be accessed by anybody.
 	router.GET("/", homepage)
+	router.GET("/api/fee", fee)
+	router.GET("/api/pubkey", pubKey)
 
-	api := router.Group("/api")
-	{
-		api.GET("/fee", fee)
-		api.POST("/feeaddress", feeAddress)
-		api.GET("/pubkey", pubKey)
-		api.POST("/payfee", payFee)
-		api.POST("/setvotechoices", setVoteChoices)
-		api.GET("/ticketstatus", ticketStatus)
-	}
+	// These API routes access the fee wallet and they need authentication.
+	feeOnly := router.Group("/api").Use(
+		withFeeWalletClient(), vspAuth(),
+	)
+	feeOnly.POST("/feeaddress", feeAddress)
+	feeOnly.GET("/ticketstatus", ticketStatus)
+
+	// These API routes access the fee wallet and the voting wallets, and they
+	// need authentication.
+	both := router.Group("/api").Use(
+		withFeeWalletClient(), withVotingWalletClient(), vspAuth(),
+	)
+	both.POST("/payfee", payFee)
+	both.POST("/setvotechoices", setVoteChoices)
 
 	return router
 }
@@ -188,7 +196,7 @@ func sendJSONResponse(resp interface{}, c *gin.Context) {
 	}
 
 	sig := ed25519.Sign(cfg.SignKey, dec)
-	c.Writer.Header().Set("VSP-Signature", hex.EncodeToString(sig))
+	c.Writer.Header().Set("VSP-Server-Signature", hex.EncodeToString(sig))
 
 	c.AbortWithStatusJSON(http.StatusOK, resp)
 }

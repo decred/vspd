@@ -1,85 +1,48 @@
 package webapi
 
 import (
-	"encoding/base64"
-	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
 )
 
 // setVoteChoices is the handler for "POST /setvotechoices".
 func setVoteChoices(c *gin.Context) {
+
+	// Get values which have been added to context by middleware.
+	rawRequest := c.MustGet("RawRequest").([]byte)
+	ticket := c.MustGet("Ticket").(database.Ticket)
+	knownTicket := c.MustGet("KnownTicket").(bool)
+	vWalletClient := c.MustGet("VotingWalletClient").(*rpc.VotingWalletRPC)
+
+	if !knownTicket {
+		log.Warnf("Invalid ticket from %s", c.ClientIP())
+		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
+		return
+	}
+
 	var setVoteChoicesRequest SetVoteChoicesRequest
-	if err := c.ShouldBindJSON(&setVoteChoicesRequest); err != nil {
+	if err := binding.JSON.BindBody(rawRequest, &setVoteChoicesRequest); err != nil {
 		log.Warnf("Bad setvotechoices request from %s: %v", c.ClientIP(), err)
 		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
 
-	// Validate TicketHash.
-	ticketHashStr := setVoteChoicesRequest.TicketHash
-	txHash, err := chainhash.NewHashFromStr(ticketHashStr)
-	if err != nil {
-		log.Warnf("Invalid ticket hash from %s", c.ClientIP())
-		sendErrorResponse("invalid ticket hash", http.StatusBadRequest, c)
-		return
-	}
-
-	// Validate Signature - sanity check signature is in base64 encoding.
-	signature := setVoteChoicesRequest.Signature
-	if _, err = base64.StdEncoding.DecodeString(signature); err != nil {
-		log.Warnf("Invalid signature from %s: %v", c.ClientIP(), err)
-		sendErrorResponse("invalid signature", http.StatusBadRequest, c)
-		return
-	}
-
 	voteChoices := setVoteChoicesRequest.VoteChoices
-	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
+	err := isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
 	if err != nil {
 		log.Warnf("Invalid votechoices from %s: %v", c.ClientIP(), err)
 		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
 		return
 	}
 
-	ticket, err := db.GetTicketByHash(txHash.String())
-	if err != nil {
-		log.Warnf("Invalid ticket from %s", c.ClientIP())
-		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
-		return
-	}
-
-	// verify message
-	message := fmt.Sprintf("vsp v3 setvotechoices %d %s %v", setVoteChoicesRequest.Timestamp, txHash, voteChoices)
-	err = dcrutil.VerifyMessage(ticket.CommitmentAddress, signature, message, cfg.NetParams)
-	if err != nil {
-		log.Warnf("Failed to verify message from %s: %v", c.ClientIP(), err)
-		sendErrorResponse("message did not pass verification", http.StatusBadRequest, c)
-		return
-	}
-
-	vWalletConn, err := votingWalletConnect()
-	if err != nil {
-		log.Errorf("Voting wallet connection error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-
-	ctx := c.Request.Context()
-	vWalletClient, err := rpc.VotingWalletClient(ctx, vWalletConn)
-	if err != nil {
-		log.Errorf("Voting wallet client error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-
 	// Update VoteChoices in the database before updating the wallets. DB is
 	// source of truth and is less likely to error.
-	err = db.UpdateVoteChoices(txHash.String(), voteChoices)
+	err = db.UpdateVoteChoices(ticket.Hash, voteChoices)
 	if err != nil {
 		log.Errorf("UpdateVoteChoices error: %v", err)
 		sendErrorResponse("database error", http.StatusInternalServerError, c)

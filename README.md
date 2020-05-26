@@ -58,8 +58,11 @@ ticket details + fee to a VSP, and the VSP will take the fee and vote in return.
 
 - When dcrvsp is started for the first time, it generates a ed25519 keypair and
   stores it in the database. This key is used to sign all API responses, and the
-  signature is included in the response header `VSP-Signature`. Error responses
+  signature is included in the response header `VSP-Server-Signature`. Error responses
   are not signed.
+- Every client request which references a ticket should include a HTTP header
+  `VSP-Client-Signature`. The value of this header must be a signature of the
+  request body, signed with the commitment address of the referenced ticket.
 - An xpub key is provided to dcrvsp via config. The first time dcrvsp starts, it
   imports this xpub to create a new wallet account. This account is used to
   derive addresses for fee payments.

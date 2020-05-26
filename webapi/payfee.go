@@ -12,32 +12,43 @@ import (
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
 )
 
 // payFee is the handler for "POST /payfee".
 func payFee(c *gin.Context) {
-	var payFeeRequest PayFeeRequest
-	if err := c.ShouldBindJSON(&payFeeRequest); err != nil {
-		log.Warnf("Bad payfee request from %s: %v", c.ClientIP(), err)
-		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
-		return
-	}
 
-	ticket, err := db.GetTicketByHash(payFeeRequest.TicketHash)
-	if err != nil {
+	// Get values which have been added to context by middleware.
+	rawRequest := c.MustGet("RawRequest").([]byte)
+	ticket := c.MustGet("Ticket").(database.Ticket)
+	knownTicket := c.MustGet("KnownTicket").(bool)
+	fWalletClient := c.MustGet("FeeWalletClient").(*rpc.FeeWalletRPC)
+	vWalletClient := c.MustGet("VotingWalletClient").(*rpc.VotingWalletRPC)
+
+	if !knownTicket {
 		log.Warnf("Invalid ticket from %s", c.ClientIP())
 		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
 		return
 	}
 
-	// Fee transaction has already been broadcast for this ticket.
+	var payFeeRequest PayFeeRequest
+	if err := binding.JSON.BindBody(rawRequest, &payFeeRequest); err != nil {
+		log.Warnf("Bad payfee request from %s: %v", c.ClientIP(), err)
+		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
+		return
+	}
+
+	// Respond early if fee transaction has already been broadcast for this
+	// ticket.
 	if ticket.FeeTxHash != "" {
 		sendJSONResponse(payFeeResponse{
 			Timestamp: time.Now().Unix(),
 			TxHash:    ticket.FeeTxHash,
 			Request:   payFeeRequest,
 		}, c)
+		return
 	}
 
 	// Validate VotingKey.
@@ -129,21 +140,6 @@ findAddress:
 
 	sDiff := dcrutil.Amount(ticket.SDiff)
 
-	fWalletConn, err := feeWalletConnect()
-	if err != nil {
-		log.Errorf("Fee wallet connection error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-	ctx := c.Request.Context()
-
-	fWalletClient, err := rpc.FeeWalletClient(ctx, fWalletConn)
-	if err != nil {
-		log.Errorf("Fee wallet client error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-
 	relayFee, err := fWalletClient.GetWalletFee()
 	if err != nil {
 		log.Errorf("GetWalletFee failed: %v", err)
@@ -184,19 +180,6 @@ findAddress:
 	if err != nil {
 		log.Warnf("Could not retrieve tx %s for %s: %v", ticket.Hash, c.ClientIP(), err)
 		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
-		return
-	}
-
-	vWalletConn, err := votingWalletConnect()
-	if err != nil {
-		log.Errorf("Voting wallet connection error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-	vWalletClient, err := rpc.VotingWalletClient(ctx, vWalletConn)
-	if err != nil {
-		log.Errorf("Voting wallet client error: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 		return
 	}
 

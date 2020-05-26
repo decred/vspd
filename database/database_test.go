@@ -15,17 +15,16 @@ var (
 
 func exampleTicket() Ticket {
 	return Ticket{
-		Hash:                "Hash",
-		CommitmentAddress:   "Address",
-		CommitmentSignature: "CommitmentSignature",
-		FeeAddress:          "FeeAddress",
-		SDiff:               1,
-		BlockHeight:         2,
-		VoteChoices:         map[string]string{"AgendaID": "Choice"},
-		VotingKey:           "VotingKey",
-		VSPFee:              0.1,
-		FeeExpiration:       4,
-		FeeTxHash:           "",
+		Hash:              "Hash",
+		CommitmentAddress: "Address",
+		FeeAddress:        "FeeAddress",
+		SDiff:             1,
+		BlockHeight:       2,
+		VoteChoices:       map[string]string{"AgendaID": "Choice"},
+		VotingKey:         "VotingKey",
+		VSPFee:            0.1,
+		FeeExpiration:     4,
+		FeeTxHash:         "",
 	}
 }
 
@@ -95,15 +94,17 @@ func testGetTicketByHash(t *testing.T) {
 	}
 
 	// Retrieve ticket from database.
-	retrieved, err := db.GetTicketByHash(ticket.Hash)
+	retrieved, found, err := db.GetTicketByHash(ticket.Hash)
 	if err != nil {
 		t.Fatalf("error retrieving ticket by ticket hash: %v", err)
+	}
+	if !found {
+		t.Fatal("expected found==true")
 	}
 
 	// Check ticket fields match expected.
 	if retrieved.Hash != ticket.Hash ||
 		retrieved.CommitmentAddress != ticket.CommitmentAddress ||
-		retrieved.CommitmentSignature != ticket.CommitmentSignature ||
 		retrieved.FeeAddress != ticket.FeeAddress ||
 		retrieved.SDiff != ticket.SDiff ||
 		retrieved.BlockHeight != ticket.BlockHeight ||
@@ -115,10 +116,13 @@ func testGetTicketByHash(t *testing.T) {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
 
-	// Error if non-existent ticket requested.
-	_, err = db.GetTicketByHash("Not a real ticket hash")
-	if err == nil {
-		t.Fatal("expected an error while retrieving a non-existent ticket")
+	// Check found==false when requesting a non-existent ticket.
+	_, found, err = db.GetTicketByHash("Not a real ticket hash")
+	if err != nil {
+		t.Fatalf("error retrieving ticket by ticket hash: %v", err)
+	}
+	if found {
+		t.Fatal("expected found==false")
 	}
 }
 
@@ -141,7 +145,7 @@ func testSetTicketVotingKey(t *testing.T) {
 	}
 
 	// Retrieve ticket from database.
-	retrieved, err := db.GetTicketByHash(ticket.Hash)
+	retrieved, _, err := db.GetTicketByHash(ticket.Hash)
 	if err != nil {
 		t.Fatalf("error retrieving ticket by ticket hash: %v", err)
 	}
@@ -171,7 +175,7 @@ func testUpdateExpireAndFee(t *testing.T) {
 	}
 
 	// Get updated ticket
-	retrieved, err := db.GetTicketByHash(ticket.Hash)
+	retrieved, _, err := db.GetTicketByHash(ticket.Hash)
 	if err != nil {
 		t.Fatalf("error retrieving updated ticket: %v", err)
 	}
@@ -199,7 +203,7 @@ func testUpdateVoteChoices(t *testing.T) {
 	}
 
 	// Get updated ticket
-	retrieved, err := db.GetTicketByHash(ticket.Hash)
+	retrieved, _, err := db.GetTicketByHash(ticket.Hash)
 	if err != nil {
 		t.Fatalf("error retrieving updated ticket: %v", err)
 	}
