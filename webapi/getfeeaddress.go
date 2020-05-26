@@ -15,7 +15,7 @@ import (
 )
 
 // addrMtx protects getNewFeeAddress.
-var addrMtx sync.RWMutex
+var addrMtx sync.Mutex
 
 // getNewFeeAddress gets a new address from the address generator and stores the
 // new address index in the database. In order to maintain consistency between
