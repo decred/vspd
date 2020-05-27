@@ -19,7 +19,7 @@ import (
 var (
 	defaultListen         = ":3000"
 	defaultLogLevel       = "debug"
-	defaultVSPFee         = 0.01
+	defaultVSPFee         = 0.001
 	defaultNetwork        = "testnet"
 	defaultHomeDir        = dcrutil.AppDataDir("dcrvsp", false)
 	defaultConfigFilename = "dcrvsp.conf"
@@ -35,7 +35,7 @@ type config struct {
 	LogLevel       string  `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
 	Network        string  `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
 	FeeXPub        string  `long:"feexpub" ini-name:"feexpub" description:"Cold wallet xpub used for collecting fees."`
-	VSPFee         float64 `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
+	VSPFee         float64 `long:"vspfee" ini-name:"vspfee" description:"Fee charged for VSP use. Absolute value - eg. 0.01 = 0.01 DCR."`
 	HomeDir        string  `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile     string  `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
 	DcrdHost       string  `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where dcrvsp is running."`

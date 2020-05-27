@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jholdstock/dcrvsp/background"
 	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
 	"github.com/jholdstock/dcrvsp/webapi"
@@ -59,7 +60,8 @@ func run(ctx context.Context) error {
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
 	// Dial once just to validate config.
-	dcrdConnect := rpc.Setup(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert)
+	dcrdConnect := rpc.Setup(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
+		cfg.DcrdHost, cfg.dcrdCert, nil)
 	dcrdConn, err := dcrdConnect()
 	if err != nil {
 		log.Errorf("dcrd connection error: %v", err)
@@ -77,7 +79,8 @@ func run(ctx context.Context) error {
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
 	// Dial once just to validate config.
-	walletConnect := rpc.Setup(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass, cfg.WalletHost, cfg.walletCert)
+	walletConnect := rpc.Setup(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass,
+		cfg.WalletHost, cfg.walletCert, nil)
 	walletConn, err := walletConnect()
 	if err != nil {
 		log.Errorf("dcrwallet connection error: %v", err)
@@ -92,6 +95,20 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
+
+	// Create a dcrd client with an attached notification handler which will run
+	// in the background.
+	notifHandler := &background.NotificationHandler{
+		Ctx:           ctx,
+		Db:            db,
+		WalletConnect: walletConnect,
+	}
+	dcrdWithNotifHandler := rpc.Setup(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
+		cfg.DcrdHost, cfg.dcrdCert, notifHandler)
+
+	// Start background process which will continually attempt to reconnect to
+	// dcrd if the connection drops.
+	background.Start(notifHandler, dcrdWithNotifHandler)
 
 	// TODO: This can move into webapi.Start()
 	signKey, pubKey, err := db.KeyPair()

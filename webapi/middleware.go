@@ -101,7 +101,7 @@ func vspAuth() gin.HandlerFunc {
 			commitmentAddress, err = dcrdClient.GetTicketCommitmentAddress(hash, cfg.NetParams)
 			if err != nil {
 				log.Errorf("GetTicketCommitmentAddress error: %v", err)
-				sendErrorResponse("database error", http.StatusInternalServerError, c)
+				sendErrorResponse(err.Error(), http.StatusInternalServerError, c)
 				return
 			}
 		}

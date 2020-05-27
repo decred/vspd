@@ -1,12 +1,10 @@
 package webapi
 
 import (
-	"bytes"
 	"encoding/hex"
 	"net/http"
 	"time"
 
-	"decred.org/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/txscript/v3"
@@ -25,7 +23,6 @@ func payFee(c *gin.Context) {
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
 	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
-	walletClient := c.MustGet("WalletClient").(*rpc.WalletRPC)
 
 	if !knownTicket {
 		log.Warnf("Invalid ticket from %s", c.ClientIP())
@@ -40,14 +37,19 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	// Respond early if fee transaction has already been broadcast for this
-	// ticket.
-	if ticket.FeeTxHash != "" {
+	// Respond early if we already have the fee tx for this ticket.
+	if ticket.FeeTxHex != "" {
 		sendJSONResponse(payFeeResponse{
 			Timestamp: time.Now().Unix(),
-			TxHash:    ticket.FeeTxHash,
 			Request:   payFeeRequest,
 		}, c)
+		return
+	}
+
+	// Respond early if the fee for this ticket is expired.
+	if ticket.FeeExpired() {
+		log.Warnf("Expired payfee request from %s", c.ClientIP())
+		sendErrorResponse("fee has expired", http.StatusBadRequest, c)
 		return
 	}
 
@@ -82,21 +84,6 @@ func payFee(c *gin.Context) {
 	if err != nil {
 		log.Warnf("Failed to deserialize tx: %v", err)
 		sendErrorResponse("unable to deserialize transaction", http.StatusBadRequest, c)
-		return
-	}
-
-	feeTxBuf := new(bytes.Buffer)
-	feeTxBuf.Grow(feeTx.SerializeSize())
-	err = feeTx.Serialize(feeTxBuf)
-	if err != nil {
-		log.Errorf("Serialize tx failed: %v", err)
-		sendErrorResponse("serialize tx error", http.StatusInternalServerError, c)
-		return
-	}
-
-	if ticket.FeeExpired() {
-		log.Warnf("Expired payfee request from %s", c.ClientIP())
-		sendErrorResponse("fee has expired", http.StatusBadRequest, c)
 		return
 	}
 
@@ -138,79 +125,59 @@ findAddress:
 
 	// TODO: DB - validate votingkey against ticket submission address
 
-	sDiff := dcrutil.Amount(ticket.SDiff)
-
-	// TODO: Relay fee should not be hard coded
-	relayFee, err := dcrutil.NewAmount(0.0001)
+	minFee, err := dcrutil.NewAmount(cfg.VSPFee)
 	if err != nil {
-		log.Errorf("relayfee failed: %v", err)
-		sendErrorResponse("relayfee error", http.StatusInternalServerError, c)
+		log.Errorf("dcrutil.NewAmount: %v", err)
+		sendErrorResponse("fee error", http.StatusInternalServerError, c)
 		return
 	}
 
-	minFee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(ticket.BlockHeight), cfg.VSPFee, cfg.NetParams)
 	if feeAmount < minFee {
-		log.Errorf("Fee too small: was %v, expected %v", feeAmount, minFee)
+		log.Warnf("Fee too small: was %v, expected %v", feeAmount, minFee)
 		sendErrorResponse("fee too small", http.StatusInternalServerError, c)
 		return
 	}
 
 	// At this point we are satisfied that the request is valid and the FeeTx
-	// pays sufficient fees to the expected address.
-	// Proceed to update the database and broadcast the transaction.
+	// pays sufficient fees to the expected address. Proceed to update the
+	// database, and if the ticket is confirmed broadcast the transaction.
 
-	feeTxHash, err := dcrdClient.SendRawTransaction(hex.EncodeToString(feeTxBuf.Bytes()))
-	if err != nil {
-		log.Errorf("SendRawTransaction failed: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
+	ticket.VotingWIF = votingWIF.String()
+	ticket.FeeTxHex = payFeeRequest.FeeTx
+	ticket.VoteChoices = voteChoices
 
-	err = db.SetTicketVotingKey(ticket.Hash, votingWIF.String(), voteChoices, feeTxHash)
+	err = db.UpdateTicket(ticket)
 	if err != nil {
-		log.Errorf("SetTicketVotingKey failed: %v", err)
+		log.Errorf("InsertTicket failed: %v", err)
 		sendErrorResponse("database error", http.StatusInternalServerError, c)
 		return
 	}
 
-	// TODO: Should return a response here. We don't want to add the ticket to
-	// the voting wallets until the fee tx has been confirmed.
+	log.Debugf("Fee tx received for ticket: ticketHash=%s", ticket.Hash)
 
-	// Add ticket to voting wallets.
-	rawTicket, err := dcrdClient.GetRawTransaction(ticket.Hash)
-	if err != nil {
-		log.Warnf("Could not retrieve tx %s for %s: %v", ticket.Hash, c.ClientIP(), err)
-		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
-		return
-	}
-
-	err = walletClient.AddTransaction(rawTicket.BlockHash, rawTicket.Hex)
-	if err != nil {
-		log.Errorf("AddTransaction failed: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-
-	err = walletClient.ImportPrivKey(votingWIF.String())
-	if err != nil {
-		log.Errorf("ImportPrivKey failed: %v", err)
-		sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-		return
-	}
-
-	// Update vote choices on voting wallets.
-	for agenda, choice := range voteChoices {
-		err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
+	if ticket.Confirmed {
+		feeTxHash, err := dcrdClient.SendRawTransaction(payFeeRequest.FeeTx)
 		if err != nil {
-			log.Errorf("SetVoteChoice failed: %v", err)
+			// TODO: SendRawTransaction can return a "transcation already
+			// exists" error, which isnt necessarily a problem here.
+			log.Errorf("SendRawTransaction failed: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
 		}
+		ticket.FeeTxHash = feeTxHash
+
+		err = db.UpdateTicket(ticket)
+		if err != nil {
+			log.Errorf("InsertTicket failed: %v", err)
+			sendErrorResponse("database error", http.StatusInternalServerError, c)
+			return
+		}
+
+		log.Debugf("Fee tx broadcast for ticket: ticketHash=%s", ticket.Hash)
 	}
 
 	sendJSONResponse(payFeeResponse{
 		Timestamp: time.Now().Unix(),
-		TxHash:    feeTxHash,
 		Request:   payFeeRequest,
 	}, c)
 }

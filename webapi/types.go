@@ -33,7 +33,6 @@ type PayFeeRequest struct {
 
 type payFeeResponse struct {
 	Timestamp int64         `json:"timestamp" binding:"required"`
-	TxHash    string        `json:"txhash" binding:"required"`
 	Request   PayFeeRequest `json:"request" binding:"required"`
 }
 
