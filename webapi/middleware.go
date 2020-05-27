@@ -22,7 +22,7 @@ func withDcrdClient() gin.HandlerFunc {
 			sendErrorResponse("dcrd RPC error", http.StatusInternalServerError, c)
 			return
 		}
-		dcrdClient, err := rpc.DcrdClient(c, dcrdConn)
+		dcrdClient, err := rpc.DcrdClient(c, dcrdConn, cfg.NetParams)
 		if err != nil {
 			log.Errorf("dcrd client error: %v", err)
 			sendErrorResponse("dcrd RPC error", http.StatusInternalServerError, c)

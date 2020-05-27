@@ -24,7 +24,7 @@ type DcrdRPC struct {
 }
 
 // DcrdClient creates a new DcrdRPC client instance from a caller.
-func DcrdClient(ctx context.Context, c Caller) (*DcrdRPC, error) {
+func DcrdClient(ctx context.Context, c Caller, netParams *chaincfg.Params) (*DcrdRPC, error) {
 
 	// Verify dcrd is at the required api version.
 	var verMap map[string]dcrdtypes.VersionResult
@@ -41,7 +41,25 @@ func DcrdClient(ctx context.Context, c Caller) (*DcrdRPC, error) {
 			dcrdVersion.VersionString, requiredDcrdVersion)
 	}
 
-	// TODO: Ensure correct network.
+	// Verify dcrd is on the correct network.
+	var netID wire.CurrencyNet
+	err = c.Call(ctx, "getcurrentnet", &netID)
+	if err != nil {
+		return nil, fmt.Errorf("getcurrentnet check failed: %v", err)
+	}
+	if netID != netParams.Net {
+		return nil, fmt.Errorf("dcrd running on %s, expected %s", netID, netParams.Net)
+	}
+
+	// Verify dcrd has tx index enabled (required for getrawtransaction).
+	var info dcrdtypes.InfoChainResult
+	err = c.Call(ctx, "getinfo", &info)
+	if err != nil {
+		return nil, fmt.Errorf("getinfo check failed: %v", err)
+	}
+	if !info.TxIndex {
+		return nil, errors.New("dcrd does not have transaction index enabled (--txindex)")
+	}
 
 	return &DcrdRPC{c, ctx}, nil
 }
