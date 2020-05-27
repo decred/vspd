@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jholdstock/dcrvsp/background"
-	"github.com/jholdstock/dcrvsp/database"
-	"github.com/jholdstock/dcrvsp/rpc"
-	"github.com/jholdstock/dcrvsp/webapi"
+	"github.com/jholdstock/vspd/background"
+	"github.com/jholdstock/vspd/database"
+	"github.com/jholdstock/vspd/rpc"
+	"github.com/jholdstock/vspd/webapi"
 )
 
 const (

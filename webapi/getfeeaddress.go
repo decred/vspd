@@ -9,8 +9,8 @@ import (
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/jholdstock/dcrvsp/database"
-	"github.com/jholdstock/dcrvsp/rpc"
+	"github.com/jholdstock/vspd/database"
+	"github.com/jholdstock/vspd/rpc"
 )
 
 // addrMtx protects getNewFeeAddress.

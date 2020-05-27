@@ -21,8 +21,8 @@ var (
 	defaultLogLevel       = "debug"
 	defaultVSPFee         = 0.05
 	defaultNetwork        = "testnet"
-	defaultHomeDir        = dcrutil.AppDataDir("dcrvsp", false)
-	defaultConfigFilename = "dcrvsp.conf"
+	defaultHomeDir        = dcrutil.AppDataDir("vspd", false)
+	defaultConfigFilename = "vspd.conf"
 	defaultConfigFile     = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultDcrdHost       = "127.0.0.1"
 	defaultWalletHost     = "127.0.0.1"
@@ -38,7 +38,7 @@ type config struct {
 	VSPFee         float64 `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
 	HomeDir        string  `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile     string  `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
-	DcrdHost       string  `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where dcrvsp is running."`
+	DcrdHost       string  `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where vspd is running."`
 	DcrdUser       string  `long:"dcrduser" ini-name:"dcrduser" description:"Username for dcrd RPC connections."`
 	DcrdPass       string  `long:"dcrdpass" ini-name:"dcrdpass" description:"Password for dcrd RPC connections."`
 	DcrdCert       string  `long:"dcrdcert" ini-name:"dcrdcert" description:"The dcrd RPC certificate file."`
@@ -136,7 +136,7 @@ func normalizeAddress(addr, defaultPort string) string {
 // 	3) Load configuration file overwriting defaults with any specified options
 // 	4) Parse CLI options and overwrite/add any specified options
 //
-// The above results in dcrvsp functioning properly without any config settings
+// The above results in vspd functioning properly without any config settings
 // while still allowing the user to override settings with config files and
 // command line options.  Command line options always take precedence.
 func loadConfig() (*config, error) {
@@ -303,7 +303,7 @@ func loadConfig() (*config, error) {
 
 	// Initialize loggers and log rotation.
 	logDir := filepath.Join(cfg.HomeDir, "logs", cfg.netParams.Name)
-	initLogRotator(filepath.Join(logDir, "dcrvsp.log"))
+	initLogRotator(filepath.Join(logDir, "vspd.log"))
 	setLogLevels(cfg.LogLevel)
 
 	// Set the database path

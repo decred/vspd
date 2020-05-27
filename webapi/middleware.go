@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/jholdstock/dcrvsp/rpc"
+	"github.com/jholdstock/vspd/rpc"
 )
 
 type ticketHashRequest struct {

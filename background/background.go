@@ -7,8 +7,8 @@ import (
 
 	"decred.org/dcrwallet/rpc/client/dcrd"
 	"github.com/decred/dcrd/chaincfg/v3"
-	"github.com/jholdstock/dcrvsp/database"
-	"github.com/jholdstock/dcrvsp/rpc"
+	"github.com/jholdstock/vspd/database"
+	"github.com/jholdstock/vspd/rpc"
 )
 
 type NotificationHandler struct {
@@ -195,7 +195,7 @@ func (n *NotificationHandler) connect(dcrdConnect rpc.Connect) error {
 
 	log.Info("Subscribed for dcrd block notifications")
 
-	// Wait until context is done (dcrvsp is shutting down), or until the
+	// Wait until context is done (vspd is shutting down), or until the
 	// notifier is closed.
 	select {
 	case <-n.Ctx.Done():
@@ -216,7 +216,7 @@ func Start(n *NotificationHandler, dcrdConnect rpc.Connect) {
 			if err != nil {
 				log.Errorf("dcrd connect error: %v", err)
 
-				// If context is done (dcrvsp is shutting down), return,
+				// If context is done (vspd is shutting down), return,
 				// otherwise wait 15 seconds and to reconnect.
 				select {
 				case <-n.Ctx.Done():

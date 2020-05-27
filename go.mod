@@ -1,4 +1,4 @@
-module github.com/jholdstock/dcrvsp
+module github.com/jholdstock/vspd
 
 go 1.13
 
