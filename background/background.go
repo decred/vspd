@@ -18,9 +18,9 @@ type NotificationHandler struct {
 	dcrdClient    *rpc.DcrdRPC
 }
 
-// The number of confirmations required to consider a ticket purchase or a fee
-// transaction to be final.
 const (
+	// requiredConfs is the number of confirmations required to consider a
+	// ticket purchase or a fee transaction to be final.
 	requiredConfs = 6
 )
 

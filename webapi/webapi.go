@@ -27,10 +27,12 @@ type Config struct {
 	FeeAddressExpiration time.Duration
 }
 
-// The number of confirmations required to consider a ticket purchase or a fee
-// transaction to be final.
 const (
+	// requiredConfs is the number of confirmations required to consider a
+	// ticket purchase or a fee transaction to be final.
 	requiredConfs = 6
+	// TODO: Make this configurable or get it from RPC.
+	relayFee = 0.0001
 )
 
 var homepageData *gin.H

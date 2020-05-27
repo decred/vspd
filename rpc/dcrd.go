@@ -101,3 +101,19 @@ func (c *DcrdRPC) GetTicketCommitmentAddress(ticketHash string, netParams *chain
 func (c *DcrdRPC) NotifyBlocks() error {
 	return c.Call(c.ctx, "notifyblocks", nil)
 }
+
+func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
+	var bestBlock dcrdtypes.GetBestBlockResult
+	err := c.Call(c.ctx, "getbestblock", &bestBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	verbose := true
+	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
+	err = c.Call(c.ctx, "getblockheader", &blockHeader, bestBlock.Hash, verbose)
+	if err != nil {
+		return nil, err
+	}
+	return &blockHeader, nil
+}

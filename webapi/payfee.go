@@ -89,7 +89,7 @@ func payFee(c *gin.Context) {
 
 	// Loop through transaction outputs until we find one which pays to the
 	// expected fee address. Record how much is being paid to the fee address.
-	var feeAmount dcrutil.Amount
+	var feePaid dcrutil.Amount
 	const scriptVersion = 0
 
 findAddress:
@@ -103,13 +103,13 @@ findAddress:
 		}
 		for _, addr := range addresses {
 			if addr.Address() == ticket.FeeAddress {
-				feeAmount = dcrutil.Amount(txOut.Value)
+				feePaid = dcrutil.Amount(txOut.Value)
 				break findAddress
 			}
 		}
 	}
 
-	if feeAmount == 0 {
+	if feePaid == 0 {
 		log.Warnf("FeeTx for ticket %s did not include any payments for address %s", ticket.Hash, ticket.FeeAddress)
 		sendErrorResponse("feetx did not include any payments for fee address", http.StatusBadRequest, c)
 		return
@@ -125,15 +125,15 @@ findAddress:
 
 	// TODO: DB - validate votingkey against ticket submission address
 
-	minFee, err := dcrutil.NewAmount(cfg.VSPFee)
+	minFee, err := dcrutil.NewAmount(ticket.FeeAmount)
 	if err != nil {
 		log.Errorf("dcrutil.NewAmount: %v", err)
 		sendErrorResponse("fee error", http.StatusInternalServerError, c)
 		return
 	}
 
-	if feeAmount < minFee {
-		log.Warnf("Fee too small: was %v, expected %v", feeAmount, minFee)
+	if feePaid < minFee {
+		log.Warnf("Fee too small from %s: was %v, expected %v", c.ClientIP(), feePaid, minFee)
 		sendErrorResponse("fee too small", http.StatusInternalServerError, c)
 		return
 	}
@@ -153,7 +153,8 @@ findAddress:
 		return
 	}
 
-	log.Debugf("Fee tx received for ticket: ticketHash=%s", ticket.Hash)
+	log.Debugf("Fee tx received for ticket: minExpectedFee=%v, feePaid=%v, "+
+		"ticketHash=%s", minFee, feePaid, ticket.Hash)
 
 	if ticket.Confirmed {
 		feeTxHash, err := dcrdClient.SendRawTransaction(payFeeRequest.FeeTx)

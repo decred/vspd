@@ -6,8 +6,8 @@ type pubKeyResponse struct {
 }
 
 type feeResponse struct {
-	Timestamp int64   `json:"timestamp" binding:"required"`
-	Fee       float64 `json:"fee" binding:"required"`
+	Timestamp     int64   `json:"timestamp" binding:"required"`
+	FeePercentage float64 `json:"feepercentage" binding:"required"`
 }
 
 type FeeAddressRequest struct {
@@ -18,7 +18,7 @@ type FeeAddressRequest struct {
 type feeAddressResponse struct {
 	Timestamp  int64             `json:"timestamp" binding:"required"`
 	FeeAddress string            `json:"feeaddress" binding:"required"`
-	Fee        float64           `json:"fee" binding:"required"`
+	FeeAmount  float64           `json:"feeamount" binding:"required"`
 	Expiration int64             `json:"expiration" binding:"required"`
 	Request    FeeAddressRequest `json:"request" binding:"required"`
 }
