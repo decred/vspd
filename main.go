@@ -86,14 +86,14 @@ func run(ctx context.Context) error {
 			cfg.WalletHosts[i], cfg.walletCert, nil)
 		walletConn[i], err = walletConnect[i]()
 		if err != nil {
-			log.Errorf("dcrwallet connection error: %v", err)
+			log.Errorf("dcrwallet '%s' connection error: %v", cfg.WalletHosts[i], err)
 			requestShutdown()
 			shutdownWg.Wait()
 			return err
 		}
 		_, err = rpc.WalletClient(ctx, walletConn[i], cfg.netParams.Params)
 		if err != nil {
-			log.Errorf("dcrwallet client error: %v", err)
+			log.Errorf("dcrwallet '%s' client error: %v", cfg.WalletHosts[i], err)
 			requestShutdown()
 			shutdownWg.Wait()
 			return err

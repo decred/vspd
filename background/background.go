@@ -112,13 +112,14 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 	for i := 0; i < len(n.WalletConnect); i++ {
 		walletConn, err := n.WalletConnect[i]()
 		if err != nil {
+			// TODO: what host?
 			log.Errorf("dcrwallet connection error: %v", err)
 			// If this fails, there is nothing more we can do. Return.
 			return nil
 		}
 		walletClients[i], err = rpc.WalletClient(n.Ctx, walletConn, n.NetParams)
 		if err != nil {
-			log.Errorf("dcrwallet client error: %v", err)
+			log.Errorf("dcrwallet '%s' client error: %v", walletConn.String(), err)
 			// If this fails, there is nothing more we can do. Return.
 			return nil
 		}
@@ -152,12 +153,14 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 			for _, walletClient := range walletClients {
 				err = walletClient.AddTransaction(rawTicket.BlockHash, rawTicket.Hex)
 				if err != nil {
-					log.Errorf("AddTransaction error: %v", err)
+					log.Errorf("AddTransaction error on dcrwallet '%s': %v",
+						walletClient.String(), err)
 					continue
 				}
 				err = walletClient.ImportPrivKey(ticket.VotingWIF)
 				if err != nil {
-					log.Errorf("ImportPrivKey error: %v", err)
+					log.Errorf("ImportPrivKey error on dcrwallet '%s': %v",
+						walletClient.String(), err)
 					continue
 				}
 
@@ -165,11 +168,13 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 				for agenda, choice := range ticket.VoteChoices {
 					err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 					if err != nil {
-						log.Errorf("SetVoteChoice error: %v", err)
+						log.Errorf("SetVoteChoice error on dcrwallet '%s': %v",
+							walletClient.String(), err)
 						continue
 					}
 				}
-				log.Debugf("Ticket added to voting wallet: ticketHash=%s", ticket.Hash)
+				log.Debugf("Ticket added to voting wallet '%s': ticketHash=%s",
+					walletClient.String(), ticket.Hash)
 			}
 		}
 	}

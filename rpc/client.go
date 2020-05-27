@@ -11,6 +11,9 @@ import (
 
 // Caller provides a client interface to perform JSON-RPC remote procedure calls.
 type Caller interface {
+	// String returns the dialed URL.
+	String() string
+
 	// Call performs the remote procedure call defined by method and
 	// waits for a response or a broken client connection.
 	// Args provides positional parameters for the call.
