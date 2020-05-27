@@ -115,7 +115,7 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 		// If this fails, there is nothing more we can do. Return.
 		return nil
 	}
-	walletClient, err = rpc.WalletClient(n.Ctx, walletConn)
+	walletClient, err = rpc.WalletClient(n.Ctx, walletConn, n.NetParams)
 	if err != nil {
 		log.Errorf("dcrwallet client error: %v", err)
 		// If this fails, there is nothing more we can do. Return.

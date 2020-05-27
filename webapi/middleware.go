@@ -43,7 +43,7 @@ func withWalletClient() gin.HandlerFunc {
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
 		}
-		walletClient, err := rpc.WalletClient(c, walletConn)
+		walletClient, err := rpc.WalletClient(c, walletConn, cfg.NetParams)
 		if err != nil {
 			log.Errorf("dcrwallet client error: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)

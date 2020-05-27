@@ -88,7 +88,7 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
-	_, err = rpc.WalletClient(ctx, walletConn)
+	_, err = rpc.WalletClient(ctx, walletConn, cfg.netParams.Params)
 	if err != nil {
 		log.Errorf("dcrwallet client error: %v", err)
 		requestShutdown()

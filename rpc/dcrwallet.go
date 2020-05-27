@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	wallettypes "decred.org/dcrwallet/rpc/jsonrpc/types"
+	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
+	"github.com/decred/dcrd/wire"
 )
 
 const (
@@ -20,7 +22,7 @@ type WalletRPC struct {
 }
 
 // WalletClient creates a new WalletRPC client instance from a caller.
-func WalletClient(ctx context.Context, c Caller) (*WalletRPC, error) {
+func WalletClient(ctx context.Context, c Caller, netParams *chaincfg.Params) (*WalletRPC, error) {
 
 	// Verify dcrwallet is at the required api version.
 	var verMap map[string]dcrdtypes.VersionResult
@@ -53,7 +55,15 @@ func WalletClient(ctx context.Context, c Caller) (*WalletRPC, error) {
 		return nil, fmt.Errorf("wallet is not connected to dcrd")
 	}
 
-	// TODO: Ensure correct network.
+	// Verify dcrwallet is on the correct network.
+	var netID wire.CurrencyNet
+	err = c.Call(ctx, "getcurrentnet", &netID)
+	if err != nil {
+		return nil, fmt.Errorf("getcurrentnet check failed: %v", err)
+	}
+	if netID != netParams.Net {
+		return nil, fmt.Errorf("dcrwallet running on %s, expected %s", netID, netParams.Net)
+	}
 
 	return &WalletRPC{c, ctx}, nil
 }
