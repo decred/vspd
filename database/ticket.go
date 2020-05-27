@@ -9,7 +9,6 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-// TODO: Properly document ticket lifecycle.
 // TODO: Shorten json keys, they are stored in the db and duplicated many times.
 
 type Ticket struct {
@@ -56,7 +55,27 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 			return fmt.Errorf("ticket already exists with hash %s", ticket.Hash)
 		}
 
-		// TODO: Error if a ticket already exists with the same fee address.
+		// Error if a ticket already exists with the same fee address.
+		err := ticketBkt.ForEach(func(k, v []byte) error {
+			var t Ticket
+			err := json.Unmarshal(v, &t)
+			if err != nil {
+				return fmt.Errorf("could not unmarshal ticket: %v", err)
+			}
+
+			if t.FeeAddress == ticket.FeeAddress {
+				return fmt.Errorf("ticket with fee address %s already exists", t.FeeAddress)
+			}
+
+			if t.FeeAddressIndex == ticket.FeeAddressIndex {
+				return fmt.Errorf("ticket with fee address index %d already exists", t.FeeAddressIndex)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
 
 		ticketBytes, err := json.Marshal(ticket)
 		if err != nil {
@@ -76,8 +95,6 @@ func (vdb *VspDatabase) UpdateTicket(ticket Ticket) error {
 		if ticketBkt.Get(hashBytes) == nil {
 			return fmt.Errorf("ticket does not exist with hash %s", ticket.Hash)
 		}
-
-		// TODO: Error if a ticket already exists with the same fee address.
 
 		ticketBytes, err := json.Marshal(ticket)
 		if err != nil {
