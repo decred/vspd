@@ -69,6 +69,11 @@ func feeAddress(c *gin.Context) {
 	commitmentAddress := c.MustGet("CommitmentAddress").(string)
 	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
 
+	if cfg.VspClosed {
+		sendErrorResponse("pool is not accepting new tickets", http.StatusBadRequest, c)
+		return
+	}
+
 	var feeAddressRequest FeeAddressRequest
 	if err := binding.JSON.BindBody(rawRequest, &feeAddressRequest); err != nil {
 		log.Warnf("Bad feeaddress request from %s: %v", c.ClientIP(), err)
