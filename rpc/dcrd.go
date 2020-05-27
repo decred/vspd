@@ -103,15 +103,15 @@ func (c *DcrdRPC) NotifyBlocks() error {
 }
 
 func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
-	var bestBlock dcrdtypes.GetBestBlockResult
-	err := c.Call(c.ctx, "getbestblock", &bestBlock)
+	var bestBlockHash string
+	err := c.Call(c.ctx, "getbestblockhash", &bestBlockHash)
 	if err != nil {
 		return nil, err
 	}
 
 	verbose := true
 	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
-	err = c.Call(c.ctx, "getblockheader", &blockHeader, bestBlock.Hash, verbose)
+	err = c.Call(c.ctx, "getblockheader", &blockHeader, bestBlockHash, verbose)
 	if err != nil {
 		return nil, err
 	}
