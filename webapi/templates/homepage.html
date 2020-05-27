@@ -41,13 +41,13 @@
 
     <body>
         <img src="/public/images/decred-logo.svg" />
-        <h1>{{ .Message }}</h1>
         <table>
             <tr><td>Total tickets:</td><td>{{ .TotalTickets }}</td></tr>
             <tr><td>FeePaid tickets:</td><td>{{ .FeePaidTickets }}</td></tr>
             <tr><td>VSP Fee:</td><td>{{ .VSPFee }}</td></tr>
             <tr><td>Network:</td><td>{{ .Network }}</td></tr>
             <tr><td>Support:</td><td>{{ .SupportEmail }}</td></tr>
+            <tr><td>Pubkey:</td><td>{{ printf "%x" .PubKey }}</td></tr>
         </table>
         <p>Last updated: {{.UpdateTime}}</p>
     </body>
