@@ -31,23 +31,23 @@ var (
 
 // config defines the configuration options for the VSP.
 type config struct {
-	Listen         string  `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
-	LogLevel       string  `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
-	Network        string  `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
-	FeeXPub        string  `long:"feexpub" ini-name:"feexpub" description:"Cold wallet xpub used for collecting fees."`
-	VSPFee         float64 `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
-	HomeDir        string  `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
-	ConfigFile     string  `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
-	DcrdHost       string  `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where vspd is running."`
-	DcrdUser       string  `long:"dcrduser" ini-name:"dcrduser" description:"Username for dcrd RPC connections."`
-	DcrdPass       string  `long:"dcrdpass" ini-name:"dcrdpass" description:"Password for dcrd RPC connections."`
-	DcrdCert       string  `long:"dcrdcert" ini-name:"dcrdcert" description:"The dcrd RPC certificate file."`
-	WalletHost     string  `long:"wallethost" ini-name:"wallethost" description:"The ip:port to establish a JSON-RPC connection with voting dcrwallet."`
-	WalletUser     string  `long:"walletuser" ini-name:"walletuser" description:"Username for dcrwallet RPC connections."`
-	WalletPass     string  `long:"walletpass" ini-name:"walletpass" description:"Password for dcrwallet RPC connections."`
-	WalletCert     string  `long:"walletcert" ini-name:"walletcert" description:"The dcrwallet RPC certificate file."`
-	WebServerDebug bool    `long:"webserverdebug" ini-name:"webserverdebug" description:"Enable web server debug mode (verbose logging to terminal and live-reloading templates)."`
-	SupportEmail   string  `long:"supportemail" ini-name:"supportemail" description:"Email address for users in need of support."`
+	Listen         string   `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
+	LogLevel       string   `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
+	Network        string   `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
+	FeeXPub        string   `long:"feexpub" ini-name:"feexpub" description:"Cold wallet xpub used for collecting fees."`
+	VSPFee         float64  `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
+	HomeDir        string   `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
+	ConfigFile     string   `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
+	DcrdHost       string   `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where vspd is running."`
+	DcrdUser       string   `long:"dcrduser" ini-name:"dcrduser" description:"Username for dcrd RPC connections."`
+	DcrdPass       string   `long:"dcrdpass" ini-name:"dcrdpass" description:"Password for dcrd RPC connections."`
+	DcrdCert       string   `long:"dcrdcert" ini-name:"dcrdcert" description:"The dcrd RPC certificate file."`
+	WalletHosts    []string `long:"wallethost" ini-name:"wallethost" description:"Add an ip:port to establish a JSON-RPC connection with voting dcrwallet."`
+	WalletUser     string   `long:"walletuser" ini-name:"walletuser" description:"Username for dcrwallet RPC connections."`
+	WalletPass     string   `long:"walletpass" ini-name:"walletpass" description:"Password for dcrwallet RPC connections."`
+	WalletCert     string   `long:"walletcert" ini-name:"walletcert" description:"The dcrwallet RPC certificate file."`
+	WebServerDebug bool     `long:"webserverdebug" ini-name:"webserverdebug" description:"Enable web server debug mode (verbose logging to terminal and live-reloading templates)."`
+	SupportEmail   string   `long:"supportemail" ini-name:"supportemail" description:"Email address for users in need of support."`
 
 	dbPath     string
 	netParams  *netParams
@@ -150,7 +150,7 @@ func loadConfig() (*config, error) {
 		HomeDir:        defaultHomeDir,
 		ConfigFile:     defaultConfigFile,
 		DcrdHost:       defaultDcrdHost,
-		WalletHost:     defaultWalletHost,
+		WalletHosts:    []string{defaultWalletHost},
 		WebServerDebug: defaultWebServerDebug,
 	}
 
@@ -232,11 +232,13 @@ func loadConfig() (*config, error) {
 	}
 
 	// Set the active network.
+	minRequired := 1
 	switch cfg.Network {
 	case "testnet":
 		cfg.netParams = &testNet3Params
 	case "mainnet":
 		cfg.netParams = &mainNetParams
+		minRequired = 3
 	case "simnet":
 		cfg.netParams = &simNetParams
 	}
@@ -290,9 +292,17 @@ func loadConfig() (*config, error) {
 		return nil, fmt.Errorf("failed to read dcrwallet cert file: %v", err)
 	}
 
+	// Verify minimum number of voting wallets are configured.
+	if minRequired < len(cfg.WalletHosts) {
+		return nil, fmt.Errorf("minimum required voting wallets has not been met: %d < %d",
+			len(cfg.WalletHosts), minRequired)
+	}
+
 	// Add default port for the active network if there is no port specified.
+	for i := 0; i < len(cfg.WalletHosts); i++ {
+		cfg.WalletHosts[i] = normalizeAddress(cfg.WalletHosts[i], cfg.netParams.WalletRPCServerPort)
+	}
 	cfg.DcrdHost = normalizeAddress(cfg.DcrdHost, cfg.netParams.DcrdRPCServerPort)
-	cfg.WalletHost = normalizeAddress(cfg.WalletHost, cfg.netParams.WalletRPCServerPort)
 
 	// Create the data directory.
 	dataDir := filepath.Join(cfg.HomeDir, "data", cfg.netParams.Name)

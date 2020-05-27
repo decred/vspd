@@ -14,7 +14,7 @@ import (
 type NotificationHandler struct {
 	Ctx           context.Context
 	Db            *database.VspDatabase
-	WalletConnect rpc.Connect
+	WalletConnect []rpc.Connect
 	NetParams     *chaincfg.Params
 	closed        chan struct{}
 	dcrdClient    *rpc.DcrdRPC
@@ -108,18 +108,20 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 		return nil
 	}
 
-	var walletClient *rpc.WalletRPC
-	walletConn, err := n.WalletConnect()
-	if err != nil {
-		log.Errorf("dcrwallet connection error: %v", err)
-		// If this fails, there is nothing more we can do. Return.
-		return nil
-	}
-	walletClient, err = rpc.WalletClient(n.Ctx, walletConn, n.NetParams)
-	if err != nil {
-		log.Errorf("dcrwallet client error: %v", err)
-		// If this fails, there is nothing more we can do. Return.
-		return nil
+	walletClients := make([]*rpc.WalletRPC, len(n.WalletConnect))
+	for i := 0; i < len(n.WalletConnect); i++ {
+		walletConn, err := n.WalletConnect[i]()
+		if err != nil {
+			log.Errorf("dcrwallet connection error: %v", err)
+			// If this fails, there is nothing more we can do. Return.
+			return nil
+		}
+		walletClients[i], err = rpc.WalletClient(n.Ctx, walletConn, n.NetParams)
+		if err != nil {
+			log.Errorf("dcrwallet client error: %v", err)
+			// If this fails, there is nothing more we can do. Return.
+			return nil
+		}
 	}
 
 	for _, ticket := range unconfirmedFees {
@@ -147,26 +149,28 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 				log.Errorf("GetRawTransaction error: %v", err)
 				continue
 			}
-			err = walletClient.AddTransaction(rawTicket.BlockHash, rawTicket.Hex)
-			if err != nil {
-				log.Errorf("AddTransaction error: %v", err)
-				continue
-			}
-			err = walletClient.ImportPrivKey(ticket.VotingWIF)
-			if err != nil {
-				log.Errorf("ImportPrivKey error: %v", err)
-				continue
-			}
-
-			// Update vote choices on voting wallets.
-			for agenda, choice := range ticket.VoteChoices {
-				err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
+			for _, walletClient := range walletClients {
+				err = walletClient.AddTransaction(rawTicket.BlockHash, rawTicket.Hex)
 				if err != nil {
-					log.Errorf("SetVoteChoice error: %v", err)
+					log.Errorf("AddTransaction error: %v", err)
 					continue
 				}
+				err = walletClient.ImportPrivKey(ticket.VotingWIF)
+				if err != nil {
+					log.Errorf("ImportPrivKey error: %v", err)
+					continue
+				}
+
+				// Update vote choices on voting wallets.
+				for agenda, choice := range ticket.VoteChoices {
+					err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
+					if err != nil {
+						log.Errorf("SetVoteChoice error: %v", err)
+						continue
+					}
+				}
+				log.Debugf("Ticket added to voting wallet: ticketHash=%s", ticket.Hash)
 			}
-			log.Debugf("Ticket added to voting wallet: ticketHash=%s", ticket.Hash)
 		}
 	}
 

@@ -49,13 +49,13 @@ var stats *vspStats
 var cfg Config
 var db *database.VspDatabase
 var dcrdConnect rpc.Connect
-var walletConnect rpc.Connect
+var walletConnect []rpc.Connect
 var addrGen *addressGenerator
 var signPrivKey ed25519.PrivateKey
 var signPubKey ed25519.PublicKey
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, dConnect rpc.Connect, wConnect rpc.Connect, debugMode bool, feeXPub string, config Config) error {
+	listen string, vdb *database.VspDatabase, dConnect rpc.Connect, wConnect []rpc.Connect, debugMode bool, feeXPub string, config Config) error {
 
 	var err error
 

@@ -79,21 +79,25 @@ func run(ctx context.Context) error {
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
 	// Dial once just to validate config.
-	walletConnect := rpc.Setup(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass,
-		cfg.WalletHost, cfg.walletCert, nil)
-	walletConn, err := walletConnect()
-	if err != nil {
-		log.Errorf("dcrwallet connection error: %v", err)
-		requestShutdown()
-		shutdownWg.Wait()
-		return err
-	}
-	_, err = rpc.WalletClient(ctx, walletConn, cfg.netParams.Params)
-	if err != nil {
-		log.Errorf("dcrwallet client error: %v", err)
-		requestShutdown()
-		shutdownWg.Wait()
-		return err
+	walletConnect := make([]rpc.Connect, len(cfg.WalletHosts))
+	walletConn := make([]rpc.Caller, len(cfg.WalletHosts))
+	for i := 0; i < len(cfg.WalletHosts); i++ {
+		walletConnect[i] = rpc.Setup(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass,
+			cfg.WalletHosts[i], cfg.walletCert, nil)
+		walletConn[i], err = walletConnect[i]()
+		if err != nil {
+			log.Errorf("dcrwallet connection error: %v", err)
+			requestShutdown()
+			shutdownWg.Wait()
+			return err
+		}
+		_, err = rpc.WalletClient(ctx, walletConn[i], cfg.netParams.Params)
+		if err != nil {
+			log.Errorf("dcrwallet client error: %v", err)
+			requestShutdown()
+			shutdownWg.Wait()
+			return err
+		}
 	}
 
 	// Create a dcrd client with an attached notification handler which will run
