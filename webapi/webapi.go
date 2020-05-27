@@ -57,6 +57,11 @@ var signPubKey ed25519.PublicKey
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
 	listen string, vdb *database.VspDatabase, dConnect rpc.Connect, wConnect rpc.Connect, debugMode bool, feeXPub string, config Config) error {
 
+	cfg = config
+	db = vdb
+	dcrdConnect = dConnect
+	walletConnect = wConnect
+
 	var err error
 
 	// Get keys for signing API responses from the database.
@@ -150,11 +155,6 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 			}
 		}
 	}()
-
-	cfg = config
-	db = vdb
-	dcrdConnect = dConnect
-	walletConnect = wConnect
 
 	return nil
 }
