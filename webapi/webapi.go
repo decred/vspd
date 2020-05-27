@@ -19,8 +19,6 @@ import (
 )
 
 type Config struct {
-	SignKey              ed25519.PrivateKey
-	PubKey               ed25519.PublicKey
 	VSPFee               float64
 	NetParams            *chaincfg.Params
 	FeeAccountName       string
@@ -42,12 +40,21 @@ var db *database.VspDatabase
 var dcrdConnect rpc.Connect
 var walletConnect rpc.Connect
 var addrGen *addressGenerator
+var signPrivKey ed25519.PrivateKey
+var signPubKey ed25519.PublicKey
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
 	listen string, vdb *database.VspDatabase, dConnect rpc.Connect, wConnect rpc.Connect, debugMode bool, feeXPub string, config Config) error {
 
-	// Populate template data before starting webserver.
 	var err error
+
+	// Get keys for signing API responses from the database.
+	signPrivKey, signPubKey, err = vdb.KeyPair()
+	if err != nil {
+		return fmt.Errorf("Failed to get keypair: %v", err)
+	}
+
+	// Populate template data before starting webserver.
 	homepageData, err = updateHomepageData(vdb, config)
 	if err != nil {
 		return fmt.Errorf("could not initialize homepage data: %v", err)
@@ -215,7 +222,7 @@ func sendJSONResponse(resp interface{}, c *gin.Context) {
 		return
 	}
 
-	sig := ed25519.Sign(cfg.SignKey, dec)
+	sig := ed25519.Sign(signPrivKey, dec)
 	c.Writer.Header().Set("VSP-Server-Signature", hex.EncodeToString(sig))
 
 	c.AbortWithStatusJSON(http.StatusOK, resp)

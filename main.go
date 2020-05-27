@@ -111,19 +111,8 @@ func run(ctx context.Context) error {
 	// dcrd if the connection drops.
 	background.Start(notifHandler, dcrdWithNotifHandler)
 
-	// TODO: This can move into webapi.Start()
-	signKey, pubKey, err := db.KeyPair()
-	if err != nil {
-		log.Errorf("Failed to get keypair: %v", err)
-		requestShutdown()
-		shutdownWg.Wait()
-		return err
-	}
-
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
-		SignKey:              signKey,
-		PubKey:               pubKey,
 		VSPFee:               cfg.VSPFee,
 		NetParams:            cfg.netParams.Params,
 		FeeAddressExpiration: defaultFeeAddressExpiration,

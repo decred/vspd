@@ -10,7 +10,7 @@ import (
 func pubKey(c *gin.Context) {
 	sendJSONResponse(pubKeyResponse{
 		Timestamp: time.Now().Unix(),
-		PubKey:    cfg.PubKey,
+		PubKey:    signPubKey,
 	}, c)
 }
 
