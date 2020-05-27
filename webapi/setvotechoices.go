@@ -25,6 +25,8 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
+	// TODO: Return an error if we dont have a FeeTx for this ticket yet.
+
 	var setVoteChoicesRequest SetVoteChoicesRequest
 	if err := binding.JSON.BindBody(rawRequest, &setVoteChoicesRequest); err != nil {
 		log.Warnf("Bad setvotechoices request from %s: %v", c.ClientIP(), err)
