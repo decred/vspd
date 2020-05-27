@@ -9,7 +9,6 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-// TODO: Properly document ticket lifecycle.
 // TODO: Shorten json keys, they are stored in the db and duplicated many times.
 
 type Ticket struct {
