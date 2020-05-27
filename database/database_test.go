@@ -19,8 +19,11 @@ func TestDatabase(t *testing.T) {
 
 	// All sub-tests to run.
 	tests := map[string]func(*testing.T){
-		"testInsertNewTicket": testInsertNewTicket,
-		"testGetTicketByHash": testGetTicketByHash,
+		"testInsertNewTicket":  testInsertNewTicket,
+		"testGetTicketByHash":  testGetTicketByHash,
+		"testUpdateTicket":     testUpdateTicket,
+		"testTicketFeeExpired": testTicketFeeExpired,
+		"testAddressIndex":     testAddressIndex,
 	}
 
 	for testName, test := range tests {
@@ -44,7 +47,5 @@ func TestDatabase(t *testing.T) {
 	}
 }
 
-// TODO: Add tests for UpdateTicket, CountTickets, GetUnconfirmedTickets,
-// GetPendingFees, GetUnconfirmedFees.
-
-// TODO: Add tests for ticket.FeeExpired.
+// TODO: Add tests for CountTickets, GetUnconfirmedTickets, GetPendingFees,
+// GetUnconfirmedFees.
