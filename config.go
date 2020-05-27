@@ -47,6 +47,7 @@ type config struct {
 	WalletPass     string  `long:"walletpass" ini-name:"walletpass" description:"Password for dcrwallet RPC connections."`
 	WalletCert     string  `long:"walletcert" ini-name:"walletcert" description:"The dcrwallet RPC certificate file."`
 	WebServerDebug bool    `long:"webserverdebug" ini-name:"webserverdebug" description:"Enable web server debug mode (verbose logging to terminal and live-reloading templates)."`
+	SupportEmail   string  `long:"supportemail" ini-name:"supportemail" description:"Email address for users in need of support."`
 
 	dbPath     string
 	netParams  *netParams
@@ -238,6 +239,11 @@ func loadConfig() (*config, error) {
 		cfg.netParams = &mainNetParams
 	case "simnet":
 		cfg.netParams = &simNetParams
+	}
+
+	// Ensure the support email address is set.
+	if cfg.SupportEmail == "" {
+		return nil, errors.New("the supportemail option is not set")
 	}
 
 	// Ensure the dcrd RPC username is set.

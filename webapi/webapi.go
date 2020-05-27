@@ -23,6 +23,7 @@ type Config struct {
 	NetParams            *chaincfg.Params
 	FeeAccountName       string
 	FeeAddressExpiration time.Duration
+	SupportEmail         string
 }
 
 const (
@@ -207,6 +208,7 @@ func updateHomepageData(db *database.VspDatabase, cfg Config) (*gin.H, error) {
 		"VSPFee":         cfg.VSPFee,
 		"Network":        cfg.NetParams.Name,
 		"UpdateTime":     time.Now().Format("Mon Jan _2 15:04:05 2006"),
+		"SupportEmail":   cfg.SupportEmail,
 	}, nil
 }
 

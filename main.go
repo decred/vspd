@@ -116,6 +116,7 @@ func run(ctx context.Context) error {
 		VSPFee:               cfg.VSPFee,
 		NetParams:            cfg.netParams.Params,
 		FeeAddressExpiration: defaultFeeAddressExpiration,
+		SupportEmail:         cfg.SupportEmail,
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
 		dcrdConnect, walletConnect, cfg.WebServerDebug, cfg.FeeXPub, apiCfg)
