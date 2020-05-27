@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"decred.org/dcrwallet/rpc/client/dcrd"
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/jholdstock/dcrvsp/database"
 	"github.com/jholdstock/dcrvsp/rpc"
 )
@@ -14,6 +15,7 @@ type NotificationHandler struct {
 	Ctx           context.Context
 	Db            *database.VspDatabase
 	WalletConnect rpc.Connect
+	NetParams     *chaincfg.Params
 	closed        chan struct{}
 	dcrdClient    *rpc.DcrdRPC
 }
@@ -113,7 +115,7 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 		// If this fails, there is nothing more we can do. Return.
 		return nil
 	}
-	walletClient, err = rpc.WalletClient(n.Ctx, walletConn)
+	walletClient, err = rpc.WalletClient(n.Ctx, walletConn, n.NetParams)
 	if err != nil {
 		log.Errorf("dcrwallet client error: %v", err)
 		// If this fails, there is nothing more we can do. Return.
@@ -181,7 +183,7 @@ func (n *NotificationHandler) connect(dcrdConnect rpc.Connect) error {
 	if err != nil {
 		return err
 	}
-	n.dcrdClient, err = rpc.DcrdClient(n.Ctx, dcrdConn)
+	n.dcrdClient, err = rpc.DcrdClient(n.Ctx, dcrdConn, n.NetParams)
 	if err != nil {
 		return err
 	}

@@ -69,7 +69,7 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
-	_, err = rpc.DcrdClient(ctx, dcrdConn)
+	_, err = rpc.DcrdClient(ctx, dcrdConn, cfg.netParams.Params)
 	if err != nil {
 		log.Errorf("dcrd client error: %v", err)
 		requestShutdown()
@@ -88,7 +88,7 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
-	_, err = rpc.WalletClient(ctx, walletConn)
+	_, err = rpc.WalletClient(ctx, walletConn, cfg.netParams.Params)
 	if err != nil {
 		log.Errorf("dcrwallet client error: %v", err)
 		requestShutdown()
@@ -102,6 +102,7 @@ func run(ctx context.Context) error {
 		Ctx:           ctx,
 		Db:            db,
 		WalletConnect: walletConnect,
+		NetParams:     cfg.netParams.Params,
 	}
 	dcrdWithNotifHandler := rpc.Setup(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
 		cfg.DcrdHost, cfg.dcrdCert, notifHandler)
