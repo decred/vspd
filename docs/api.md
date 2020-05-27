@@ -69,9 +69,14 @@ the expiration time has passed.
 Provide the voting key for the ticket, voting preference, and a signed
 transaction which pays the fee to the specified address. If the fee has expired,
 this call will return an error and the client will need to request a new fee by
-calling `/feeaddress` again. The VSP will not broadcast the fee transaction
-until the ticket purchase has 6 confirmations, and it will not add the ticket to
-its voting wallets until the fee transaction has 6 confirmations.
+calling `/feeaddress` again.
+
+The VSP will not broadcast the fee transaction until the ticket purchase has 6
+confirmations. For this reason, it is important that the client ensures the
+output being spent in the transaction is not spent elsewhere.
+
+The VSP will not add the ticket to its voting wallets until the fee transaction
+has 6 confirmations.
 
 - `POST /payfee`
 
@@ -149,7 +154,6 @@ after calling `/payfee`.
     ```json
     {
       "timestamp":1590509066,
-      "votechoices":{"headercommitments":"no"},
       "request": {"<Copy of request body>"}
     }
     ```

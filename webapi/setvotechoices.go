@@ -72,8 +72,7 @@ func setVoteChoices(c *gin.Context) {
 	// TODO: DB - store setvotechoices receipt in log
 
 	sendJSONResponse(setVoteChoicesResponse{
-		Timestamp:   time.Now().Unix(),
-		Request:     setVoteChoicesRequest,
-		VoteChoices: voteChoices,
+		Timestamp: time.Now().Unix(),
+		Request:   setVoteChoicesRequest,
 	}, c)
 }

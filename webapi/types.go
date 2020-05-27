@@ -43,9 +43,8 @@ type SetVoteChoicesRequest struct {
 }
 
 type setVoteChoicesResponse struct {
-	Timestamp   int64                 `json:"timestamp" binding:"required"`
-	Request     SetVoteChoicesRequest `json:"request" binding:"required"`
-	VoteChoices map[string]string     `json:"votechoices" binding:"required"`
+	Timestamp int64                 `json:"timestamp" binding:"required"`
+	Request   SetVoteChoicesRequest `json:"request" binding:"required"`
 }
 
 type TicketStatusRequest struct {
