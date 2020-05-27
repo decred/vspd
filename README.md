@@ -6,82 +6,64 @@
 
 ## Overview
 
-User purchases a ticket, doesnt need any special conditions, indistinguishable
-from solo ticket. User can then choose to use a VSP on a per-ticket basis. Once
-the ticket is mined, and ideally before it has matured, the user sends the
-ticket details + fee to a VSP, and the VSP will take the fee and vote in return.
+dcrvsp is a from scratch implementation of a Voting Service Provider (VSP) for
+the Decred network.
 
-## Advantages
+A VSP running dcrvsp can be used to vote on any ticket - tickets do not need to
+be purchased with any special conditions such as dedicated outputs for paying
+VSP fees. Fees are paid directly to the VSP with an independent on-chain
+transaction.
 
-### For Administrators
+To use dcrvsp, ticket holders must prove ownership of their ticket with a
+cryptographic signature, pay the fee requested by the VSP, and submit a private
+key which enables the VSP to vote the ticket. Once this process is complete the
+VSP will add the ticket to a pool of always-online voting wallets.
 
-- bbolt db - no database admin required.
-- Database is not used outside of dcrvsp server.
-- No stakepoold.
-- Client accountability.
-- No need to use the same wallet seed on each voting wallet.
-- Fees can change regularly - previously cached by wallet.
+## Features
 
-### For Users
+- **API** - Tickets are registered with the VSP using a JSON HTTP API. For more
+  detail on the API and its usage, read [api.md](./docs/api.md)
 
-- No redeem script to back up.
-- No registration required. No email.
-- Multiple VSPs on a single ticket.
-- Voting preferences per ticket.
-- Server accountability.
-- No address reuse.
-- VSP fees are paid "out of band", rather than being included in the ticket
-  itself. This makes solo tickets and VSP tickets indistinguishable from
-  eachother, enabling VSP users to purchase tickets in the same anonymity set
-  as solo stakers.
+- **Web front-end** - A minimal, static, website providing pool stats.
 
-## Design Decisions
+- **Two-way accountability** - All dcrvsp requests must be signed with a private
+  key corresponding to the relevant ticket, and all dcrvsp responses are signed
+  by with a private key known only by the server. This enables both the client
+  and the server to prove to outside observers if their counterparty is
+  misbehaving. For more detail, and examples, read
+  [two-way-accountability.md](./docs/two-way-accountability.md).
 
-- [gin-gonic](https://github.com/gin-gonic/gin) webserver.
-  - Success responses use HTTP status 200 and a JSON encoded body.
-  - Error responses use either HTTP status 500 or 400, and a JSON encoded error
-    in the body (eg. `{"error":"Description"}')
-- [bbolt](https://github.com/etcd-io/bbolt) k/v database.
-  - Tickets are stored in a single bucket, using ticket hash as the key and a
-    json encoded representation of the ticket as the value.
-- [wsrpc](https://github.com/jrick/wsrpc) for RPC communication between dcrvsp
+- **Dynamic fees** - Clients must request a new fee address and amount for every
+  ticket. When these are given to a client, there is an associated expiry
+  period. If the fee is not paid in this period, the client must request a new
+  fee. This enables the VSP admin to change their fee as often as they like.
+
+## Implementation
+
+dcrvsp is built and tested on go 1.13 and 1.14, making use of the following
+libraries:
+
+- [gin-gonic/gin](https://github.com/gin-gonic/gin) webserver.
+
+- [etcd-io/bbolt](https://github.com/etcd-io/bbolt) k/v database.
+
+- [jrick/wsrpc](https://github.com/jrick/wsrpc) for RPC communication with dcrd
   and dcrwallet.
 
-## Architecture
+## Deployment
 
-- Single server running dcrvsp and dcrd. dcrd requires txindex so
-  `getrawtransaction` can be used.
-- Multiple remote voting servers, each running dcrwallet and dcrd. dcrwallet
-  on these servers should be constantly unlocked and have voting enabled.
+- Single server running dcrvsp and dcrd. dcrd on this server is used for fishing
+  ticket details out of the chain, and for broadcasting and checking the status
+  of fee transactions. `--txindex` is required so `getrawtransaction` can be
+  used.
 
-## MVP Features
+- A xpub key is provided to dcrvsp via config. dcrvsp will use this key to
+  derive a new addresses for each fee payments. It is recommended to export an
+  xpub from a cold wallet which is not a part of the dcrvsp deployment.
 
-- When dcrvsp is started for the first time, it generates a ed25519 keypair and
-  stores it in the database. This key is used to sign all API responses, and the
-  signature is included in the response header `VSP-Server-Signature`. Error responses
-  are not signed.
-- Every client request which references a ticket should include a HTTP header
-  `VSP-Client-Signature`. The value of this header must be a signature of the
-  request body, signed with the commitment address of the referenced ticket.
-- An xpub key is provided to dcrvsp via config. dcrvsp will use this key to
-  derive addresses for fee payments. A new address is generated for each fee.
-- VSP API as described in [dcrstakepool #574](https://github.com/decred/dcrstakepool/issues/574)
-  - Request fee amount (`GET /fee`)
-  - Request fee address (`POST /feeaddress`)
-  - Pay fee (`POST /payFee`)
-  - Ticket status (`GET /ticketstatus`)
-  - Set voting preferences (`POST /setvotechoices`)
-- A minimal, static, web front-end providing pool stats and basic connection
-  instructions.
-- Fees have an expiry period. If the fee is not paid within this period, the
-  client must request a new fee. This enables the VSP to alter its fee rate.
-
-## Future Features
-
-- Write database backups to disk periodically.
-- Backup over http.
-- Status check API call as described in [dcrstakepool #628](https://github.com/decred/dcrstakepool/issues/628).
-- Consistency checking across connected wallets.
+- Multiple remote voting servers, each running dcrwallet and dcrd. dcrwallet on
+  these servers should be constantly unlocked and have voting enabled. Three
+  voting servers in different physical locations are recommended for production.
 
 ## Backup
 
