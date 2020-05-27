@@ -174,7 +174,7 @@ func router(debugMode bool) *gin.Engine {
 
 	// These routes have no extra middleware. They can be accessed by anybody.
 	router.GET("/", homepage)
-	router.GET("/api/vspstatus", vspStatus)
+	router.GET("/api/vspinfo", vspInfo)
 
 	// These API routes access dcrd and they need authentication.
 	feeOnly := router.Group("/api").Use(

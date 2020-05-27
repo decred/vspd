@@ -6,9 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// vspStatus is the handler for "GET /vspstatus".
-func vspStatus(c *gin.Context) {
-	sendJSONResponse(vspStatusResponse{
+// vspInfo is the handler for "GET /vspinfo".
+func vspInfo(c *gin.Context) {
+	sendJSONResponse(vspInfoResponse{
 		Timestamp:     time.Now().Unix(),
 		PubKey:        signPubKey,
 		FeePercentage: cfg.VSPFee,
