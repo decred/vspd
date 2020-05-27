@@ -1,20 +1,20 @@
-# dcrvsp
+# vspd
 
-[![Build Status](https://github.com/jholdstock/dcrvsp/workflows/Build%20and%20Test/badge.svg)](https://github.com/jholdstock/dcrvsp/actions)
+[![Build Status](https://github.com/jholdstock/vspd/workflows/Build%20and%20Test/badge.svg)](https://github.com/jholdstock/vspd/actions)
 [![ISC License](https://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![Go Report Card](https://goreportcard.com/badge/github.com/jholdstock/dcrvsp)](https://goreportcard.com/report/github.com/jholdstock/dcrvsp)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jholdstock/vspd)](https://goreportcard.com/report/github.com/jholdstock/vspd)
 
 ## Overview
 
-dcrvsp is a from scratch implementation of a Voting Service Provider (VSP) for
+vspd is a from scratch implementation of a Voting Service Provider (VSP) for
 the Decred network.
 
-A VSP running dcrvsp can be used to vote on any ticket - tickets do not need to
+A VSP running vspd can be used to vote on any ticket - tickets do not need to
 be purchased with any special conditions such as dedicated outputs for paying
 VSP fees. Fees are paid directly to the VSP with an independent on-chain
 transaction.
 
-To use dcrvsp, ticket holders must prove ownership of their ticket with a
+To use vspd, ticket holders must prove ownership of their ticket with a
 cryptographic signature, pay the fee requested by the VSP, and submit a private
 key which enables the VSP to vote the ticket. Once this process is complete the
 VSP will add the ticket to a pool of always-online voting wallets.
@@ -26,8 +26,8 @@ VSP will add the ticket to a pool of always-online voting wallets.
 
 - **Web front-end** - A minimal, static, website providing pool stats.
 
-- **Two-way accountability** - All dcrvsp requests must be signed with a private
-  key corresponding to the relevant ticket, and all dcrvsp responses are signed
+- **Two-way accountability** - All vspd requests must be signed with a private
+  key corresponding to the relevant ticket, and all vspd responses are signed
   by with a private key known only by the server. This enables both the client
   and the server to prove to outside observers if their counterparty is
   misbehaving. For more detail, and examples, read
@@ -40,7 +40,7 @@ VSP will add the ticket to a pool of always-online voting wallets.
 
 ## Implementation
 
-dcrvsp is built and tested on go 1.13 and 1.14, making use of the following
+vspd is built and tested on go 1.13 and 1.14, making use of the following
 libraries:
 
 - [gin-gonic/gin](https://github.com/gin-gonic/gin) webserver.
@@ -52,14 +52,14 @@ libraries:
 
 ## Deployment
 
-- Single server running dcrvsp and dcrd. dcrd on this server is used for fishing
+- Single server running vspd and dcrd. dcrd on this server is used for fishing
   ticket details out of the chain, and for broadcasting and checking the status
   of fee transactions. `--txindex` is required so `getrawtransaction` can be
   used.
 
-- A xpub key is provided to dcrvsp via config. dcrvsp will use this key to
+- A xpub key is provided to vspd via config. vspd will use this key to
   derive a new addresses for each fee payments. It is recommended to export an
-  xpub from a cold wallet which is not a part of the dcrvsp deployment.
+  xpub from a cold wallet which is not a part of the vspd deployment.
 
 - Multiple remote voting servers, each running dcrwallet and dcrd. dcrwallet on
   these servers should be constantly unlocked and have voting enabled. Three
@@ -71,9 +71,9 @@ libraries:
 
 ## Issue Tracker
 
-The [integrated github issue tracker](https://github.com/jholdstock/dcrvsp/issues)
+The [integrated github issue tracker](https://github.com/jholdstock/vspd/issues)
 is used for this project.
 
 ## License
 
-dcrvsp is licensed under the [copyfree](http://copyfree.org) ISC License.
+vspd is licensed under the [copyfree](http://copyfree.org) ISC License.

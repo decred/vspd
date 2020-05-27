@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/jholdstock/dcrvsp/database"
-	"github.com/jholdstock/dcrvsp/rpc"
+	"github.com/jholdstock/vspd/database"
+	"github.com/jholdstock/vspd/rpc"
 )
 
 // setVoteChoices is the handler for "POST /setvotechoices".

@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/jholdstock/dcrvsp/database"
+	"github.com/jholdstock/vspd/database"
 )
 
 // ticketStatus is the handler for "GET /ticketstatus".

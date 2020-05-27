@@ -1,6 +1,6 @@
 # Two-way Accountability
 
-- When dcrvsp is started for the first time, it generates a ed25519 keypair and
+- When vspd is started for the first time, it generates a ed25519 keypair and
   stores it in the database. This key is used to sign all API responses, and the
   signature is included in the response header `VSP-Server-Signature`.
 

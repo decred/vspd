@@ -11,8 +11,8 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/jholdstock/dcrvsp/database"
-	"github.com/jholdstock/dcrvsp/rpc"
+	"github.com/jholdstock/vspd/database"
+	"github.com/jholdstock/vspd/rpc"
 )
 
 // payFee is the handler for "POST /payfee".

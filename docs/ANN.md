@@ -8,8 +8,8 @@
   of truth:
   - bbolt does not have the sys admin overhead associated with maintaining a
       MySQL database. The database will be automatically created and maintained
-      by dcrvsp.
-  - The bbolt database is only accessed by dcrvsp. There is no need to open
+      by vspd.
+  - The bbolt database is only accessed by vspd. There is no need to open
       additional ports on your front-end server for the voting wallets to access
       the database.
 - Voting wallet servers require only dcrwallet and dcrd. There is no longer a
