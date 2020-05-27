@@ -49,7 +49,7 @@ func run(ctx context.Context) error {
 	defer log.Info("Shutdown complete")
 
 	// Open database.
-	db, err := database.Open(ctx, &shutdownWg, cfg.dbPath)
+	db, err := database.Open(ctx, &shutdownWg, cfg.dbPath, cfg.BackupInterval)
 	if err != nil {
 		log.Errorf("Database error: %v", err)
 		requestShutdown()
