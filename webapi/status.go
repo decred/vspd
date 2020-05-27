@@ -17,7 +17,7 @@ func pubKey(c *gin.Context) {
 // fee is the handler for "GET /fee".
 func fee(c *gin.Context) {
 	sendJSONResponse(feeResponse{
-		Timestamp: time.Now().Unix(),
-		Fee:       cfg.VSPFee,
+		Timestamp:     time.Now().Unix(),
+		FeePercentage: cfg.VSPFee,
 	}, c)
 }

@@ -19,7 +19,7 @@ func exampleTicket() Ticket {
 		CommitmentAddress: "Address",
 		FeeAddressIndex:   12345,
 		FeeAddress:        "FeeAddress",
-		VSPFee:            0.1,
+		FeeAmount:         0.1,
 		FeeExpiration:     4,
 		Confirmed:         false,
 		VoteChoices:       map[string]string{"AgendaID": "Choice"},
@@ -106,7 +106,7 @@ func testGetTicketByHash(t *testing.T) {
 		retrieved.CommitmentAddress != ticket.CommitmentAddress ||
 		retrieved.FeeAddressIndex != ticket.FeeAddressIndex ||
 		retrieved.FeeAddress != ticket.FeeAddress ||
-		retrieved.VSPFee != ticket.VSPFee ||
+		retrieved.FeeAmount != ticket.FeeAmount ||
 		retrieved.FeeExpiration != ticket.FeeExpiration ||
 		retrieved.Confirmed != ticket.Confirmed ||
 		!reflect.DeepEqual(retrieved.VoteChoices, ticket.VoteChoices) ||

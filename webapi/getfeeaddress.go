@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"decred.org/dcrwallet/wallet/txrules"
+	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/jholdstock/dcrvsp/database"
@@ -35,6 +37,28 @@ func getNewFeeAddress(db *database.VspDatabase, addrGen *addressGenerator) (stri
 	return addr, idx, nil
 }
 
+func getCurrentFee(dcrdClient *rpc.DcrdRPC) (float64, error) {
+	bestBlock, err := dcrdClient.GetBestBlockHeader()
+	if err != nil {
+		return 0, err
+	}
+	sDiff, err := dcrutil.NewAmount(bestBlock.SBits)
+	if err != nil {
+		return 0, err
+	}
+	relayFee, err := dcrutil.NewAmount(relayFee)
+	if err != nil {
+		return 0, err
+	}
+
+	fee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(bestBlock.Height),
+		cfg.VSPFee, cfg.NetParams)
+	if err != nil {
+		return 0, err
+	}
+	return fee.ToCoin(), nil
+}
+
 // feeAddress is the handler for "POST /feeaddress".
 func feeAddress(c *gin.Context) {
 
@@ -57,21 +81,29 @@ func feeAddress(c *gin.Context) {
 		// If the expiry period has passed we need to issue a new fee.
 		now := time.Now()
 		if ticket.FeeExpired() {
+			newFee, err := getCurrentFee(dcrdClient)
+			if err != nil {
+				log.Errorf("getCurrentFee error: %v", err)
+				sendErrorResponse("fee error", http.StatusInternalServerError, c)
+				return
+			}
 			ticket.FeeExpiration = now.Add(cfg.FeeAddressExpiration).Unix()
-			ticket.VSPFee = cfg.VSPFee
+			ticket.FeeAmount = newFee
 
-			err := db.UpdateTicket(ticket)
+			err = db.UpdateTicket(ticket)
 			if err != nil {
 				log.Errorf("UpdateTicket error: %v", err)
 				sendErrorResponse("database error", http.StatusInternalServerError, c)
 				return
 			}
+			log.Debugf("Expired fee updated for ticket: newFeeAmt=%f, ticketHash=%s",
+				newFee, ticket.Hash)
 		}
 		sendJSONResponse(feeAddressResponse{
 			Timestamp:  now.Unix(),
 			Request:    feeAddressRequest,
 			FeeAddress: ticket.FeeAddress,
-			Fee:        ticket.VSPFee,
+			FeeAmount:  ticket.FeeAmount,
 			Expiration: ticket.FeeExpiration,
 		}, c)
 
@@ -104,6 +136,13 @@ func feeAddress(c *gin.Context) {
 		confirmed = true
 	}
 
+	fee, err := getCurrentFee(dcrdClient)
+	if err != nil {
+		log.Errorf("getCurrentFee error: %v", err)
+		sendErrorResponse("fee error", http.StatusInternalServerError, c)
+		return
+	}
+
 	newAddress, newAddressIdx, err := getNewFeeAddress(db, addrGen)
 	if err != nil {
 		log.Errorf("getNewFeeAddress error: %v", err)
@@ -118,7 +157,7 @@ func feeAddress(c *gin.Context) {
 		FeeAddressIndex:   newAddressIdx,
 		FeeAddress:        newAddress,
 		Confirmed:         confirmed,
-		VSPFee:            cfg.VSPFee,
+		FeeAmount:         fee,
 		FeeExpiration:     expire,
 		// VotingKey and VoteChoices: set during payfee
 	}
@@ -131,13 +170,13 @@ func feeAddress(c *gin.Context) {
 	}
 
 	log.Debugf("Fee address created for new ticket: tktConfirmed=%t, feeAddrIdx=%d, "+
-		"feeAddr=%s, ticketHash=%s", confirmed, newAddressIdx, newAddress, ticketHash)
+		"feeAddr=%s, feeAmt=%f, ticketHash=%s", confirmed, newAddressIdx, newAddress, fee, ticketHash)
 
 	sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),
 		Request:    feeAddressRequest,
 		FeeAddress: newAddress,
-		Fee:        cfg.VSPFee,
+		FeeAmount:  fee,
 		Expiration: expire,
 	}, c)
 }

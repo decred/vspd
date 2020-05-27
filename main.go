@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	defaultFeeAddressExpiration = 24 * time.Hour
+	defaultFeeAddressExpiration = 1 * time.Hour
 )
 
 func main() {

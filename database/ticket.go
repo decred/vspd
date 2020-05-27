@@ -17,7 +17,7 @@ type Ticket struct {
 	CommitmentAddress string  `json:"commitmentaddress"`
 	FeeAddressIndex   uint32  `json:"feeaddressindex"`
 	FeeAddress        string  `json:"feeaddress"`
-	VSPFee            float64 `json:"vspfee"`
+	FeeAmount         float64 `json:"feeamount"`
 	FeeExpiration     int64   `json:"feeexpiration"`
 
 	// Confirmed will be set when the ticket has 6+ confirmations.
