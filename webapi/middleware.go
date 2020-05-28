@@ -41,13 +41,13 @@ func withWalletClient() gin.HandlerFunc {
 		for i := 0; i < len(walletConnect); i++ {
 			walletConn, err := walletConnect[i]()
 			if err != nil {
-				log.Errorf("dcrwallet '%s' connection error: %v", err)
+				log.Errorf("dcrwallet connection error: %v", err)
 				sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 				return
 			}
 			walletClient[i], err = rpc.WalletClient(c, walletConn, cfg.NetParams)
 			if err != nil {
-				log.Errorf("dcrwallet '%s' client error: %v", walletClient[i].String(), err)
+				log.Errorf("dcrwallet client error: %v", err)
 				sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 				return
 			}

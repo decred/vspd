@@ -112,14 +112,13 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 	for i := 0; i < len(n.WalletConnect); i++ {
 		walletConn, err := n.WalletConnect[i]()
 		if err != nil {
-			// TODO: what host?
 			log.Errorf("dcrwallet connection error: %v", err)
 			// If this fails, there is nothing more we can do. Return.
 			return nil
 		}
 		walletClients[i], err = rpc.WalletClient(n.Ctx, walletConn, n.NetParams)
 		if err != nil {
-			log.Errorf("dcrwallet '%s' client error: %v", walletConn.String(), err)
+			log.Errorf("dcrwallet client error: %v", err)
 			// If this fails, there is nothing more we can do. Return.
 			return nil
 		}

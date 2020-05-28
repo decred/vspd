@@ -142,7 +142,7 @@ func (vdb *VspDatabase) CountTickets() (int, int, error) {
 				return fmt.Errorf("could not unmarshal ticket: %v", err)
 			}
 
-			if ticket.FeeTxHash != "" {
+			if ticket.FeeConfirmed {
 				feePaid++
 			}
 

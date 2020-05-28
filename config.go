@@ -305,7 +305,7 @@ func loadConfig() (*config, error) {
 	}
 
 	// Verify minimum number of voting wallets are configured.
-	if minRequired < len(cfg.WalletHosts) {
+	if len(cfg.WalletHosts) < minRequired {
 		return nil, fmt.Errorf("minimum required voting wallets has not been met: %d < %d",
 			len(cfg.WalletHosts), minRequired)
 	}
