@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/decred/vspd/database"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/jholdstock/vspd/database"
 )
 
 // ticketStatus is the handler for "GET /ticketstatus".

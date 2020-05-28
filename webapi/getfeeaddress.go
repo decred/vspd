@@ -7,10 +7,10 @@ import (
 
 	"decred.org/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/jholdstock/vspd/database"
-	"github.com/jholdstock/vspd/rpc"
 )
 
 // addrMtx protects getNewFeeAddress.

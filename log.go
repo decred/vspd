@@ -8,10 +8,10 @@ import (
 	"github.com/decred/slog"
 	"github.com/jrick/logrotate/rotator"
 
-	"github.com/jholdstock/vspd/background"
-	"github.com/jholdstock/vspd/database"
-	"github.com/jholdstock/vspd/rpc"
-	"github.com/jholdstock/vspd/webapi"
+	"github.com/decred/vspd/background"
+	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/webapi"
 )
 
 // logWriter implements an io.Writer that outputs to both standard output and

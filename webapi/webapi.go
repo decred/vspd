@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jholdstock/vspd/database"
-	"github.com/jholdstock/vspd/rpc"
+	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/rpc"
 
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/gin-gonic/gin"

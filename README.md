@@ -1,8 +1,8 @@
 # vspd
 
-[![Build Status](https://github.com/jholdstock/vspd/workflows/Build%20and%20Test/badge.svg)](https://github.com/jholdstock/vspd/actions)
+[![Build Status](https://github.com/decred/vspd/workflows/Build%20and%20Test/badge.svg)](https://github.com/decred/vspd/actions)
 [![ISC License](https://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
-[![Go Report Card](https://goreportcard.com/badge/github.com/jholdstock/vspd)](https://goreportcard.com/report/github.com/jholdstock/vspd)
+[![Go Report Card](https://goreportcard.com/badge/github.com/decred/vspd)](https://goreportcard.com/report/github.com/decred/vspd)
 
 ## Overview
 
@@ -77,7 +77,7 @@ database file will also be written to this path when vspd shuts down.
 
 ## Issue Tracker
 
-The [integrated github issue tracker](https://github.com/jholdstock/vspd/issues)
+The [integrated github issue tracker](https://github.com/decred/vspd/issues)
 is used for this project.
 
 ## License
