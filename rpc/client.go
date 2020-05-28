@@ -74,7 +74,7 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 		if c != nil {
 			select {
 			case <-c.Done():
-				log.Debugf("RPC client errored (%v); reconnecting...", c.Err())
+				log.Debugf("RPC client %s errored (%v); reconnecting...", addr, c.Err())
 				c = nil
 			default:
 				return c, nil
