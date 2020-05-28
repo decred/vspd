@@ -51,8 +51,12 @@ type TicketStatusRequest struct {
 }
 
 type ticketStatusResponse struct {
-	Timestamp   int64               `json:"timestamp" binding:"required"`
-	Request     TicketStatusRequest `json:"request" binding:"required"`
-	Status      string              `json:"status" binding:"required"`
-	VoteChoices map[string]string   `json:"votechoices" binding:"required"`
+	Timestamp       int64               `json:"timestamp" binding:"required"`
+	TicketConfirmed bool                `json:"ticketconfirmed" binding:"required"`
+	FeeTxReceived   bool                `json:"feetxreceived" binding:"required"`
+	FeeTxBroadcast  bool                `json:"feetxbroadcast" binding:"required"`
+	FeeConfirmed    bool                `json:"feeconfirmed" binding:"required"`
+	FeeTxHash       string              `json:"feetxhash" binding:"required"`
+	VoteChoices     map[string]string   `json:"votechoices" binding:"required"`
+	Request         TicketStatusRequest `json:"request" binding:"required"`
 }

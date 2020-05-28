@@ -174,7 +174,7 @@ findAddress:
 			return
 		}
 
-		log.Debugf("Fee tx broadcast for ticket: ticketHash=%s", ticket.Hash)
+		log.Debugf("Fee tx broadcast for ticket: ticketHash=%s, feeHash=%s", ticket.Hash, feeTxHash)
 	}
 
 	sendJSONResponse(payFeeResponse{
