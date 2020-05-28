@@ -150,15 +150,16 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 				continue
 			}
 			for _, walletClient := range walletClients {
-				err = walletClient.AddTransaction(rawTicket.BlockHash, rawTicket.Hex)
-				if err != nil {
-					log.Errorf("AddTransaction error on dcrwallet '%s': %v",
-						walletClient.String(), err)
-					continue
-				}
 				err = walletClient.ImportPrivKey(ticket.VotingWIF)
 				if err != nil {
 					log.Errorf("ImportPrivKey error on dcrwallet '%s': %v",
+						walletClient.String(), err)
+					continue
+				}
+
+				err = walletClient.AddTransaction(rawTicket.BlockHash, rawTicket.Hex)
+				if err != nil {
+					log.Errorf("AddTransaction error on dcrwallet '%s': %v",
 						walletClient.String(), err)
 					continue
 				}

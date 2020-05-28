@@ -98,17 +98,17 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 
 	// Start a ticker to update the backup file at the specified interval.
 	shutdownWg.Add(1)
-	backupTicker := time.NewTicker(backupInterval)
 	go func() {
+		ticker := time.NewTicker(backupInterval)
 		for {
 			select {
-			case <-backupTicker.C:
+			case <-ticker.C:
 				err := writeBackup(db, dbFile)
 				if err != nil {
 					log.Errorf("Failed to write database backup: %v", err)
 				}
 			case <-ctx.Done():
-				backupTicker.Stop()
+				ticker.Stop()
 				shutdownWg.Done()
 				return
 			}

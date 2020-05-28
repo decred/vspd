@@ -83,6 +83,14 @@ func feeAddress(c *gin.Context) {
 
 	// VSP already knows this ticket and has already issued it a fee address.
 	if knownTicket {
+
+		// Respond early if we already have the fee tx for this ticket.
+		if ticket.FeeTxHex != "" {
+			log.Warnf("Fee already received from %s: ticketHash=%s", c.ClientIP(), ticket.Hash)
+			sendErrorResponse("fee tx already received", http.StatusBadRequest, c)
+			return
+		}
+
 		// If the expiry period has passed we need to issue a new fee.
 		now := time.Now()
 		if ticket.FeeExpired() {

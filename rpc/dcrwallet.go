@@ -48,6 +48,12 @@ func WalletClient(ctx context.Context, c Caller, netParams *chaincfg.Params) (*W
 		return nil, fmt.Errorf("walletinfo check on dcrwallet '%s' failed: %v",
 			c.String(), err)
 	}
+
+	// TODO: The following 3 checks should probably just log a warning/error and
+	// not return.
+	// addtransaction and setvotechoice can still be used with a locked wallet.
+	// importprivkey will fail if wallet is locked.
+
 	if !walletInfo.Voting {
 		return nil, fmt.Errorf("wallet '%s' has voting disabled", c.String())
 	}
@@ -86,4 +92,20 @@ func (c *WalletRPC) ImportPrivKey(votingWIF string) error {
 
 func (c *WalletRPC) SetVoteChoice(agenda, choice, ticketHash string) error {
 	return c.Call(c.ctx, "setvotechoice", nil, agenda, choice, ticketHash)
+}
+
+func (c *WalletRPC) GetTickets() (map[string]bool, error) {
+	var result wallettypes.GetTicketsResult
+	includeImmature := false
+	err := c.Call(c.ctx, "gettickets", &result, includeImmature)
+	if err != nil {
+		return nil, err
+	}
+
+	tickets := make(map[string]bool)
+	for _, hash := range result.Hashes {
+		tickets[hash] = true
+	}
+
+	return tickets, err
 }

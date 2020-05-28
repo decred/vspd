@@ -16,6 +16,7 @@ import (
 
 const (
 	defaultFeeAddressExpiration = 1 * time.Hour
+	defaultConsistencyInterval  = 10 * time.Second
 )
 
 func main() {
@@ -65,6 +66,7 @@ func run(ctx context.Context) error {
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
 	// Dial once just to validate config.
+	// TODO: Failed RPC connection should not prevent vspd starting up.
 	dcrdConnect := rpc.Setup(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
 		cfg.DcrdHost, cfg.dcrdCert, nil)
 	dcrdConn, err := dcrdConnect()
@@ -74,7 +76,7 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
-	_, err = rpc.DcrdClient(ctx, dcrdConn, cfg.netParams.Params)
+	dcrdClient, err := rpc.DcrdClient(ctx, dcrdConn, cfg.netParams.Params)
 	if err != nil {
 		log.Errorf("dcrd client error: %v", err)
 		requestShutdown()
@@ -84,8 +86,11 @@ func run(ctx context.Context) error {
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
 	// Dial once just to validate config.
+	// TODO: Failed RPC connection should not prevent vspd starting up.
 	walletConnect := make([]rpc.Connect, len(cfg.WalletHosts))
 	walletConn := make([]rpc.Caller, len(cfg.WalletHosts))
+	walletClient := make([]*rpc.WalletRPC, len(cfg.WalletHosts))
+
 	for i := 0; i < len(cfg.WalletHosts); i++ {
 		walletConnect[i] = rpc.Setup(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass,
 			cfg.WalletHosts[i], cfg.walletCert, nil)
@@ -96,7 +101,7 @@ func run(ctx context.Context) error {
 			shutdownWg.Wait()
 			return err
 		}
-		_, err = rpc.WalletClient(ctx, walletConn[i], cfg.netParams.Params)
+		walletClient[i], err = rpc.WalletClient(ctx, walletConn[i], cfg.netParams.Params)
 		if err != nil {
 			log.Errorf("dcrwallet client error: %v", err)
 			requestShutdown()
@@ -104,6 +109,71 @@ func run(ctx context.Context) error {
 			return err
 		}
 	}
+
+	// TODO: This needs to move into background.go eventually.
+	go func() {
+		ticker := time.NewTicker(defaultConsistencyInterval)
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-ticker.C:
+
+				// TODO: This gets all tickets with confirmed fees regardless of
+				// status. It should not get voted/missed/expired tickets.
+				dbTickets, err := db.GetConfirmedFees()
+				if err != nil {
+					log.Errorf("GetConfirmedFees failed: %v", err)
+					continue
+				}
+
+				log.Debugf("Checking voting wallets - should have %d tickets", len(dbTickets))
+
+				for i := 0; i < len(walletClient); i++ {
+					walletTickets, err := walletClient[i].GetTickets()
+					if err != nil {
+						log.Errorf("GetTickets failed: %v", err)
+						continue
+					}
+
+					log.Infof("Wallet %s has %d tickets", walletClient[i].String(), len(walletTickets))
+
+					// Add any missing private keys and tickets to wallet.
+					for _, dbTicket := range dbTickets {
+						_, exists := walletTickets[dbTicket.Hash]
+						if exists {
+							continue
+						}
+
+						log.Infof("Adding missing ticket hash %s", dbTicket.Hash)
+
+						// TODO: Need to reconnect wallet client here incase it has errored.
+						err = walletClient[i].ImportPrivKey(dbTicket.VotingWIF)
+						if err != nil {
+							log.Errorf("importprivkey failed: %v", err)
+							continue
+						}
+
+						rawTicket, err := dcrdClient.GetRawTransaction(dbTicket.Hash)
+						if err != nil {
+							log.Errorf("GetRawTransaction error: %v", err)
+							continue
+						}
+
+						err = walletClient[i].AddTransaction(rawTicket.BlockHash, rawTicket.Hex)
+						if err != nil {
+							log.Errorf("AddTransaction error: %v", err)
+							continue
+						}
+
+						// TODO: Set voting preferences.
+					}
+
+				}
+			}
+		}
+	}()
 
 	// Create a dcrd client with an attached notification handler which will run
 	// in the background.
