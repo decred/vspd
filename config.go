@@ -329,7 +329,7 @@ func loadConfig() (*config, error) {
 	setLogLevels(cfg.LogLevel)
 
 	// Set the database path
-	cfg.dbPath = filepath.Join(dataDir, "vsp.db")
+	cfg.dbPath = filepath.Join(dataDir, "vspd.db")
 
 	// Validate the cold wallet xpub.
 	if cfg.FeeXPub == "" {

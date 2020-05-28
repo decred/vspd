@@ -109,7 +109,18 @@ has 6 confirmations.
 ### Ticket Status
 
 Clients can check the status of a ticket at any time after calling
-`/feeaddress`.
+`/feeaddress`. The lifecycle of the ticket is represented with a set of boolean
+fields:
+
+- `ticketconfirmed` is true when the ticket transaction has 6 confirmations.
+- `feetxreceived` is true when the VSP has received a valid fee transaction.
+- `feetxbroadcast` is true when the VSP has broadcast the fee transaction.
+- `feeconfirmed` is true when the fee transaction has 6 confirmations.
+
+`feetxhash` will only be populated if `feetxbroadcast` is true.
+
+The VSP will only add tickets to the voting wallets when all four of these
+conditions are met.
 
 - `GET /ticketstatus`
 
@@ -126,10 +137,14 @@ Clients can check the status of a ticket at any time after calling
 
     ```json
     {
-        "timestamp":1590509066,
-        "status":"active",
-        "votechoices":{"headercommitments":"no"},
-        "request": {"<Copy of request body>"}
+      "timestamp":1590509066,
+      "ticketconfirmed":true,
+      "feetxreceived":true,
+      "feetxbroadcast":true,
+      "feeconfirmed":false,
+      "feetxhash": "e1c02b04b5bbdae66cf8e3c88366c4918d458a2d27a26144df37f54a2bc956ac",
+      "votechoices":{"headercommitments":"no"},
+      "request": {"<Copy of request body>"}
     }
     ```
 
