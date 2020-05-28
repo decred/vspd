@@ -45,7 +45,7 @@ type config struct {
 	DcrdUser       string        `long:"dcrduser" ini-name:"dcrduser" description:"Username for dcrd RPC connections."`
 	DcrdPass       string        `long:"dcrdpass" ini-name:"dcrdpass" description:"Password for dcrd RPC connections."`
 	DcrdCert       string        `long:"dcrdcert" ini-name:"dcrdcert" description:"The dcrd RPC certificate file."`
-	WalletHost     string        `long:"wallethost" ini-name:"wallethost" description:"The ip:port to establish a JSON-RPC connection with voting dcrwallet."`
+	WalletHosts    []string      `long:"wallethost" ini-name:"wallethost" description:"Add an ip:port to establish a JSON-RPC connection with voting dcrwallet."`
 	WalletUser     string        `long:"walletuser" ini-name:"walletuser" description:"Username for dcrwallet RPC connections."`
 	WalletPass     string        `long:"walletpass" ini-name:"walletpass" description:"Password for dcrwallet RPC connections."`
 	WalletCert     string        `long:"walletcert" ini-name:"walletcert" description:"The dcrwallet RPC certificate file."`
@@ -155,7 +155,7 @@ func loadConfig() (*config, error) {
 		HomeDir:        defaultHomeDir,
 		ConfigFile:     defaultConfigFile,
 		DcrdHost:       defaultDcrdHost,
-		WalletHost:     defaultWalletHost,
+		WalletHosts:    []string{defaultWalletHost},
 		WebServerDebug: defaultWebServerDebug,
 		BackupInterval: defaultBackupInterval,
 		VspClosed:      defaultVspClosed,
@@ -239,11 +239,13 @@ func loadConfig() (*config, error) {
 	}
 
 	// Set the active network.
+	minRequired := 1
 	switch cfg.Network {
 	case "testnet":
 		cfg.netParams = &testNet3Params
 	case "mainnet":
 		cfg.netParams = &mainNetParams
+		minRequired = 3
 	case "simnet":
 		cfg.netParams = &simNetParams
 	}
@@ -302,9 +304,17 @@ func loadConfig() (*config, error) {
 		return nil, fmt.Errorf("failed to read dcrwallet cert file: %v", err)
 	}
 
+	// Verify minimum number of voting wallets are configured.
+	if minRequired < len(cfg.WalletHosts) {
+		return nil, fmt.Errorf("minimum required voting wallets has not been met: %d < %d",
+			len(cfg.WalletHosts), minRequired)
+	}
+
 	// Add default port for the active network if there is no port specified.
+	for i := 0; i < len(cfg.WalletHosts); i++ {
+		cfg.WalletHosts[i] = normalizeAddress(cfg.WalletHosts[i], cfg.netParams.WalletRPCServerPort)
+	}
 	cfg.DcrdHost = normalizeAddress(cfg.DcrdHost, cfg.netParams.DcrdRPCServerPort)
-	cfg.WalletHost = normalizeAddress(cfg.WalletHost, cfg.netParams.WalletRPCServerPort)
 
 	// Create the data directory.
 	dataDir := filepath.Join(cfg.HomeDir, "data", cfg.netParams.Name)

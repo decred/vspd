@@ -37,19 +37,21 @@ func withDcrdClient() gin.HandlerFunc {
 // context for downstream handlers to make use of.
 func withWalletClient() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		walletConn, err := walletConnect()
-		if err != nil {
-			log.Errorf("dcrwallet connection error: %v", err)
-			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-			return
+		walletClient := make([]*rpc.WalletRPC, len(walletConnect))
+		for i := 0; i < len(walletConnect); i++ {
+			walletConn, err := walletConnect[i]()
+			if err != nil {
+				log.Errorf("dcrwallet '%s' connection error: %v", err)
+				sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+				return
+			}
+			walletClient[i], err = rpc.WalletClient(c, walletConn, cfg.NetParams)
+			if err != nil {
+				log.Errorf("dcrwallet '%s' client error: %v", walletClient[i].String(), err)
+				sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+				return
+			}
 		}
-		walletClient, err := rpc.WalletClient(c, walletConn, cfg.NetParams)
-		if err != nil {
-			log.Errorf("dcrwallet client error: %v", err)
-			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-			return
-		}
-
 		c.Set("WalletClient", walletClient)
 	}
 }

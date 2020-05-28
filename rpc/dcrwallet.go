@@ -28,41 +28,46 @@ func WalletClient(ctx context.Context, c Caller, netParams *chaincfg.Params) (*W
 	var verMap map[string]dcrdtypes.VersionResult
 	err := c.Call(ctx, "version", &verMap)
 	if err != nil {
-		return nil, fmt.Errorf("version check failed: %v", err)
+		return nil, fmt.Errorf("version check on dcrwallet '%s' failed: %v",
+			c.String(), err)
 	}
 	walletVersion, exists := verMap["dcrwalletjsonrpcapi"]
 	if !exists {
-		return nil, fmt.Errorf("version response missing 'dcrwalletjsonrpcapi'")
+		return nil, fmt.Errorf("version response on dcrwallet '%s' missing 'dcrwalletjsonrpcapi'",
+			c.String())
 	}
 	if walletVersion.VersionString != requiredWalletVersion {
-		return nil, fmt.Errorf("wrong dcrwallet RPC version: got %s, expected %s",
-			walletVersion.VersionString, requiredWalletVersion)
+		return nil, fmt.Errorf("dcrwallet '%s' has wrong RPC version: got %s, expected %s",
+			c.String(), walletVersion.VersionString, requiredWalletVersion)
 	}
 
 	// Verify dcrwallet is voting, unlocked, and is connected to dcrd (not SPV).
 	var walletInfo wallettypes.WalletInfoResult
 	err = c.Call(ctx, "walletinfo", &walletInfo)
 	if err != nil {
-		return nil, fmt.Errorf("walletinfo check failed: %v", err)
+		return nil, fmt.Errorf("walletinfo check on dcrwallet '%s' failed: %v",
+			c.String(), err)
 	}
 	if !walletInfo.Voting {
-		return nil, fmt.Errorf("wallet has voting disabled")
+		return nil, fmt.Errorf("wallet '%s' has voting disabled", c.String())
 	}
 	if !walletInfo.Unlocked {
-		return nil, fmt.Errorf("wallet is not unlocked")
+		return nil, fmt.Errorf("wallet '%s' is not unlocked", c.String())
 	}
 	if !walletInfo.DaemonConnected {
-		return nil, fmt.Errorf("wallet is not connected to dcrd")
+		return nil, fmt.Errorf("wallet '%s' is not connected to dcrd", c.String())
 	}
 
 	// Verify dcrwallet is on the correct network.
 	var netID wire.CurrencyNet
 	err = c.Call(ctx, "getcurrentnet", &netID)
 	if err != nil {
-		return nil, fmt.Errorf("getcurrentnet check failed: %v", err)
+		return nil, fmt.Errorf("getcurrentnet check on dcrwallet '%s' failed: %v",
+			c.String(), err)
 	}
 	if netID != netParams.Net {
-		return nil, fmt.Errorf("dcrwallet running on %s, expected %s", netID, netParams.Net)
+		return nil, fmt.Errorf("dcrwallet '%s' running on %s, expected %s",
+			c.String(), netID, netParams.Net)
 	}
 
 	return &WalletRPC{c, ctx}, nil
