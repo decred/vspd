@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -33,9 +34,38 @@ var (
 	lastAddressIndexK = []byte("lastaddressindex")
 )
 
+// backupMtx protects writeBackup, to ensure only one backup file is written at
+// a time.
+var backupMtx sync.Mutex
+
+func writeBackup(db *bolt.DB, dbFile string) error {
+	backupMtx.Lock()
+	defer backupMtx.Unlock()
+
+	backupPath := dbFile + "-backup"
+	tempPath := backupPath + "~"
+
+	// Write backup to temporary file.
+	err := db.View(func(tx *bolt.Tx) error {
+		return tx.CopyFile(tempPath, 0600)
+	})
+	if err != nil {
+		return fmt.Errorf("tx.CopyFile: %v", err)
+	}
+
+	// Rename temporary file to actual backup file.
+	err = os.Rename(tempPath, backupPath)
+	if err != nil {
+		return fmt.Errorf("os.Rename: %v", err)
+	}
+
+	log.Debugf("Database backup written to %s", backupPath)
+	return err
+}
+
 // Open initializes and returns an open database. If no database file is found
 // at the provided path, a new one will be created.
-func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string) (*VspDatabase, error) {
+func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backupInterval time.Duration) (*VspDatabase, error) {
 
 	db, err := bolt.Open(dbFile, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
@@ -51,13 +81,38 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string) (*VspD
 		<-ctx.Done()
 
 		log.Debug("Closing database...")
-		err := db.Close()
+
+		err := writeBackup(db, dbFile)
+		if err != nil {
+			log.Errorf("Failed to write database backup: %v", err)
+		}
+
+		err = db.Close()
 		if err != nil {
 			log.Errorf("Error closing database: %v", err)
 		} else {
 			log.Debug("Database closed")
 		}
 		shutdownWg.Done()
+	}()
+
+	// Start a ticker to update the backup file at the specified interval.
+	shutdownWg.Add(1)
+	backupTicker := time.NewTicker(backupInterval)
+	go func() {
+		for {
+			select {
+			case <-backupTicker.C:
+				err := writeBackup(db, dbFile)
+				if err != nil {
+					log.Errorf("Failed to write database backup: %v", err)
+				}
+			case <-ctx.Done():
+				backupTicker.Stop()
+				shutdownWg.Done()
+				return
+			}
+		}
 	}()
 
 	// Create all storage buckets of the VSP if they don't already exist.

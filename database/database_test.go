@@ -5,17 +5,20 @@ import (
 	"os"
 	"sync"
 	"testing"
+	"time"
 )
 
 var (
-	testDb = "test.db"
-	db     *VspDatabase
+	testDb   = "test.db"
+	backupDb = "test.db-backup"
+	db       *VspDatabase
 )
 
 // TestDatabase runs all database tests.
 func TestDatabase(t *testing.T) {
 	// Ensure we are starting with a clean environment.
 	os.Remove(testDb)
+	os.Remove(backupDb)
 
 	// All sub-tests to run.
 	tests := map[string]func(*testing.T){
@@ -31,7 +34,7 @@ func TestDatabase(t *testing.T) {
 		var err error
 		var wg sync.WaitGroup
 		ctx, cancel := context.WithCancel(context.TODO())
-		db, err = Open(ctx, &wg, testDb)
+		db, err = Open(ctx, &wg, testDb, time.Hour)
 		if err != nil {
 			t.Fatalf("error creating test database: %v", err)
 		}
@@ -44,6 +47,7 @@ func TestDatabase(t *testing.T) {
 		wg.Wait()
 
 		os.Remove(testDb)
+		os.Remove(backupDb)
 	}
 }
 

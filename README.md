@@ -67,7 +67,13 @@ libraries:
 
 ## Backup
 
-- Regular backups of bbolt database and feexpub.
+The bbolt database file used by vspd is stored in the process home directory, at
+the path `{homedir}/data/{network}/vspd.db`. vspd keeps a file lock on this
+file, so it cannot be opened by any other processes while vspd is running.
+
+To facilitate back-ups, vspd will write periodically write a copy of the bbolt
+database to the path `{homedir}/data/{network}/vspd.db-backup`. A copy of the
+database file will also be written to this path when vspd shuts down.
 
 ## Issue Tracker
 
