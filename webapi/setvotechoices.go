@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/jholdstock/vspd/database"
-	"github.com/jholdstock/vspd/rpc"
 )
 
 // setVoteChoices is the handler for "POST /setvotechoices".

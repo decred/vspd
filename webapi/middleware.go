@@ -3,9 +3,9 @@ package webapi
 import (
 	"net/http"
 
+	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/jholdstock/vspd/rpc"
 )
 
 type ticketHashRequest struct {

@@ -9,10 +9,10 @@ import (
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/txscript/v3"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	"github.com/jholdstock/vspd/database"
-	"github.com/jholdstock/vspd/rpc"
 )
 
 // payFee is the handler for "POST /payfee".

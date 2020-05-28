@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jholdstock/vspd/database"
+	"github.com/decred/vspd/database"
 
 	"github.com/gin-gonic/gin"
 )

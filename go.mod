@@ -1,4 +1,4 @@
-module github.com/jholdstock/vspd
+module github.com/decred/vspd
 
 go 1.13
 

@@ -7,8 +7,8 @@ import (
 
 	"decred.org/dcrwallet/rpc/client/dcrd"
 	"github.com/decred/dcrd/chaincfg/v3"
-	"github.com/jholdstock/vspd/database"
-	"github.com/jholdstock/vspd/rpc"
+	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/rpc"
 )
 
 type NotificationHandler struct {
