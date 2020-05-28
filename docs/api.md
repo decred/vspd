@@ -11,7 +11,7 @@
   described in [two-way-accountability.md](./two-way-accountability.md).
 
 - Implementation of request and response types can be found in
-  [webapi/types.go](./webapi/types.go).
+  [webapi/types.go](../webapi/types.go).
 
 ## Expected usage
 
