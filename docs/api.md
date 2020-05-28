@@ -15,13 +15,15 @@
 
 ## Expected usage
 
-### Get VSP public key
+### Get VSP info
 
-Clients should first retrieve the VSP's public key so they can check the
-signature on later API responses. A VSP should never change their public key so
-it can be requested once and cached indefinitely.
+Clients should retrieve the VSP's public key so they can check the signature on
+future API responses. A VSP should never change their public key so it can be
+requested once and cached indefinitely. `vspclosed` indicates that the VSP is
+not currently accepting new tickets. Calling `/feeaddress` when a VSP is closed
+will result in an error.
 
-- `GET /api/pubkey`
+- `GET /api/vspinfo`
 
     No request body.
 
@@ -29,8 +31,11 @@ it can be requested once and cached indefinitely.
   
     ```json
     {
-        "timestamp":1590509065,
-        "pubkey":"bLNwVVcda3LqRLv+m0J5sjd60+twjO/fuhcx8RUErDQ="
+        "timestamp":1590599436,
+        "pubkey":"SjAmrAqH7LScCUwM1qo5O6Cu7aKhrM1ORszgZwD7HmU=",
+        "feepercentage":0.05,
+        "vspclosed":false,
+        "network":"testnet3"
     }
     ```
 
@@ -69,9 +74,14 @@ the expiration time has passed.
 Provide the voting key for the ticket, voting preference, and a signed
 transaction which pays the fee to the specified address. If the fee has expired,
 this call will return an error and the client will need to request a new fee by
-calling `/feeaddress` again. The VSP will not broadcast the fee transaction
-until the ticket purchase has 6 confirmations, and it will not add the ticket to
-its voting wallets until the fee transaction has 6 confirmations.
+calling `/feeaddress` again.
+
+The VSP will not broadcast the fee transaction until the ticket purchase has 6
+confirmations. For this reason, it is important that the client ensures the
+output being spent in the transaction is not spent elsewhere.
+
+The VSP will not add the ticket to its voting wallets until the fee transaction
+has 6 confirmations.
 
 - `POST /payfee`
 
@@ -96,11 +106,7 @@ its voting wallets until the fee transaction has 6 confirmations.
     }
     ```
 
-### Information requests
-
-Clients can check the status of the server at any time.
-
-// TODO
+### Ticket Status
 
 Clients can check the status of a ticket at any time after calling
 `/feeaddress`.
@@ -149,7 +155,6 @@ after calling `/payfee`.
     ```json
     {
       "timestamp":1590509066,
-      "votechoices":{"headercommitments":"no"},
       "request": {"<Copy of request body>"}
     }
     ```

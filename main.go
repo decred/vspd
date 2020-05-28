@@ -44,12 +44,17 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	if cfg.VspClosed {
+		log.Warnf("Config --vspclosed is set. This will prevent vspd from " +
+			"accepting new tickets.")
+	}
+
 	// Waitgroup for services to signal when they have shutdown cleanly.
 	var shutdownWg sync.WaitGroup
 	defer log.Info("Shutdown complete")
 
 	// Open database.
-	db, err := database.Open(ctx, &shutdownWg, cfg.dbPath)
+	db, err := database.Open(ctx, &shutdownWg, cfg.dbPath, cfg.BackupInterval)
 	if err != nil {
 		log.Errorf("Database error: %v", err)
 		requestShutdown()
@@ -121,6 +126,7 @@ func run(ctx context.Context) error {
 		NetParams:            cfg.netParams.Params,
 		FeeAddressExpiration: defaultFeeAddressExpiration,
 		SupportEmail:         cfg.SupportEmail,
+		VspClosed:            cfg.VspClosed,
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
 		dcrdConnect, walletConnect, cfg.WebServerDebug, cfg.FeeXPub, apiCfg)
