@@ -1,13 +1,11 @@
 package webapi
 
-type pubKeyResponse struct {
-	Timestamp int64  `json:"timestamp" binding:"required"`
-	PubKey    []byte `json:"pubkey" binding:"required"`
-}
-
-type feeResponse struct {
+type vspInfoResponse struct {
 	Timestamp     int64   `json:"timestamp" binding:"required"`
+	PubKey        []byte  `json:"pubkey" binding:"required"`
 	FeePercentage float64 `json:"feepercentage" binding:"required"`
+	VspClosed     bool    `json:"vspclosed" binding:"required"`
+	Network       string  `json:"network" binding:"required"`
 }
 
 type FeeAddressRequest struct {

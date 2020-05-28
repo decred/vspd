@@ -29,6 +29,7 @@ var (
 	defaultWalletHost     = "127.0.0.1"
 	defaultWebServerDebug = false
 	defaultBackupInterval = time.Minute * 3
+	defaultVspClosed      = false
 )
 
 // config defines the configuration options for the VSP.
@@ -51,6 +52,7 @@ type config struct {
 	WebServerDebug bool          `long:"webserverdebug" ini-name:"webserverdebug" description:"Enable web server debug mode (verbose logging to terminal and live-reloading templates)."`
 	SupportEmail   string        `long:"supportemail" ini-name:"supportemail" description:"Email address for users in need of support."`
 	BackupInterval time.Duration `long:"backupinterval" ini-name:"backupinterval" description:"Time period between automatic database backups. Valid time units are {s,m,h}. Minimum 30 seconds."`
+	VspClosed      bool          `long:"vspclosed" ini-name:"vspclosed" description:"Closed prevents the VSP from accepting new tickets."`
 
 	dbPath     string
 	netParams  *netParams
@@ -156,6 +158,7 @@ func loadConfig() (*config, error) {
 		WalletHost:     defaultWalletHost,
 		WebServerDebug: defaultWebServerDebug,
 		BackupInterval: defaultBackupInterval,
+		VspClosed:      defaultVspClosed,
 	}
 
 	// Pre-parse the command line options to see if an alternative config

@@ -24,6 +24,7 @@ type Config struct {
 	FeeAccountName       string
 	FeeAddressExpiration time.Duration
 	SupportEmail         string
+	VspClosed            bool
 }
 
 const (
@@ -33,18 +34,6 @@ const (
 	// TODO: Make this configurable or get it from RPC.
 	relayFee = 0.0001
 )
-
-type vspStats struct {
-	PubKey         []byte
-	TotalTickets   int
-	FeePaidTickets int
-	VSPFee         float64
-	Network        string
-	UpdateTime     string
-	SupportEmail   string
-}
-
-var stats *vspStats
 
 var cfg Config
 var db *database.VspDatabase
@@ -185,8 +174,7 @@ func router(debugMode bool) *gin.Engine {
 
 	// These routes have no extra middleware. They can be accessed by anybody.
 	router.GET("/", homepage)
-	router.GET("/api/fee", fee)
-	router.GET("/api/pubkey", pubKey)
+	router.GET("/api/vspinfo", vspInfo)
 
 	// These API routes access dcrd and they need authentication.
 	feeOnly := router.Group("/api").Use(
@@ -204,26 +192,6 @@ func router(debugMode bool) *gin.Engine {
 	both.POST("/setvotechoices", setVoteChoices)
 
 	return router
-}
-
-func updateVSPStats(db *database.VspDatabase, cfg Config) (*vspStats, error) {
-	total, feePaid, err := db.CountTickets()
-	if err != nil {
-		return nil, err
-	}
-	return &vspStats{
-		PubKey:         signPubKey,
-		TotalTickets:   total,
-		FeePaidTickets: feePaid,
-		VSPFee:         cfg.VSPFee,
-		Network:        cfg.NetParams.Name,
-		UpdateTime:     time.Now().Format("Mon Jan _2 15:04:05 2006"),
-		SupportEmail:   cfg.SupportEmail,
-	}, nil
-}
-
-func homepage(c *gin.Context) {
-	c.HTML(http.StatusOK, "homepage.html", stats)
 }
 
 func sendJSONResponse(resp interface{}, c *gin.Context) {
