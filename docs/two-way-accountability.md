@@ -12,4 +12,8 @@
 
 ### Server does not vote ticket
 
+TODO
+
 ### Client denies changing their voting preferences
+
+TODO
