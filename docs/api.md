@@ -33,7 +33,7 @@ will result in an error.
     {
         "timestamp":1590599436,
         "pubkey":"SjAmrAqH7LScCUwM1qo5O6Cu7aKhrM1ORszgZwD7HmU=",
-        "feepercentage":0.05,
+        "feepercentage":3.0,
         "vspclosed":false,
         "network":"testnet3"
     }
