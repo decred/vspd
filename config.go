@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"decred.org/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/hdkeychain/v3"
 	flags "github.com/jessevdk/go-flags"
@@ -20,7 +21,7 @@ import (
 var (
 	defaultListen         = ":3000"
 	defaultLogLevel       = "debug"
-	defaultVSPFee         = 0.05
+	defaultVSPFee         = 5.0
 	defaultNetwork        = "testnet"
 	defaultHomeDir        = dcrutil.AppDataDir("vspd", false)
 	defaultConfigFilename = "vspd.conf"
@@ -38,7 +39,7 @@ type config struct {
 	LogLevel       string        `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
 	Network        string        `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
 	FeeXPub        string        `long:"feexpub" ini-name:"feexpub" description:"Cold wallet xpub used for collecting fees."`
-	VSPFee         float64       `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 0.01 (1%), 0.05 (5%)."`
+	VSPFee         float64       `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 2.0 (2%), 0.5 (0.5%)."`
 	HomeDir        string        `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile     string        `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
 	DcrdHost       string        `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where vspd is running."`
@@ -253,6 +254,11 @@ func loadConfig() (*config, error) {
 	// Ensure backup interval is greater than 30 seconds.
 	if cfg.BackupInterval < time.Second*30 {
 		return nil, errors.New("minimum backupinterval is 30 seconds")
+	}
+
+	// Ensure the fee percentage is valid per txrules.
+	if !txrules.ValidPoolFeeRate(cfg.VSPFee) {
+		return nil, errors.New("invalid vspfee - should be greater than 0.01 and less than 100.0 ")
 	}
 
 	// Ensure the support email address is set.
