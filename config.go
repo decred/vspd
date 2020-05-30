@@ -21,7 +21,7 @@ import (
 var (
 	defaultListen         = ":3000"
 	defaultLogLevel       = "debug"
-	defaultVSPFee         = 5.0
+	defaultVSPFee         = 3.0
 	defaultNetwork        = "testnet"
 	defaultHomeDir        = dcrutil.AppDataDir("vspd", false)
 	defaultConfigFilename = "vspd.conf"
@@ -258,7 +258,7 @@ func loadConfig() (*config, error) {
 
 	// Ensure the fee percentage is valid per txrules.
 	if !txrules.ValidPoolFeeRate(cfg.VSPFee) {
-		return nil, errors.New("invalid vspfee - should be greater than 0.01 and less than 100.0 ")
+		return nil, errors.New("invalid vspfee - should be greater than 0.01 and less than 100.0")
 	}
 
 	// Ensure the support email address is set.
