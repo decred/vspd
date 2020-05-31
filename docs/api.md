@@ -50,6 +50,9 @@ Request fee amount and address for a ticket. The fee amount is only valid until
 the expiration time has passed. The fee amount is an absolute value measured in
 DCR.
 
+This call will return an error if a fee transaction has already been provided
+for the specified ticket.
+
 - `POST /feeaddress`
 
     Request:
@@ -87,6 +90,9 @@ output being spent in the transaction is not spent elsewhere.
 
 The VSP will not add the ticket to its voting wallets until the fee transaction
 has 6 confirmations.
+
+This call will return an error if a fee transaction has already been provided
+for the specified ticket.
 
 - `POST /payfee`
 
