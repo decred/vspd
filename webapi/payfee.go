@@ -39,10 +39,8 @@ func payFee(c *gin.Context) {
 
 	// Respond early if we already have the fee tx for this ticket.
 	if ticket.FeeTxHex != "" {
-		sendJSONResponse(payFeeResponse{
-			Timestamp: time.Now().Unix(),
-			Request:   payFeeRequest,
-		}, c)
+		log.Warnf("Fee tx already received from %s: ticketHash=%s", c.ClientIP(), ticket.Hash)
+		sendErrorResponse("fee tx already received", http.StatusBadRequest, c)
 		return
 	}
 
