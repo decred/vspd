@@ -162,8 +162,9 @@ func (c *DcrdRPC) CanTicketVote(ticketHash string, netParams *chaincfg.Params) (
 		return false, err
 	}
 
-	// Tickets which older than (TicketMaturity+TicketExpiry) are too old to vote.
-	if rawTx.Confirmations > int64(uint32(netParams.TicketMaturity)+netParams.TicketExpiry) {
+	// Tickets which have more than (TicketMaturity+TicketExpiry+1)
+	// confirmations are too old to vote.
+	if rawTx.Confirmations > int64(uint32(netParams.TicketMaturity)+netParams.TicketExpiry)+1 {
 		return false, nil
 	}
 
