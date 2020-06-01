@@ -10,6 +10,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/decred/dcrd/wire"
+	"github.com/jrick/bitset"
 )
 
 const (
@@ -134,4 +135,48 @@ func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, 
 		return nil, err
 	}
 	return &blockHeader, nil
+}
+
+func (c *DcrdRPC) ExistsLiveTicket(ticketHash string) (bool, error) {
+	var exists string
+	err := c.Call(c.ctx, "existslivetickets", &exists, []string{ticketHash})
+	if err != nil {
+		return false, err
+	}
+
+	existsBytes := make([]byte, hex.DecodedLen(len(exists)))
+	_, err = hex.Decode(existsBytes, []byte(exists))
+	if err != nil {
+		return false, err
+	}
+
+	return bitset.Bytes(existsBytes).Get(0), nil
+}
+
+// CanTicketVote checks determines whether a ticket is able to vote at some
+// point in the future by checking that it is currently either immature or live.
+func (c *DcrdRPC) CanTicketVote(ticketHash string, netParams *chaincfg.Params) (bool, error) {
+	// Get ticket details.
+	rawTx, err := c.GetRawTransaction(ticketHash)
+	if err != nil {
+		return false, err
+	}
+
+	// Tickets which older than (TicketMaturity+TicketExpiry) are too old to vote.
+	if rawTx.Confirmations > int64(uint32(netParams.TicketMaturity)+netParams.TicketExpiry) {
+		return false, nil
+	}
+
+	// If ticket is currently immature, it will be able to vote in future.
+	if rawTx.Confirmations <= int64(netParams.TicketMaturity) {
+		return true, nil
+	}
+
+	// If ticket is currently live, it will be able to vote in future.
+	live, err := c.ExistsLiveTicket(ticketHash)
+	if err != nil {
+		return false, err
+	}
+
+	return live, nil
 }

@@ -81,6 +81,20 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
+	ticketHash := feeAddressRequest.TicketHash
+
+	canVote, err := dcrdClient.CanTicketVote(ticketHash, cfg.NetParams)
+	if err != nil {
+		log.Errorf("canTicketVote error: %v", err)
+		sendErrorResponse("error validating ticket", http.StatusInternalServerError, c)
+		return
+	}
+	if !canVote {
+		log.Warnf("Unvotable ticket %s from %s", ticketHash, c.ClientIP())
+		sendErrorResponse("ticket not eligible to vote", http.StatusBadRequest, c)
+		return
+	}
+
 	// VSP already knows this ticket and has already issued it a fee address.
 	if knownTicket {
 
@@ -126,29 +140,6 @@ func feeAddress(c *gin.Context) {
 	// Beyond this point we are processing a new ticket which the VSP has not
 	// seen before.
 
-	ticketHash := feeAddressRequest.TicketHash
-
-	// Get transaction details.
-	rawTx, err := dcrdClient.GetRawTransaction(ticketHash)
-	if err != nil {
-		log.Warnf("Could not retrieve tx %s for %s: %v", ticketHash, c.ClientIP(), err)
-		sendErrorResponse("unknown transaction", http.StatusBadRequest, c)
-		return
-	}
-
-	// Don't accept tickets which are too old.
-	if rawTx.Confirmations > int64(uint32(cfg.NetParams.TicketMaturity)+cfg.NetParams.TicketExpiry) {
-		log.Warnf("Too old tx from %s", c.ClientIP())
-		sendErrorResponse("transaction too old", http.StatusBadRequest, c)
-		return
-	}
-
-	// Check if ticket is fully confirmed.
-	var confirmed bool
-	if rawTx.Confirmations >= requiredConfs {
-		confirmed = true
-	}
-
 	fee, err := getCurrentFee(dcrdClient)
 	if err != nil {
 		log.Errorf("getCurrentFee error: %v", err)
@@ -169,7 +160,6 @@ func feeAddress(c *gin.Context) {
 		CommitmentAddress: commitmentAddress,
 		FeeAddressIndex:   newAddressIdx,
 		FeeAddress:        newAddress,
-		Confirmed:         confirmed,
 		FeeAmount:         fee,
 		FeeExpiration:     expire,
 		// VotingKey and VoteChoices: set during payfee
@@ -182,8 +172,8 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	log.Debugf("Fee address created for new ticket: tktConfirmed=%t, feeAddrIdx=%d, "+
-		"feeAddr=%s, feeAmt=%f, ticketHash=%s", confirmed, newAddressIdx, newAddress, fee, ticketHash)
+	log.Debugf("Fee address created for new ticket: feeAddrIdx=%d, feeAddr=%s, "+
+		"feeAmt=%f, ticketHash=%s", newAddressIdx, newAddress, fee, ticketHash)
 
 	sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),

@@ -15,6 +15,7 @@ require (
 	github.com/decred/slog v1.0.0
 	github.com/gin-gonic/gin v1.6.3
 	github.com/jessevdk/go-flags v1.4.0
+	github.com/jrick/bitset v1.0.0
 	github.com/jrick/logrotate v1.0.0
 	github.com/jrick/wsrpc/v2 v2.3.3
 	go.etcd.io/bbolt v1.3.4
