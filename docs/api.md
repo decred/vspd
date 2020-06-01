@@ -48,7 +48,7 @@ its voting wallets unless both of these calls have succeeded.**
 
 Request fee amount and address for a ticket. The fee amount is only valid until
 the expiration time has passed. The fee amount is an absolute value measured in
-DCR.
+DCR. Returns an error if the specified ticket is not currently immature or live.
 
 - `POST /feeaddress`
 
@@ -79,7 +79,8 @@ DCR.
 Provide the voting key for the ticket, voting preference, and a signed
 transaction which pays the fee to the specified address. If the fee has expired,
 this call will return an error and the client will need to request a new fee by
-calling `/feeaddress` again.
+calling `/feeaddress` again. Returns an error if the specified ticket is not
+currently immature or live.
 
 The VSP will not broadcast the fee transaction until the ticket purchase has 6
 confirmations. For this reason, it is important that the client ensures the

@@ -46,6 +46,18 @@ func payFee(c *gin.Context) {
 		return
 	}
 
+	canVote, err := dcrdClient.CanTicketVote(ticket.Hash, cfg.NetParams)
+	if err != nil {
+		log.Errorf("canTicketVote error: %v", err)
+		sendErrorResponse("error validating ticket", http.StatusInternalServerError, c)
+		return
+	}
+	if !canVote {
+		log.Warnf("Unvotable ticket %s from %s", ticket.Hash, c.ClientIP())
+		sendErrorResponse("ticket not eligible to vote", http.StatusBadRequest, c)
+		return
+	}
+
 	// Respond early if the fee for this ticket is expired.
 	if ticket.FeeExpired() {
 		log.Warnf("Expired payfee request from %s", c.ClientIP())
