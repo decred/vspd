@@ -17,7 +17,7 @@ func setVoteChoices(c *gin.Context) {
 	rawRequest := c.MustGet("RawRequest").([]byte)
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
-	walletClients := c.MustGet("WalletClient").([]*rpc.WalletRPC)
+	walletClients := c.MustGet("WalletClients").([]*rpc.WalletRPC)
 
 	if !knownTicket {
 		log.Warnf("Invalid ticket from %s", c.ClientIP())

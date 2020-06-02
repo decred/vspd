@@ -64,56 +64,38 @@ func run(ctx context.Context) error {
 
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
-	// Dial once just to validate config.
-	dcrdConnect := rpc.Setup(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
+	dcrd := rpc.SetupDcrd(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
 		cfg.DcrdHost, cfg.dcrdCert, nil)
-	dcrdConn, err := dcrdConnect()
+	// Dial once just to validate config.
+	_, err = dcrd.Client(ctx, cfg.netParams.Params)
 	if err != nil {
-		log.Errorf("dcrd connection error: %v", err)
-		requestShutdown()
-		shutdownWg.Wait()
-		return err
-	}
-	_, err = rpc.DcrdClient(ctx, dcrdConn, cfg.netParams.Params)
-	if err != nil {
-		log.Errorf("dcrd client error: %v", err)
+		log.Error(err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return err
 	}
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
+	wallets := rpc.SetupWallet(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass,
+		cfg.WalletHosts, cfg.walletCert)
 	// Dial once just to validate config.
-	walletConnect := make([]rpc.Connect, len(cfg.WalletHosts))
-	walletConn := make([]rpc.Caller, len(cfg.WalletHosts))
-	for i := 0; i < len(cfg.WalletHosts); i++ {
-		walletConnect[i] = rpc.Setup(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass,
-			cfg.WalletHosts[i], cfg.walletCert, nil)
-		walletConn[i], err = walletConnect[i]()
-		if err != nil {
-			log.Errorf("dcrwallet connection error: %v", err)
-			requestShutdown()
-			shutdownWg.Wait()
-			return err
-		}
-		_, err = rpc.WalletClient(ctx, walletConn[i], cfg.netParams.Params)
-		if err != nil {
-			log.Errorf("dcrwallet client error: %v", err)
-			requestShutdown()
-			shutdownWg.Wait()
-			return err
-		}
+	_, err = wallets.Clients(ctx, cfg.netParams.Params)
+	if err != nil {
+		log.Error(err)
+		requestShutdown()
+		shutdownWg.Wait()
+		return err
 	}
 
 	// Create a dcrd client with an attached notification handler which will run
 	// in the background.
 	notifHandler := &background.NotificationHandler{
-		Ctx:           ctx,
-		Db:            db,
-		WalletConnect: walletConnect,
-		NetParams:     cfg.netParams.Params,
+		Ctx:       ctx,
+		Db:        db,
+		Wallets:   wallets,
+		NetParams: cfg.netParams.Params,
 	}
-	dcrdWithNotifHandler := rpc.Setup(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
+	dcrdWithNotifHandler := rpc.SetupDcrd(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
 		cfg.DcrdHost, cfg.dcrdCert, notifHandler)
 
 	// Start background process which will continually attempt to reconnect to
@@ -129,7 +111,7 @@ func run(ctx context.Context) error {
 		VspClosed:            cfg.VspClosed,
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
-		dcrdConnect, walletConnect, cfg.WebServerDebug, cfg.FeeXPub, apiCfg)
+		dcrd, wallets, cfg.WebServerDebug, cfg.FeeXPub, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialize webapi: %v", err)
 		requestShutdown()

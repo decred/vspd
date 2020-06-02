@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/decred/dcrd/blockchain/stake/v3"
 	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/decred/dcrd/wire"
 	"github.com/jrick/bitset"
+	"github.com/jrick/wsrpc/v2"
 )
 
 const (
@@ -24,18 +26,36 @@ type DcrdRPC struct {
 	ctx context.Context
 }
 
-// DcrdClient creates a new DcrdRPC client instance from a caller.
-func DcrdClient(ctx context.Context, c Caller, netParams *chaincfg.Params) (*DcrdRPC, error) {
+type DcrdConnect connect
+
+func SetupDcrd(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr string, cert []byte, n wsrpc.Notifier) DcrdConnect {
+	return DcrdConnect(setup(ctx, shutdownWg, user, pass, addr, cert, n))
+}
+
+// Client creates a new DcrdRPC client instance. Returns an error if dialing
+// dcrd fails or if dcrd is misconfigured.
+func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*DcrdRPC, error) {
+
+	c, newConnection, err := connect(*d)()
+	if err != nil {
+		return nil, fmt.Errorf("dcrd connection error: %v", err)
+	}
+
+	// If this is a reused connection, we don't need to validate the dcrd config
+	// again.
+	if !newConnection {
+		return &DcrdRPC{c, ctx}, nil
+	}
 
 	// Verify dcrd is at the required api version.
 	var verMap map[string]dcrdtypes.VersionResult
-	err := c.Call(ctx, "version", &verMap)
+	err = c.Call(ctx, "version", &verMap)
 	if err != nil {
-		return nil, fmt.Errorf("version check failed: %v", err)
+		return nil, fmt.Errorf("dcrd version check failed: %v", err)
 	}
 	dcrdVersion, exists := verMap["dcrdjsonrpcapi"]
 	if !exists {
-		return nil, fmt.Errorf("version response missing 'dcrdjsonrpcapi'")
+		return nil, fmt.Errorf("dcrd version response missing 'dcrdjsonrpcapi'")
 	}
 	if dcrdVersion.VersionString != requiredDcrdVersion {
 		return nil, fmt.Errorf("wrong dcrd RPC version: got %s, expected %s",
@@ -46,7 +66,7 @@ func DcrdClient(ctx context.Context, c Caller, netParams *chaincfg.Params) (*Dcr
 	var netID wire.CurrencyNet
 	err = c.Call(ctx, "getcurrentnet", &netID)
 	if err != nil {
-		return nil, fmt.Errorf("getcurrentnet check failed: %v", err)
+		return nil, fmt.Errorf("dcrd getcurrentnet check failed: %v", err)
 	}
 	if netID != netParams.Net {
 		return nil, fmt.Errorf("dcrd running on %s, expected %s", netID, netParams.Net)
@@ -56,7 +76,7 @@ func DcrdClient(ctx context.Context, c Caller, netParams *chaincfg.Params) (*Dcr
 	var info dcrdtypes.InfoChainResult
 	err = c.Call(ctx, "getinfo", &info)
 	if err != nil {
-		return nil, fmt.Errorf("getinfo check failed: %v", err)
+		return nil, fmt.Errorf("dcrd getinfo check failed: %v", err)
 	}
 	if !info.TxIndex {
 		return nil, errors.New("dcrd does not have transaction index enabled (--txindex)")
