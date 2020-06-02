@@ -16,43 +16,28 @@ type ticketHashRequest struct {
 // context for downstream handlers to make use of.
 func withDcrdClient() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		dcrdConn, err := dcrdConnect()
+		client, err := dcrd.Client(c, cfg.NetParams)
 		if err != nil {
-			log.Errorf("dcrd connection error: %v", err)
-			sendErrorResponse("dcrd RPC error", http.StatusInternalServerError, c)
-			return
-		}
-		dcrdClient, err := rpc.DcrdClient(c, dcrdConn, cfg.NetParams)
-		if err != nil {
-			log.Errorf("dcrd client error: %v", err)
+			log.Error(err)
 			sendErrorResponse("dcrd RPC error", http.StatusInternalServerError, c)
 			return
 		}
 
-		c.Set("DcrdClient", dcrdClient)
+		c.Set("DcrdClient", client)
 	}
 }
 
-// withWalletClient middleware adds a voting wallet client to the request
+// withWalletClients middleware adds a voting wallet clients to the request
 // context for downstream handlers to make use of.
-func withWalletClient() gin.HandlerFunc {
+func withWalletClients() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		walletClient := make([]*rpc.WalletRPC, len(walletConnect))
-		for i := 0; i < len(walletConnect); i++ {
-			walletConn, err := walletConnect[i]()
-			if err != nil {
-				log.Errorf("dcrwallet connection error: %v", err)
-				sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-				return
-			}
-			walletClient[i], err = rpc.WalletClient(c, walletConn, cfg.NetParams)
-			if err != nil {
-				log.Errorf("dcrwallet client error: %v", err)
-				sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-				return
-			}
+		clients, err := wallets.Clients(c, cfg.NetParams)
+		if err != nil {
+			log.Error(err)
+			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+			return
 		}
-		c.Set("WalletClient", walletClient)
+		c.Set("WalletClients", clients)
 	}
 }
 

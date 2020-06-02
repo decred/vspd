@@ -22,14 +22,16 @@ type Caller interface {
 	Call(ctx context.Context, method string, res interface{}, args ...interface{}) error
 }
 
-// Connect dials and returns a connected RPC client.
-type Connect func() (Caller, error)
+// connect dials and returns a connected RPC client. A boolean indicates whether
+// this connection is new (true), or if it is an existing connection which is
+// being reused (false).
+type connect func() (Caller, bool, error)
 
-// Setup accepts RPC connection details, creates an RPC client, and returns a
+// setup accepts RPC connection details, creates an RPC client, and returns a
 // function which can be called to access the client. The returned function will
 // try to handle any client disconnects by attempting to reconnect, but will
 // return an error if a new connection cannot be established.
-func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr string, cert []byte, n wsrpc.Notifier) Connect {
+func setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr string, cert []byte, n wsrpc.Notifier) connect {
 
 	// Create TLS options.
 	pool := x509.NewCertPool()
@@ -67,7 +69,7 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 		shutdownWg.Done()
 	}()
 
-	return func() (Caller, error) {
+	return func() (Caller, bool, error) {
 		defer mu.Unlock()
 		mu.Lock()
 
@@ -77,16 +79,16 @@ func Setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 				log.Debugf("RPC client %s errored (%v); reconnecting...", addr, c.Err())
 				c = nil
 			default:
-				return c, nil
+				return c, false, nil
 			}
 		}
 
 		var err error
 		c, err = wsrpc.Dial(ctx, fullAddr, tlsOpt, authOpt, wsrpc.WithNotifier(n))
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 
-		return c, nil
+		return c, true, nil
 	}
 }

@@ -12,12 +12,12 @@ import (
 )
 
 type NotificationHandler struct {
-	Ctx           context.Context
-	Db            *database.VspDatabase
-	WalletConnect []rpc.Connect
-	NetParams     *chaincfg.Params
-	closed        chan struct{}
-	dcrdClient    *rpc.DcrdRPC
+	Ctx        context.Context
+	Db         *database.VspDatabase
+	Wallets    rpc.WalletConnect
+	NetParams  *chaincfg.Params
+	closed     chan struct{}
+	dcrdClient *rpc.DcrdRPC
 }
 
 const (
@@ -108,20 +108,11 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 		return nil
 	}
 
-	walletClients := make([]*rpc.WalletRPC, len(n.WalletConnect))
-	for i := 0; i < len(n.WalletConnect); i++ {
-		walletConn, err := n.WalletConnect[i]()
-		if err != nil {
-			log.Errorf("dcrwallet connection error: %v", err)
-			// If this fails, there is nothing more we can do. Return.
-			return nil
-		}
-		walletClients[i], err = rpc.WalletClient(n.Ctx, walletConn, n.NetParams)
-		if err != nil {
-			log.Errorf("dcrwallet client error: %v", err)
-			// If this fails, there is nothing more we can do. Return.
-			return nil
-		}
+	walletClients, err := n.Wallets.Clients(n.Ctx, n.NetParams)
+	if err != nil {
+		log.Error(err)
+		// If this fails, there is nothing more we can do. Return.
+		return nil
 	}
 
 	for _, ticket := range unconfirmedFees {
@@ -186,12 +177,9 @@ func (n *NotificationHandler) Close() error {
 	return nil
 }
 
-func (n *NotificationHandler) connect(dcrdConnect rpc.Connect) error {
-	dcrdConn, err := dcrdConnect()
-	if err != nil {
-		return err
-	}
-	n.dcrdClient, err = rpc.DcrdClient(n.Ctx, dcrdConn, n.NetParams)
+func (n *NotificationHandler) connect(dcrdConnect rpc.DcrdConnect) error {
+	var err error
+	n.dcrdClient, err = dcrdConnect.Client(n.Ctx, n.NetParams)
 	if err != nil {
 		return err
 	}
@@ -213,7 +201,7 @@ func (n *NotificationHandler) connect(dcrdConnect rpc.Connect) error {
 	}
 }
 
-func Start(n *NotificationHandler, dcrdConnect rpc.Connect) {
+func Start(n *NotificationHandler, dcrdConnect rpc.DcrdConnect) {
 
 	// Loop forever attempting to create a connection to the dcrd server.
 	go func() {

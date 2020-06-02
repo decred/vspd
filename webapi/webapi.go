@@ -34,19 +34,19 @@ const (
 
 var cfg Config
 var db *database.VspDatabase
-var dcrdConnect rpc.Connect
-var walletConnect []rpc.Connect
+var dcrd rpc.DcrdConnect
+var wallets rpc.WalletConnect
 var addrGen *addressGenerator
 var signPrivKey ed25519.PrivateKey
 var signPubKey ed25519.PublicKey
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, dConnect rpc.Connect, wConnect []rpc.Connect, debugMode bool, feeXPub string, config Config) error {
+	listen string, vdb *database.VspDatabase, dConnect rpc.DcrdConnect, wConnect rpc.WalletConnect, debugMode bool, feeXPub string, config Config) error {
 
 	cfg = config
 	db = vdb
-	dcrdConnect = dConnect
-	walletConnect = wConnect
+	dcrd = dConnect
+	wallets = wConnect
 
 	var err error
 
@@ -184,7 +184,7 @@ func router(debugMode bool) *gin.Engine {
 	// These API routes access dcrd and the voting wallets, and they need
 	// authentication.
 	both := router.Group("/api").Use(
-		withDcrdClient(), withWalletClient(), vspAuth(),
+		withDcrdClient(), withWalletClients(), vspAuth(),
 	)
 	both.POST("/setvotechoices", setVoteChoices)
 
