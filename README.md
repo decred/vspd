@@ -6,6 +6,8 @@
 
 ## Overview
 
+<img src="./docs/stakey.png" align="right" />
+
 vspd is a from scratch implementation of a Voting Service Provider (VSP) for
 the Decred network.
 
@@ -52,32 +54,14 @@ libraries:
 
 ## Deployment
 
-- Single server running vspd and dcrd. dcrd on this server is used for fishing
-  ticket details out of the chain, and for broadcasting and checking the status
-  of fee transactions. `--txindex` is required so `getrawtransaction` can be
-  used.
-
-- A xpub key is provided to vspd via config. vspd will use this key to
-  derive a new addresses for each fee payments. It is recommended to export an
-  xpub from a cold wallet which is not a part of the vspd deployment.
-
-- Multiple remote voting servers, each running dcrwallet and dcrd. dcrwallet on
-  these servers should be constantly unlocked and have voting enabled. Three
-  voting servers in different physical locations are recommended for production.
-
-## Backup
-
-The bbolt database file used by vspd is stored in the process home directory, at
-the path `{homedir}/data/{network}/vspd.db`. vspd keeps a file lock on this
-file, so it cannot be opened by any other processes while vspd is running.
-
-To facilitate back-ups, vspd will write periodically write a copy of the bbolt
-database to the path `{homedir}/data/{network}/vspd.db-backup`. A copy of the
-database file will also be written to this path when vspd shuts down.
+A vspd deployment consists of a single front-end server which handles web
+requests, and a number of remote servers which host voting wallets. For more
+information about deploying vspd, check out
+[deployment.md](./docs/deployment.md).
 
 ## Issue Tracker
 
-The [integrated github issue tracker](https://github.com/decred/vspd/issues)
+The [integrated GitHub issue tracker](https://github.com/decred/vspd/issues)
 is used for this project.
 
 ## License
