@@ -172,8 +172,7 @@ func loadConfig() (*config, error) {
 	_, err := preParser.Parse()
 	if err != nil {
 		if e, ok := err.(*flags.Error); ok && e.Type != flags.ErrHelp {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			return nil, err
 		} else if ok && e.Type == flags.ErrHelp {
 			fmt.Fprintln(os.Stdout, err)
 			os.Exit(0)
@@ -211,7 +210,6 @@ func loadConfig() (*config, error) {
 	// Create a default config file when one does not exist and the user did
 	// not specify an override.
 	if preCfg.ConfigFile == defaultConfigFile && !fileExists(preCfg.ConfigFile) {
-		fmt.Printf("Writing a config file with default values to %s\n", defaultConfigFile)
 		preIni := flags.NewIniParser(preParser)
 		err = preIni.WriteFile(preCfg.ConfigFile,
 			flags.IniIncludeComments|flags.IniIncludeDefaults)
@@ -226,8 +224,7 @@ func loadConfig() (*config, error) {
 
 	err = flags.NewIniParser(parser).ParseFile(preCfg.ConfigFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing config file: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error parsing config file: %v", err)
 	}
 
 	// Parse command line options again to ensure they take precedence.
