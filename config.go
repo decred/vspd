@@ -217,6 +217,11 @@ func loadConfig() (*config, error) {
 			return nil, fmt.Errorf("error creating a default "+
 				"config file: %v", err)
 		}
+		fmt.Printf("Config file with default values written to %s\n", defaultConfigFile)
+
+		// File created, user now has to fill in values. Proceeding with the
+		// default file just causes errors.
+		os.Exit(0)
 	}
 
 	// Load additional config from file.
