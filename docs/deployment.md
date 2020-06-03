@@ -20,17 +20,6 @@ should be used to export an extended public (xpub) key from one of the wallet
 accounts. This xpub key will be provided to vspd via config, and vspd will use
 it to derive a new addresses for receiving fee payments.
 
-## Front-end Server
-
-The front-end server is where vspd will be running. The port vspd is listening
-on (default `3000`) should be available for clients to reach over the internet.
-This port is used for both the API and serving the HTML front end.
-
-dcrd needs to be running on this server with transaction index enabled
-(`--txindex`). dcrd is used for fishing ticket details out of the chain, for
-receiving `blockconnected` notifications, and for broadcasting and checking the
-status of fee transactions.
-
 ## Voting Servers
 
 A vspd deployment should have a minimum of three remote voting wallets. The
@@ -42,6 +31,31 @@ wallet on these servers should be completely empty and not used of any other
 purpose. dcrwallet should be permenantly unlocked and have voting enabled
 (`--enablevoting`). vspd on the front-end server must be able to reach each
 instance of dcrwallet over RPC.
+
+## Front-end Server
+
+The front-end server is where vspd will be running. The port vspd is listening
+on (default `3000`) should be available for clients to reach over the internet.
+This port is used for both the API, and for serving the HTML front end.
+
+1. Start an instance of dcrd on this server with transaction index enabled
+   (`--txindex`). dcrd is used for fishing ticket details out of the chain, for
+   receiving `blockconnected` notifications, and for broadcasting and checking
+   the status of fee transactions.
+
+1. Run `vspd` with no arguments to write a default config file. Modify the
+   config file to set your dcrd and dcrwallet connection details, and any other
+   required customization.
+
+1. A vspd database must be initialized before vpsd can be started. To do this,
+   provide vspd with the xpub key it should use for collecting fees:
+
+  ```no-highlight
+  $ vspd --feexpub=tpubVppjaMjp8GEW...
+  ```
+
+1. Once the database is initialized, vspd can be started for normal operation by
+   running it without the `--feexpub` flag.
 
 ## Deploying alongside dcrstakepool
 
@@ -75,4 +89,6 @@ database file will also be written to this path when vspd shuts down.
 
 ## Disaster Recovery
 
-// TODO
+The database file contains everything needed to restore a vspd deployment -
+simply place the database file into the vspd data directory and start vspd as
+normal.

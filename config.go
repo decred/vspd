@@ -15,6 +15,7 @@ import (
 	"decred.org/dcrwallet/wallet/txrules"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/hdkeychain/v3"
+	"github.com/decred/vspd/database"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -38,10 +39,7 @@ type config struct {
 	Listen         string        `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
 	LogLevel       string        `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
 	Network        string        `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
-	FeeXPub        string        `long:"feexpub" ini-name:"feexpub" description:"Cold wallet xpub used for collecting fees."`
 	VSPFee         float64       `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 2.0 (2%), 0.5 (0.5%)."`
-	HomeDir        string        `long:"homedir" ini-name:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
-	ConfigFile     string        `long:"configfile" ini-name:"configfile" no-ini:"true" description:"Path to configuration file."`
 	DcrdHost       string        `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where vspd is running."`
 	DcrdUser       string        `long:"dcrduser" ini-name:"dcrduser" description:"Username for dcrd RPC connections."`
 	DcrdPass       string        `long:"dcrdpass" ini-name:"dcrdpass" description:"Password for dcrd RPC connections."`
@@ -54,6 +52,11 @@ type config struct {
 	SupportEmail   string        `long:"supportemail" ini-name:"supportemail" description:"Email address for users in need of support."`
 	BackupInterval time.Duration `long:"backupinterval" ini-name:"backupinterval" description:"Time period between automatic database backups. Valid time units are {s,m,h}. Minimum 30 seconds."`
 	VspClosed      bool          `long:"vspclosed" ini-name:"vspclosed" description:"Closed prevents the VSP from accepting new tickets."`
+
+	// The following flags should be set on CLI only, not via config file.
+	FeeXPub    string `long:"feexpub" no-ini:"true" description:"Cold wallet xpub used for collecting fees. Should be provided once to initialize a vspd database."`
+	HomeDir    string `long:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
+	ConfigFile string `long:"configfile" no-ini:"true" description:"Path to configuration file."`
 
 	dbPath     string
 	netParams  *netParams
@@ -172,8 +175,7 @@ func loadConfig() (*config, error) {
 	_, err := preParser.Parse()
 	if err != nil {
 		if e, ok := err.(*flags.Error); ok && e.Type != flags.ErrHelp {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			return nil, err
 		} else if ok && e.Type == flags.ErrHelp {
 			fmt.Fprintln(os.Stdout, err)
 			os.Exit(0)
@@ -211,7 +213,6 @@ func loadConfig() (*config, error) {
 	// Create a default config file when one does not exist and the user did
 	// not specify an override.
 	if preCfg.ConfigFile == defaultConfigFile && !fileExists(preCfg.ConfigFile) {
-		fmt.Printf("Writing a config file with default values to %s\n", defaultConfigFile)
 		preIni := flags.NewIniParser(preParser)
 		err = preIni.WriteFile(preCfg.ConfigFile,
 			flags.IniIncludeComments|flags.IniIncludeDefaults)
@@ -219,6 +220,11 @@ func loadConfig() (*config, error) {
 			return nil, fmt.Errorf("error creating a default "+
 				"config file: %v", err)
 		}
+		fmt.Printf("Config file with default values written to %s\n", defaultConfigFile)
+
+		// File created, user now has to fill in values. Proceeding with the
+		// default file just causes errors.
+		os.Exit(0)
 	}
 
 	// Load additional config from file.
@@ -226,8 +232,7 @@ func loadConfig() (*config, error) {
 
 	err = flags.NewIniParser(parser).ParseFile(preCfg.ConfigFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing config file: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("error parsing config file: %v", err)
 	}
 
 	// Parse command line options again to ensure they take precedence.
@@ -337,13 +342,35 @@ func loadConfig() (*config, error) {
 	// Set the database path
 	cfg.dbPath = filepath.Join(dataDir, "vspd.db")
 
-	// Validate the cold wallet xpub.
-	if cfg.FeeXPub == "" {
-		return nil, errors.New("the feexpub option is not set")
-	}
-	_, err = hdkeychain.NewKeyFromString(cfg.FeeXPub, cfg.netParams.Params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse feexpub: %v", err)
+	// If xpub has been provided, create a new database and exit.
+	if cfg.FeeXPub != "" {
+		// If database already exists, return error.
+		if fileExists(cfg.dbPath) {
+			return nil, fmt.Errorf("database already initialized at %s, "+
+				"--feexpub option is not needed.", cfg.dbPath)
+		}
+
+		// Ensure provided value is a valid key for the selected network.
+		_, err = hdkeychain.NewKeyFromString(cfg.FeeXPub, cfg.netParams.Params)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse feexpub: %v", err)
+		}
+
+		// Create new database.
+		err = database.CreateNew(cfg.dbPath, cfg.FeeXPub)
+		if err != nil {
+			return nil, fmt.Errorf("error creating db file %s: %v", cfg.dbPath, err)
+		}
+
+		// Exit with success
+		os.Exit(0)
+
+	} else {
+		// If database does not exist, return error.
+		if !fileExists(cfg.dbPath) {
+			return nil, fmt.Errorf("no database exists in %s. Run vspd with the"+
+				" --feexpub option to initialize one.", dataDir)
+		}
 	}
 
 	return &cfg, nil
