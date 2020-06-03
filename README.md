@@ -75,6 +75,23 @@ To facilitate back-ups, vspd will write periodically write a copy of the bbolt
 database to the path `{homedir}/data/{network}/vspd.db-backup`. A copy of the
 database file will also be written to this path when vspd shuts down.
 
+## Development
+
+### Test Harness
+
+A test harness is provided in `harness.sh`. The test harness uses tmux to start
+a testnet instance of dcrd, multiple dcrwallets, and finally vspd. Further
+documentation can be found in [harness.sh](./harness.sh).
+
+### Web server debug mode
+
+The config option `--webserverdebug` will:
+
+- Force HTML templates to be reloaded on every web request.
+- Reload the cached homepage data every second rather than every 5 minutes.
+- Enable detailed webserver logging to the terminal (does not get written to log
+  file).
+
 ## Issue Tracker
 
 The [integrated github issue tracker](https://github.com/decred/vspd/issues)
