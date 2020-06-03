@@ -30,11 +30,19 @@ WALLET_RPC_KEY="${HOME}/.dcrwallet/rpc.key"
 
 VSPD_FEE_XPUB="tpubVppjaMjp8GEWzpMGHdXNhkjqof8baKGkUzneNEiocnnjnjY9hQPe6mxzZQyzyKYS3u5yxLp8KrJvibqDzc75RGqzkv2JMPYDXmCRR1a39jg"
 
-if [ -d "${HARNESS_ROOT}" ]; then
-  rm -R "${HARNESS_ROOT}"
-fi
-
 tmux new-session -d -s $TMUX_SESSION
+
+if [ -d "${HARNESS_ROOT}" ]; then
+  while true; do
+    read -p "Wipe existing harness dir? " yn
+    case $yn in
+        
+        [Yy]* ) rm -R "${HARNESS_ROOT}"; break;;
+        [Nn]* ) break;;
+        * ) echo "Please answer yes or no.";;
+    esac
+  done
+fi
 
 #################################################
 # Setup dcrd.
