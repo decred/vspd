@@ -34,9 +34,13 @@ func TestDatabase(t *testing.T) {
 		var err error
 		var wg sync.WaitGroup
 		ctx, cancel := context.WithCancel(context.TODO())
-		db, err = Open(ctx, &wg, testDb, time.Hour)
+		err = CreateNew(testDb, "feexpub")
 		if err != nil {
 			t.Fatalf("error creating test database: %v", err)
+		}
+		db, err = Open(ctx, &wg, testDb, time.Hour)
+		if err != nil {
+			t.Fatalf("error opening test database: %v", err)
 		}
 
 		// Run the sub-test.

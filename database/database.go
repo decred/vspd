@@ -28,6 +28,8 @@ var (
 	ticketBktK = []byte("ticketbkt")
 	// version is the current database version.
 	versionK = []byte("version")
+	// feeXPub is the extended public key used for collecting VSP fees.
+	feeXPubK = []byte("feeXPub")
 	// privatekey is the private key.
 	privateKeyK = []byte("privatekey")
 	// lastaddressindex is the index of the last address used for fees.
@@ -61,6 +63,69 @@ func writeBackup(db *bolt.DB, dbFile string) error {
 
 	log.Debugf("Database backup written to %s", backupPath)
 	return err
+}
+
+func CreateNew(dbFile, feeXPub string) error {
+	log.Infof("Initializing new database at %s", dbFile)
+
+	db, err := bolt.Open(dbFile, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	if err != nil {
+		return fmt.Errorf("unable to open db file: %v", err)
+	}
+
+	defer db.Close()
+
+	// Create all storage buckets of the VSP if they don't already exist.
+	err = db.Update(func(tx *bolt.Tx) error {
+		// Create parent bucket.
+		vspBkt, err := tx.CreateBucket(vspBktK)
+		if err != nil {
+			return fmt.Errorf("failed to create %s bucket: %v", string(vspBktK), err)
+		}
+
+		// Initialize with database version 1.
+		vbytes := make([]byte, 4)
+		binary.LittleEndian.PutUint32(vbytes, uint32(1))
+		err = vspBkt.Put(versionK, vbytes)
+		if err != nil {
+			return err
+		}
+
+		log.Info("Generating ed25519 signing key")
+
+		// Generate ed25519 key
+		_, signKey, err := ed25519.GenerateKey(rand.Reader)
+		if err != nil {
+			return fmt.Errorf("failed to generate signing key: %v", err)
+		}
+		err = vspBkt.Put(privateKeyK, signKey.Seed())
+		if err != nil {
+			return err
+		}
+
+		log.Info("Storing extended public key")
+		// Store fee xpub
+		err = vspBkt.Put(feeXPubK, []byte(feeXPub))
+		if err != nil {
+			return err
+		}
+
+		// Create ticket bucket.
+		_, err = vspBkt.CreateBucket(ticketBktK)
+		if err != nil {
+			return fmt.Errorf("failed to create %s bucket: %v", string(ticketBktK), err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
+	log.Info("Database initialized")
+
+	return nil
 }
 
 // Open initializes and returns an open database. If no database file is found
@@ -115,48 +180,6 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 		}
 	}()
 
-	// Create all storage buckets of the VSP if they don't already exist.
-	err = db.Update(func(tx *bolt.Tx) error {
-		if tx.Bucket(vspBktK) == nil {
-			log.Debug("Initializing new database")
-			// Create parent bucket.
-			vspBkt, err := tx.CreateBucket(vspBktK)
-			if err != nil {
-				return fmt.Errorf("failed to create %s bucket: %v", string(vspBktK), err)
-			}
-
-			// Initialize with database version 1.
-			vbytes := make([]byte, 4)
-			binary.LittleEndian.PutUint32(vbytes, uint32(1))
-			err = vspBkt.Put(versionK, vbytes)
-			if err != nil {
-				return err
-			}
-
-			// Generate ed25519 key
-			_, signKey, err := ed25519.GenerateKey(rand.Reader)
-			if err != nil {
-				return fmt.Errorf("failed to generate signing key: %v", err)
-			}
-			err = vspBkt.Put(privateKeyK, signKey.Seed())
-			if err != nil {
-				return err
-			}
-
-			// Create ticket bucket.
-			_, err = vspBkt.CreateBucket(ticketBktK)
-			if err != nil {
-				return fmt.Errorf("failed to create %s bucket: %v", string(ticketBktK), err)
-			}
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
 	return &VspDatabase{db: db}, nil
 }
 
@@ -186,4 +209,22 @@ func (vdb *VspDatabase) KeyPair() (ed25519.PrivateKey, ed25519.PublicKey, error)
 	}
 
 	return signKey, pubKey, err
+}
+
+func (vdb *VspDatabase) GetFeeXPub() (string, error) {
+	var feeXPub string
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		vspBkt := tx.Bucket(vspBktK)
+
+		xpubBytes := vspBkt.Get(feeXPubK)
+		if xpubBytes == nil {
+			return nil
+		}
+
+		feeXPub = string(xpubBytes)
+
+		return nil
+	})
+
+	return feeXPub, err
 }

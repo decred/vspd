@@ -41,7 +41,7 @@ var signPrivKey ed25519.PrivateKey
 var signPubKey ed25519.PublicKey
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, dConnect rpc.DcrdConnect, wConnect rpc.WalletConnect, debugMode bool, feeXPub string, config Config) error {
+	listen string, vdb *database.VspDatabase, dConnect rpc.DcrdConnect, wConnect rpc.WalletConnect, debugMode bool, config Config) error {
 
 	cfg = config
 	db = vdb
@@ -62,11 +62,15 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 		return fmt.Errorf("could not initialize homepage data: %v", err)
 	}
 
-	// Get the last used address index from the database, and use it to
-	// initialize the address generator.
+	// Get the last used address index and the feeXpub from the database, and
+	// use them to initialize the address generator.
 	idx, err := vdb.GetLastAddressIndex()
 	if err != nil {
 		return fmt.Errorf("GetLastAddressIndex error: %v", err)
+	}
+	feeXPub, err := vdb.GetFeeXPub()
+	if err != nil {
+		return fmt.Errorf("GetFeeXPub error: %v", err)
 	}
 	addrGen, err = newAddressGenerator(feeXPub, config.NetParams, idx)
 	if err != nil {
