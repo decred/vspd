@@ -108,11 +108,15 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 		return nil
 	}
 
-	walletClients, err := n.Wallets.Clients(n.Ctx, n.NetParams)
-	if err != nil {
-		log.Error(err)
-		// If this fails, there is nothing more we can do. Return.
+	walletClients, failedConnections := n.Wallets.Clients(n.Ctx, n.NetParams)
+	if len(walletClients) == 0 {
+		// If no wallet clients, there is nothing more we can do. Return.
+		log.Error("Could not connect to any wallets")
 		return nil
+	}
+	if failedConnections > 0 {
+		log.Errorf("Failed to connect to %d wallet(s), proceeding with only %d",
+			failedConnections, len(walletClients))
 	}
 
 	for _, ticket := range unconfirmedFees {

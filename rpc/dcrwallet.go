@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"fmt"
 	"sync"
 
 	wallettypes "decred.org/dcrwallet/rpc/jsonrpc/types"
@@ -35,22 +34,26 @@ func SetupWallet(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass str
 	return walletConnect
 }
 
-// Clients creates an array of new WalletRPC client instances. Returns an error
-// if dialing any wallet fails, or if any wallet is misconfigured.
-func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params) ([]*WalletRPC, error) {
-	walletClients := make([]*WalletRPC, len(*w))
+// Clients loops over each wallet and tries to establish a connection. It
+// increments a count of failed connections if a connection cannot be
+// established, or if the wallet is misconfigured.
+func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params) ([]*WalletRPC, int) {
+	walletClients := make([]*WalletRPC, 0)
+	failedConnections := 0
 
-	for i := 0; i < len(*w); i++ {
+	for _, connect := range []connect(*w) {
 
-		c, newConnection, err := []connect(*w)[i]()
+		c, newConnection, err := connect()
 		if err != nil {
-			return nil, fmt.Errorf("dcrwallet connection error: %v", err)
+			log.Errorf("dcrwallet connection error: %v", err)
+			failedConnections++
+			continue
 		}
 
 		// If this is a reused connection, we don't need to validate the
 		// dcrwallet config again.
 		if !newConnection {
-			walletClients[i] = &WalletRPC{c, ctx}
+			walletClients = append(walletClients, &WalletRPC{c, ctx})
 			continue
 		}
 
@@ -58,59 +61,64 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		var verMap map[string]dcrdtypes.VersionResult
 		err = c.Call(ctx, "version", &verMap)
 		if err != nil {
-			return nil, fmt.Errorf("version check on dcrwallet '%s' failed: %v",
-				c.String(), err)
+			log.Errorf("version check on dcrwallet '%s' failed: %v", c.String(), err)
+			failedConnections++
+			continue
 		}
 		walletVersion, exists := verMap["dcrwalletjsonrpcapi"]
 		if !exists {
-			return nil, fmt.Errorf("version response on dcrwallet '%s' missing 'dcrwalletjsonrpcapi'",
+			log.Errorf("version response on dcrwallet '%s' missing 'dcrwalletjsonrpcapi'",
 				c.String())
+			failedConnections++
+			continue
 		}
 		if walletVersion.VersionString != requiredWalletVersion {
-			return nil, fmt.Errorf("dcrwallet '%s' has wrong RPC version: got %s, expected %s",
+			log.Errorf("dcrwallet '%s' has wrong RPC version: got %s, expected %s",
 				c.String(), walletVersion.VersionString, requiredWalletVersion)
+			failedConnections++
+			continue
 		}
 
-		// Verify dcrwallet is voting, unlocked, and is connected to dcrd (not SPV).
+		// Verify dcrwallet is voting and unlocked.
 		var walletInfo wallettypes.WalletInfoResult
 		err = c.Call(ctx, "walletinfo", &walletInfo)
 		if err != nil {
-			return nil, fmt.Errorf("walletinfo check on dcrwallet '%s' failed: %v",
-				c.String(), err)
+			log.Errorf("walletinfo check on dcrwallet '%s' failed: %v", c.String(), err)
+			failedConnections++
+			continue
 		}
-
-		// TODO: The following 3 checks should probably just log a warning/error and
-		// not return.
-		// addtransaction and setvotechoice can still be used with a locked wallet.
-		// importprivkey will fail if wallet is locked.
 
 		if !walletInfo.Voting {
-			return nil, fmt.Errorf("wallet '%s' has voting disabled", c.String())
+			// All wallet RPCs can still be used if voting is disabled, so just
+			// log an error here. Don't count this as a failed connection.
+			log.Errorf("wallet '%s' has voting disabled", c.String())
 		}
 		if !walletInfo.Unlocked {
-			return nil, fmt.Errorf("wallet '%s' is not unlocked", c.String())
-		}
-		if !walletInfo.DaemonConnected {
-			return nil, fmt.Errorf("wallet '%s' is not connected to dcrd", c.String())
+			// If wallet is locked, ImportPrivKey cannot be used.
+			log.Errorf("wallet '%s' is not unlocked", c.String())
+			failedConnections++
+			continue
 		}
 
 		// Verify dcrwallet is on the correct network.
 		var netID wire.CurrencyNet
 		err = c.Call(ctx, "getcurrentnet", &netID)
 		if err != nil {
-			return nil, fmt.Errorf("getcurrentnet check on dcrwallet '%s' failed: %v",
-				c.String(), err)
+			log.Errorf("getcurrentnet check on dcrwallet '%s' failed: %v", c.String(), err)
+			failedConnections++
+			continue
 		}
 		if netID != netParams.Net {
-			return nil, fmt.Errorf("dcrwallet '%s' running on %s, expected %s",
-				c.String(), netID, netParams.Net)
+			log.Errorf("dcrwallet '%s' running on %s, expected %s", c.String(), netID, netParams.Net)
+			failedConnections++
+			continue
 		}
 
-		walletClients[i] = &WalletRPC{c, ctx}
+		walletClients = append(walletClients, &WalletRPC{c, ctx})
 
 	}
 
-	return walletClients, nil
+	return walletClients, failedConnections
 }
 
 func (c *WalletRPC) AddTransaction(blockHash, txHex string) error {

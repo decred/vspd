@@ -59,9 +59,9 @@ func setVoteChoices(c *gin.Context) {
 			for _, walletClient := range walletClients {
 				err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 				if err != nil {
+					// If this fails, we still want to try the other wallets, so
+					// don't return an error response, just log an error.
 					log.Errorf("SetVoteChoice failed: %v", err)
-					sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-					return
 				}
 			}
 		}

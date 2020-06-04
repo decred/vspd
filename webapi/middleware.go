@@ -31,11 +31,15 @@ func withDcrdClient() gin.HandlerFunc {
 // context for downstream handlers to make use of.
 func withWalletClients() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		clients, err := wallets.Clients(c, cfg.NetParams)
-		if err != nil {
-			log.Error(err)
+		clients, failedConnections := wallets.Clients(c, cfg.NetParams)
+		if len(clients) == 0 {
+			log.Error("Could not connect to any wallets")
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
+		}
+		if failedConnections > 0 {
+			log.Errorf("Failed to connect to %d wallet(s), proceeding with only %d",
+				failedConnections, len(clients))
 		}
 		c.Set("WalletClients", clients)
 	}
