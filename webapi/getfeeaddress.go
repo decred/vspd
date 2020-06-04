@@ -155,11 +155,21 @@ func feeAddress(c *gin.Context) {
 	now := time.Now()
 	expire := now.Add(cfg.FeeAddressExpiration).Unix()
 
+	rawTx, err := dcrdClient.GetRawTransaction(ticketHash)
+	if err != nil {
+		log.Errorf("Could not retrieve tx %s for %s: %v", ticketHash, c.ClientIP(), err)
+		sendErrorResponse(err.Error(), http.StatusInternalServerError, c)
+		return
+	}
+
+	confirmed := rawTx.Confirmations >= requiredConfs
+
 	dbTicket := database.Ticket{
 		Hash:              ticketHash,
 		CommitmentAddress: commitmentAddress,
 		FeeAddressIndex:   newAddressIdx,
 		FeeAddress:        newAddress,
+		Confirmed:         confirmed,
 		FeeAmount:         fee,
 		FeeExpiration:     expire,
 		// VotingKey and VoteChoices: set during payfee
@@ -172,8 +182,8 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	log.Debugf("Fee address created for new ticket: feeAddrIdx=%d, feeAddr=%s, "+
-		"feeAmt=%f, ticketHash=%s", newAddressIdx, newAddress, fee, ticketHash)
+	log.Debugf("Fee address created for new ticket: tktConfirmed=%t, feeAddrIdx=%d, "+
+		"feeAddr=%s, feeAmt=%f, ticketHash=%s", confirmed, newAddressIdx, newAddress, fee, ticketHash)
 
 	sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),
