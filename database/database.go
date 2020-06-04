@@ -61,7 +61,7 @@ func writeBackup(db *bolt.DB, dbFile string) error {
 		return fmt.Errorf("os.Rename: %v", err)
 	}
 
-	log.Debugf("Database backup written to %s", backupPath)
+	log.Tracef("Database backup written to %s", backupPath)
 	return err
 }
 
