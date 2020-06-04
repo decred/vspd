@@ -61,9 +61,9 @@ func setVoteChoices(c *gin.Context) {
 				// TODO: This will error if the wallet does not know about the ticket yet.
 				// TODO: We shouldn't return on first error - we want to try all wallets.
 				if err != nil {
+					// If this fails, we still want to try the other wallets, so
+					// don't return an error response, just log an error.
 					log.Errorf("SetVoteChoice failed: %v", err)
-					sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
-					return
 				}
 			}
 		}
