@@ -215,8 +215,6 @@ findAddress:
 	if ticket.Confirmed {
 		feeTxHash, err := dcrdClient.SendRawTransaction(payFeeRequest.FeeTx)
 		if err != nil {
-			// TODO: SendRawTransaction can return a "transcation already
-			// exists" error, which isnt necessarily a problem here.
 			log.Errorf("SendRawTransaction failed: %v", err)
 			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
 			return
