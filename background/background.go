@@ -95,6 +95,17 @@ func blockConnected() {
 		feeTxHash, err := dcrdClient.SendRawTransaction(ticket.FeeTxHex)
 		if err != nil {
 			log.Errorf("SendRawTransaction error: %v", err)
+
+			// Unset fee related fields and update the database.
+			ticket.FeeTxHex = ""
+			ticket.VotingWIF = ""
+			ticket.VoteChoices = make(map[string]string)
+
+			err = db.UpdateTicket(ticket)
+			if err != nil {
+				log.Errorf("UpdateTicket error: %v", err)
+			}
+			log.Infof("Removed fee transaction for ticket %v", ticket.Hash)
 			continue
 		}
 
