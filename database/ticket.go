@@ -9,31 +9,31 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-// TODO: Shorten json keys, they are stored in the db and duplicated many times.
-
+// Ticket is serialized to json and stored in bbolt db. The json keys are
+// deliberately kept short because they are duplicated many times in the db.
 type Ticket struct {
-	Hash              string  `json:"hash"`
-	CommitmentAddress string  `json:"commitmentaddress"`
-	FeeAddressIndex   uint32  `json:"feeaddressindex"`
-	FeeAddress        string  `json:"feeaddress"`
-	FeeAmount         float64 `json:"feeamount"`
-	FeeExpiration     int64   `json:"feeexpiration"`
+	Hash              string  `json:"hsh"`
+	CommitmentAddress string  `json:"cmtaddr"`
+	FeeAddressIndex   uint32  `json:"faddridx"`
+	FeeAddress        string  `json:"faddr"`
+	FeeAmount         float64 `json:"famt"`
+	FeeExpiration     int64   `json:"fexp"`
 
 	// Confirmed will be set when the ticket has 6+ confirmations.
-	Confirmed bool `json:"confirmed"`
+	Confirmed bool `json:"conf"`
 
 	// VoteChoices and VotingWIF are set in /payfee.
-	VoteChoices map[string]string `json:"votechoices"`
-	VotingWIF   string            `json:"votingwif"`
+	VoteChoices map[string]string `json:"vchces"`
+	VotingWIF   string            `json:"vwif"`
 
 	// FeeTxHex will be set when the fee tx has been received from the user.
-	FeeTxHex string `json:"feetxhex"`
+	FeeTxHex string `json:"fhex"`
 
 	// FeeTxHash will be set when the fee tx has been broadcast.
-	FeeTxHash string `json:"feetxhash"`
+	FeeTxHash string `json:"fhsh"`
 
 	// FeeConfirmed will be set when the fee tx has 6+ confirmations.
-	FeeConfirmed bool `json:"feeconfirmed"`
+	FeeConfirmed bool `json:"fconf"`
 }
 
 func (t *Ticket) FeeExpired() bool {
