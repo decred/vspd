@@ -87,21 +87,6 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	// Create a dcrd client with an attached notification handler which will run
-	// in the background.
-	notifHandler := &background.NotificationHandler{
-		Ctx:       ctx,
-		Db:        db,
-		Wallets:   wallets,
-		NetParams: cfg.netParams.Params,
-	}
-	dcrdWithNotifHandler := rpc.SetupDcrd(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
-		cfg.DcrdHost, cfg.dcrdCert, notifHandler)
-
-	// Start background process which will continually attempt to reconnect to
-	// dcrd if the connection drops.
-	background.Start(notifHandler, dcrdWithNotifHandler)
-
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
 		VSPFee:               cfg.VSPFee,
@@ -118,6 +103,14 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
+
+	// Create a dcrd client with a blockconnected notification handler.
+	dcrdWithNotifs := rpc.SetupDcrd(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
+		cfg.DcrdHost, cfg.dcrdCert, &background.NotificationHandler{})
+
+	// Start background process which will continually attempt to reconnect to
+	// dcrd if the connection drops.
+	background.Start(ctx, db, dcrd, dcrdWithNotifs, wallets, cfg.netParams.Params)
 
 	// Wait for shutdown tasks to complete before returning.
 	shutdownWg.Wait()
