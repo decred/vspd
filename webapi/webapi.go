@@ -215,5 +215,16 @@ func sendJSONResponse(resp interface{}, c *gin.Context) {
 }
 
 func sendErrorResponse(errMsg string, code int, c *gin.Context) {
-	c.AbortWithStatusJSON(code, gin.H{"error": errMsg})
+	resp := gin.H{"error": errMsg}
+
+	// Try to sign the error response. If it fails, send it without a signature.
+	dec, err := json.Marshal(resp)
+	if err != nil {
+		log.Warnf("Sending error response without signature: %v", err)
+	} else {
+		sig := ed25519.Sign(signPrivKey, dec)
+		c.Writer.Header().Set("VSP-Server-Signature", hex.EncodeToString(sig))
+	}
+
+	c.AbortWithStatusJSON(code, resp)
 }
