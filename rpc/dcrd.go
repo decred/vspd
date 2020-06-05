@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/decred/dcrd/blockchain/stake/v3"
@@ -100,7 +101,24 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) (string, error) {
 	var txHash string
 	err := c.Call(c.ctx, "sendrawtransaction", &txHash, txHex, allowHighFees)
 	if err != nil {
-		return "", err
+		// It's not a problem if the transaction has already been broadcast,
+		// just need to calculate and return its hash.
+		if !strings.Contains(err.Error(), "transaction already exists") {
+			return "", err
+		}
+
+		msgHex, err := hex.DecodeString(txHex)
+		if err != nil {
+			return "", fmt.Errorf("DecodeString error: %v", err)
+
+		}
+		msgTx := wire.NewMsgTx()
+		if err = msgTx.FromBytes(msgHex); err != nil {
+			return "", fmt.Errorf("FromBytes error: %v", err)
+
+		}
+
+		txHash = msgTx.TxHash().String()
 	}
 	return txHash, nil
 }

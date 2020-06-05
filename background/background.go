@@ -94,8 +94,6 @@ func blockConnected() {
 	for _, ticket := range pending {
 		feeTxHash, err := dcrdClient.SendRawTransaction(ticket.FeeTxHex)
 		if err != nil {
-			// TODO: SendRawTransaction can return a "transcation already
-			// exists" error, which isnt necessarily a problem here.
 			log.Errorf("SendRawTransaction error: %v", err)
 			continue
 		}
