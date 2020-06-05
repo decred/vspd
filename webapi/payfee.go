@@ -112,11 +112,15 @@ func payFee(c *gin.Context) {
 
 findAddress:
 	for _, txOut := range feeTx.TxOut {
+		if txOut.Version != scriptVersion {
+			sendErrorResponse("invalid script version", http.StatusBadRequest, c)
+			return
+		}
 		_, addresses, _, err := txscript.ExtractPkScriptAddrs(scriptVersion,
 			txOut.PkScript, cfg.NetParams)
 		if err != nil {
 			log.Errorf("Extract PK error: %v", err)
-			sendErrorResponse("extract PK error", http.StatusInternalServerError, c)
+			sendErrorResponse("extract PK error", http.StatusBadRequest, c)
 			return
 		}
 		for _, addr := range addresses {
