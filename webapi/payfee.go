@@ -44,7 +44,16 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	canVote, err := dcrdClient.CanTicketVote(ticket.Hash, cfg.NetParams)
+	// Get ticket details.
+	rawTicket, err := dcrdClient.GetRawTransaction(ticket.Hash)
+	if err != nil {
+		log.Errorf("Could not retrieve tx %s for %s: %v", ticket.Hash, c.ClientIP(), err)
+		sendErrorResponse(err.Error(), http.StatusInternalServerError, c)
+		return
+	}
+
+	// Ensure this ticket is eligible to vote at some point in the future.
+	canVote, err := dcrdClient.CanTicketVote(rawTicket, ticket.Hash, cfg.NetParams)
 	if err != nil {
 		log.Errorf("canTicketVote error: %v", err)
 		sendErrorResponse("error validating ticket", http.StatusInternalServerError, c)
@@ -90,8 +99,7 @@ func payFee(c *gin.Context) {
 	}
 
 	feeTx := wire.NewMsgTx()
-	err = feeTx.FromBytes(feeTxBytes)
-	if err != nil {
+	if err = feeTx.FromBytes(feeTxBytes); err != nil {
 		log.Warnf("Failed to deserialize tx: %v", err)
 		sendErrorResponse("unable to deserialize transaction", http.StatusBadRequest, c)
 		return
@@ -125,7 +133,7 @@ findAddress:
 		return
 	}
 
-	_, err = dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), cfg.NetParams,
+	wifAddr, err := dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), cfg.NetParams,
 		dcrec.STEcdsaSecp256k1)
 	if err != nil {
 		log.Errorf("NewAddressPubKeyHash: %v", err)
@@ -133,7 +141,41 @@ findAddress:
 		return
 	}
 
-	// TODO: DB - validate votingkey against ticket submission address
+	// Decode ticket transaction to get its voting address.
+	ticketBytes, err := hex.DecodeString(rawTicket.Hex)
+	if err != nil {
+		log.Warnf("Failed to decode tx: %v", err)
+		sendErrorResponse("failed to decode transaction", http.StatusBadRequest, c)
+		return
+	}
+	ticketTx := wire.NewMsgTx()
+	if err = ticketTx.FromBytes(ticketBytes); err != nil {
+		log.Errorf("Failed to deserialize tx: %v", err)
+		sendErrorResponse("unable to deserialize transaction", http.StatusInternalServerError, c)
+		return
+	}
+
+	// Get ticket voting address.
+	_, votingAddr, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, ticketTx.TxOut[0].PkScript, cfg.NetParams)
+	if err != nil {
+		log.Errorf("ExtractPK error: %v", err)
+		sendErrorResponse("extract PK error", http.StatusInternalServerError, c)
+		return
+	}
+	if len(votingAddr) == 0 {
+		log.Error("No voting address found for ticket %s", ticket.Hash)
+		sendErrorResponse("no voting address found", http.StatusInternalServerError, c)
+		return
+	}
+
+	// Ensure provided private key will allow us to vote this ticket.
+	if votingAddr[0].Address() != wifAddr.Address() {
+		log.Warnf("Voting address does not match provided private key: "+
+			"votingAddr=%+v, wifAddr=%+v", votingAddr[0], wifAddr)
+		sendErrorResponse("voting address does not match provided private key",
+			http.StatusBadRequest, c)
+		return
+	}
 
 	minFee, err := dcrutil.NewAmount(ticket.FeeAmount)
 	if err != nil {

@@ -90,7 +90,16 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	canVote, err := dcrdClient.CanTicketVote(ticketHash, cfg.NetParams)
+	// Get ticket details.
+	rawTicket, err := dcrdClient.GetRawTransaction(ticketHash)
+	if err != nil {
+		log.Errorf("Could not retrieve tx %s for %s: %v", ticketHash, c.ClientIP(), err)
+		sendErrorResponse(err.Error(), http.StatusInternalServerError, c)
+		return
+	}
+
+	// Ensure this ticket is eligible to vote at some point in the future.
+	canVote, err := dcrdClient.CanTicketVote(rawTicket, ticketHash, cfg.NetParams)
 	if err != nil {
 		log.Errorf("canTicketVote error: %v", err)
 		sendErrorResponse("error validating ticket", http.StatusInternalServerError, c)
@@ -155,14 +164,7 @@ func feeAddress(c *gin.Context) {
 	now := time.Now()
 	expire := now.Add(cfg.FeeAddressExpiration).Unix()
 
-	rawTx, err := dcrdClient.GetRawTransaction(ticketHash)
-	if err != nil {
-		log.Errorf("Could not retrieve tx %s for %s: %v", ticketHash, c.ClientIP(), err)
-		sendErrorResponse(err.Error(), http.StatusInternalServerError, c)
-		return
-	}
-
-	confirmed := rawTx.Confirmations >= requiredConfs
+	confirmed := rawTicket.Confirmations >= requiredConfs
 
 	dbTicket := database.Ticket{
 		Hash:              ticketHash,
