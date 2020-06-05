@@ -175,12 +175,7 @@ func (c *DcrdRPC) ExistsLiveTicket(ticketHash string) (bool, error) {
 
 // CanTicketVote checks determines whether a ticket is able to vote at some
 // point in the future by checking that it is currently either immature or live.
-func (c *DcrdRPC) CanTicketVote(ticketHash string, netParams *chaincfg.Params) (bool, error) {
-	// Get ticket details.
-	rawTx, err := c.GetRawTransaction(ticketHash)
-	if err != nil {
-		return false, err
-	}
+func (c *DcrdRPC) CanTicketVote(rawTx *dcrdtypes.TxRawResult, ticketHash string, netParams *chaincfg.Params) (bool, error) {
 
 	// Tickets which have more than (TicketMaturity+TicketExpiry+1)
 	// confirmations are too old to vote.
