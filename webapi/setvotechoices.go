@@ -1,7 +1,6 @@
 package webapi
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/decred/vspd/database"
@@ -20,8 +19,8 @@ func setVoteChoices(c *gin.Context) {
 	walletClients := c.MustGet("WalletClients").([]*rpc.WalletRPC)
 
 	if !knownTicket {
-		log.Warnf("Invalid ticket from %s", c.ClientIP())
-		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
+		log.Warnf("Unknown ticket from %s", c.ClientIP())
+		sendError(errUnknownTicket, c)
 		return
 	}
 
@@ -30,7 +29,7 @@ func setVoteChoices(c *gin.Context) {
 	var setVoteChoicesRequest SetVoteChoicesRequest
 	if err := binding.JSON.BindBody(rawRequest, &setVoteChoicesRequest); err != nil {
 		log.Warnf("Bad setvotechoices request from %s: %v", c.ClientIP(), err)
-		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
+		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
 
@@ -38,7 +37,7 @@ func setVoteChoices(c *gin.Context) {
 	err := isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
 	if err != nil {
 		log.Warnf("Invalid votechoices from %s: %v", c.ClientIP(), err)
-		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
+		sendErrorWithMsg(err.Error(), errInvalidVoteChoices, c)
 		return
 	}
 
@@ -48,7 +47,7 @@ func setVoteChoices(c *gin.Context) {
 	err = db.UpdateTicket(ticket)
 	if err != nil {
 		log.Errorf("UpdateTicket error: %v", err)
-		sendErrorResponse("database error", http.StatusInternalServerError, c)
+		sendError(errInternalError, c)
 		return
 	}
 

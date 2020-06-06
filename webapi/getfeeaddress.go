@@ -1,7 +1,6 @@
 package webapi
 
 import (
-	"net/http"
 	"sync"
 	"time"
 
@@ -70,14 +69,14 @@ func feeAddress(c *gin.Context) {
 	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
 
 	if cfg.VspClosed {
-		sendErrorResponse("pool is not accepting new tickets", http.StatusBadRequest, c)
+		sendError(errVspClosed, c)
 		return
 	}
 
 	var feeAddressRequest FeeAddressRequest
 	if err := binding.JSON.BindBody(rawRequest, &feeAddressRequest); err != nil {
 		log.Warnf("Bad feeaddress request from %s: %v", c.ClientIP(), err)
-		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
+		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
 
@@ -86,7 +85,7 @@ func feeAddress(c *gin.Context) {
 	// Respond early if we already have the fee tx for this ticket.
 	if ticket.FeeTxHex != "" {
 		log.Warnf("Fee tx already received from %s: ticketHash=%s", c.ClientIP(), ticket.Hash)
-		sendErrorResponse("fee tx already received", http.StatusBadRequest, c)
+		sendError(errFeeAlreadyReceived, c)
 		return
 	}
 
@@ -94,7 +93,7 @@ func feeAddress(c *gin.Context) {
 	rawTicket, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
 		log.Errorf("Could not retrieve tx %s for %s: %v", ticketHash, c.ClientIP(), err)
-		sendErrorResponse(err.Error(), http.StatusInternalServerError, c)
+		sendError(errInternalError, c)
 		return
 	}
 
@@ -102,12 +101,12 @@ func feeAddress(c *gin.Context) {
 	canVote, err := dcrdClient.CanTicketVote(rawTicket, ticketHash, cfg.NetParams)
 	if err != nil {
 		log.Errorf("canTicketVote error: %v", err)
-		sendErrorResponse("error validating ticket", http.StatusInternalServerError, c)
+		sendError(errInternalError, c)
 		return
 	}
 	if !canVote {
 		log.Warnf("Unvotable ticket %s from %s", ticketHash, c.ClientIP())
-		sendErrorResponse("ticket not eligible to vote", http.StatusBadRequest, c)
+		sendError(errTicketCannotVote, c)
 		return
 	}
 
@@ -120,7 +119,7 @@ func feeAddress(c *gin.Context) {
 			newFee, err := getCurrentFee(dcrdClient)
 			if err != nil {
 				log.Errorf("getCurrentFee error: %v", err)
-				sendErrorResponse("fee error", http.StatusInternalServerError, c)
+				sendError(errInternalError, c)
 				return
 			}
 			ticket.FeeExpiration = now.Add(feeAddressExpiration).Unix()
@@ -129,7 +128,7 @@ func feeAddress(c *gin.Context) {
 			err = db.UpdateTicket(ticket)
 			if err != nil {
 				log.Errorf("UpdateTicket error: %v", err)
-				sendErrorResponse("database error", http.StatusInternalServerError, c)
+				sendError(errInternalError, c)
 				return
 			}
 			log.Debugf("Expired fee updated for ticket: newFeeAmt=%f, ticketHash=%s",
@@ -152,7 +151,7 @@ func feeAddress(c *gin.Context) {
 	fee, err := getCurrentFee(dcrdClient)
 	if err != nil {
 		log.Errorf("getCurrentFee error: %v", err)
-		sendErrorResponse("fee error", http.StatusInternalServerError, c)
+		sendError(errInternalError, c)
 		return
 	}
 
@@ -180,7 +179,7 @@ func feeAddress(c *gin.Context) {
 	err = db.InsertNewTicket(dbTicket)
 	if err != nil {
 		log.Errorf("InsertTicket error: %v", err)
-		sendErrorResponse("database error", http.StatusInternalServerError, c)
+		sendError(errInternalError, c)
 		return
 	}
 

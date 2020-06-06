@@ -221,7 +221,7 @@ func sendJSONResponse(resp interface{}, c *gin.Context) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
 		log.Errorf("JSON marshal error: %v", err)
-		sendErrorResponse("failed to marshal json", http.StatusInternalServerError, c)
+		sendError(errInternalError, c)
 		return
 	}
 
@@ -231,8 +231,22 @@ func sendJSONResponse(resp interface{}, c *gin.Context) {
 	c.AbortWithStatusJSON(http.StatusOK, resp)
 }
 
-func sendErrorResponse(errMsg string, code int, c *gin.Context) {
-	resp := gin.H{"error": errMsg}
+// sendError returns an error response to the client using the default error
+// message.
+func sendError(e apiError, c *gin.Context) {
+	msg := e.defaultMessage()
+	sendErrorWithMsg(msg, e, c)
+}
+
+// sendErrorWithMsg returns an error response to the client using the provided
+// error message.
+func sendErrorWithMsg(msg string, e apiError, c *gin.Context) {
+	status := e.httpStatus()
+
+	resp := gin.H{
+		"code":    int(e),
+		"message": msg,
+	}
 
 	// Try to sign the error response. If it fails, send it without a signature.
 	dec, err := json.Marshal(resp)
@@ -243,5 +257,5 @@ func sendErrorResponse(errMsg string, code int, c *gin.Context) {
 		c.Writer.Header().Set("VSP-Server-Signature", hex.EncodeToString(sig))
 	}
 
-	c.AbortWithStatusJSON(code, resp)
+	c.AbortWithStatusJSON(status, resp)
 }
