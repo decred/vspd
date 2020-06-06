@@ -1,7 +1,6 @@
 package webapi
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/decred/vspd/database"
@@ -18,15 +17,15 @@ func ticketStatus(c *gin.Context) {
 	knownTicket := c.MustGet("KnownTicket").(bool)
 
 	if !knownTicket {
-		log.Warnf("Invalid ticket from %s", c.ClientIP())
-		sendErrorResponse("invalid ticket", http.StatusBadRequest, c)
+		log.Warnf("Unknown ticket from %s", c.ClientIP())
+		sendError(errUnknownTicket, c)
 		return
 	}
 
 	var ticketStatusRequest TicketStatusRequest
 	if err := binding.JSON.BindBody(rawRequest, &ticketStatusRequest); err != nil {
 		log.Warnf("Bad ticketstatus request from %s: %v", c.ClientIP(), err)
-		sendErrorResponse(err.Error(), http.StatusBadRequest, c)
+		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
 

@@ -4,8 +4,16 @@
 
 - Success responses use HTTP status 200 and a JSON encoded body.
 
-- Error responses use either HTTP status 500 or 400, and a JSON encoded error
-  in the body, e.g. `{"error":"Description"}`.
+- Error responses use HTTP status 500 to indicate a server error or 400 to
+  indiciate a client error, and will include a JSON body describing the error.
+  For example:
+
+  ```json
+  {"code": 9, "message":"invalid vote choices"}
+  ```
+
+  A full list of error codes can be looked up in
+  [webapi/errors.go](../webapi/errors.go)
 
 - Requests which reference specific tickets need to be properly signed as
   described in [two-way-accountability.md](./two-way-accountability.md).

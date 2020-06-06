@@ -54,7 +54,7 @@ func withDcrdClient() gin.HandlerFunc {
 		client, err := dcrd.Client(c, cfg.NetParams)
 		if err != nil {
 			log.Error(err)
-			sendErrorResponse("dcrd RPC error", http.StatusInternalServerError, c)
+			sendError(errInternalError, c)
 			return
 		}
 
@@ -69,7 +69,7 @@ func withWalletClients() gin.HandlerFunc {
 		clients, failedConnections := wallets.Clients(c, cfg.NetParams)
 		if len(clients) == 0 {
 			log.Error("Could not connect to any wallets")
-			sendErrorResponse("dcrwallet RPC error", http.StatusInternalServerError, c)
+			sendError(errInternalError, c)
 			return
 		}
 		if failedConnections > 0 {
@@ -93,7 +93,7 @@ func vspAuth() gin.HandlerFunc {
 		reqBytes, err := c.GetRawData()
 		if err != nil {
 			log.Warnf("Error reading request from %s: %v", c.ClientIP(), err)
-			sendErrorResponse(err.Error(), http.StatusBadRequest, c)
+			sendErrorWithMsg(err.Error(), errBadRequest, c)
 			return
 		}
 
@@ -104,7 +104,7 @@ func vspAuth() gin.HandlerFunc {
 		var request ticketHashRequest
 		if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 			log.Warnf("Bad request from %s: %v", c.ClientIP(), err)
-			sendErrorResponse(err.Error(), http.StatusBadRequest, c)
+			sendErrorWithMsg(err.Error(), errBadRequest, c)
 			return
 		}
 		hash := request.TicketHash
@@ -113,7 +113,7 @@ func vspAuth() gin.HandlerFunc {
 		ticket, ticketFound, err := db.GetTicketByHash(hash)
 		if err != nil {
 			log.Errorf("GetTicketByHash error: %v", err)
-			sendErrorResponse("database error", http.StatusInternalServerError, c)
+			sendError(errInternalError, c)
 			return
 		}
 
@@ -127,7 +127,7 @@ func vspAuth() gin.HandlerFunc {
 			commitmentAddress, err = dcrdClient.GetTicketCommitmentAddress(hash, cfg.NetParams)
 			if err != nil {
 				log.Errorf("GetTicketCommitmentAddress error: %v", err)
-				sendErrorResponse(err.Error(), http.StatusInternalServerError, c)
+				sendError(errInternalError, c)
 				return
 			}
 		}
@@ -136,7 +136,7 @@ func vspAuth() gin.HandlerFunc {
 		err = validateSignature(reqBytes, commitmentAddress, c)
 		if err != nil {
 			log.Warnf("Bad signature from %s: %v", c.ClientIP(), err)
-			sendErrorResponse("bad signature", http.StatusBadRequest, c)
+			sendError(errBadSignature, c)
 			return
 		}
 
