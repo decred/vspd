@@ -37,7 +37,7 @@ func getNewFeeAddress(db *database.VspDatabase, addrGen *addressGenerator) (stri
 	return addr, idx, nil
 }
 
-func getCurrentFee(dcrdClient *rpc.DcrdRPC) (float64, error) {
+func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 	bestBlock, err := dcrdClient.GetBestBlockHeader()
 	if err != nil {
 		return 0, err
@@ -56,7 +56,7 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return fee.ToCoin(), nil
+	return fee, nil
 }
 
 // feeAddress is the handler for "POST /feeaddress".
@@ -124,7 +124,7 @@ func feeAddress(c *gin.Context) {
 				return
 			}
 			ticket.FeeExpiration = now.Add(cfg.FeeAddressExpiration).Unix()
-			ticket.FeeAmount = newFee
+			ticket.FeeAmount = newFee.ToCoin()
 
 			err = db.UpdateTicket(ticket)
 			if err != nil {
@@ -172,7 +172,7 @@ func feeAddress(c *gin.Context) {
 		FeeAddressIndex:   newAddressIdx,
 		FeeAddress:        newAddress,
 		Confirmed:         confirmed,
-		FeeAmount:         fee,
+		FeeAmount:         fee.ToCoin(),
 		FeeExpiration:     expire,
 		// VotingKey and VoteChoices: set during payfee
 	}
@@ -185,13 +185,13 @@ func feeAddress(c *gin.Context) {
 	}
 
 	log.Debugf("Fee address created for new ticket: tktConfirmed=%t, feeAddrIdx=%d, "+
-		"feeAddr=%s, feeAmt=%f, ticketHash=%s", confirmed, newAddressIdx, newAddress, fee, ticketHash)
+		"feeAddr=%s, feeAmt=%s, ticketHash=%s", confirmed, newAddressIdx, newAddress, fee, ticketHash)
 
 	sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),
 		Request:    feeAddressRequest,
 		FeeAddress: newAddress,
-		FeeAmount:  fee,
+		FeeAmount:  fee.ToCoin(),
 		Expiration: expire,
 	}, c)
 }
