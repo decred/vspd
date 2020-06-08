@@ -123,7 +123,7 @@ func feeAddress(c *gin.Context) {
 				sendErrorResponse("fee error", http.StatusInternalServerError, c)
 				return
 			}
-			ticket.FeeExpiration = now.Add(cfg.FeeAddressExpiration).Unix()
+			ticket.FeeExpiration = now.Add(feeAddressExpiration).Unix()
 			ticket.FeeAmount = newFee.ToCoin()
 
 			err = db.UpdateTicket(ticket)
@@ -162,7 +162,7 @@ func feeAddress(c *gin.Context) {
 	}
 
 	now := time.Now()
-	expire := now.Add(cfg.FeeAddressExpiration).Unix()
+	expire := now.Add(feeAddressExpiration).Unix()
 
 	confirmed := rawTicket.Confirmations >= requiredConfs
 
