@@ -125,6 +125,7 @@ webserverdebug = false
 supportemail = example@test.com
 backupinterval = 3m0s
 vspclosed = false
+adminpass=12345
 EOF
 
 tmux new-window -t $TMUX_SESSION -n "vspd"

@@ -52,6 +52,7 @@ type config struct {
 	SupportEmail   string        `long:"supportemail" ini-name:"supportemail" description:"Email address for users in need of support."`
 	BackupInterval time.Duration `long:"backupinterval" ini-name:"backupinterval" description:"Time period between automatic database backups. Valid time units are {s,m,h}. Minimum 30 seconds."`
 	VspClosed      bool          `long:"vspclosed" ini-name:"vspclosed" description:"Closed prevents the VSP from accepting new tickets."`
+	AdminPass      string        `long:"adminpass" ini-name:"adminpass" description:"Password for accessing admin page."`
 
 	// The following flags should be set on CLI only, not via config file.
 	FeeXPub    string `long:"feexpub" no-ini:"true" description:"Cold wallet xpub used for collecting fees. Should be provided once to initialize a vspd database."`
@@ -269,6 +270,11 @@ func loadConfig() (*config, error) {
 	// Ensure the support email address is set.
 	if cfg.SupportEmail == "" {
 		return nil, errors.New("the supportemail option is not set")
+	}
+
+	// Ensure the administrator password is set.
+	if cfg.AdminPass == "" {
+		return nil, errors.New("the adminpass option is not set")
 	}
 
 	// Ensure the dcrd RPC username is set.
