@@ -24,6 +24,7 @@ type Config struct {
 	FeeAccountName string
 	SupportEmail   string
 	VspClosed      bool
+	AdminPass      string
 }
 
 const (
