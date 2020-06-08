@@ -123,7 +123,7 @@ func feeAddress(c *gin.Context) {
 				return
 			}
 			ticket.FeeExpiration = now.Add(feeAddressExpiration).Unix()
-			ticket.FeeAmount = newFee.ToCoin()
+			ticket.FeeAmount = int64(newFee)
 
 			err = db.UpdateTicket(ticket)
 			if err != nil {
@@ -171,7 +171,7 @@ func feeAddress(c *gin.Context) {
 		FeeAddressIndex:   newAddressIdx,
 		FeeAddress:        newAddress,
 		Confirmed:         confirmed,
-		FeeAmount:         fee.ToCoin(),
+		FeeAmount:         int64(fee),
 		FeeExpiration:     expire,
 		// VotingKey and VoteChoices: set during payfee
 	}
@@ -190,7 +190,7 @@ func feeAddress(c *gin.Context) {
 		Timestamp:  now.Unix(),
 		Request:    feeAddressRequest,
 		FeeAddress: newAddress,
-		FeeAmount:  fee.ToCoin(),
+		FeeAmount:  int64(fee),
 		Expiration: expire,
 	}, c)
 }

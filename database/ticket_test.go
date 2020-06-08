@@ -12,7 +12,7 @@ func exampleTicket() Ticket {
 		CommitmentAddress: "Address",
 		FeeAddressIndex:   12345,
 		FeeAddress:        "FeeAddress",
-		FeeAmount:         0.1,
+		FeeAmount:         10000000,
 		FeeExpiration:     4,
 		Confirmed:         false,
 		VoteChoices:       map[string]string{"AgendaID": "Choice"},

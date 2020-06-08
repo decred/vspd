@@ -16,7 +16,7 @@ type FeeAddressRequest struct {
 type feeAddressResponse struct {
 	Timestamp  int64             `json:"timestamp" binding:"required"`
 	FeeAddress string            `json:"feeaddress" binding:"required"`
-	FeeAmount  float64           `json:"feeamount" binding:"required"`
+	FeeAmount  int64             `json:"feeamount" binding:"required"`
 	Expiration int64             `json:"expiration" binding:"required"`
 	Request    FeeAddressRequest `json:"request" binding:"required"`
 }

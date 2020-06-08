@@ -185,15 +185,10 @@ findAddress:
 		return
 	}
 
-	minFee, err := dcrutil.NewAmount(ticket.FeeAmount)
-	if err != nil {
-		log.Errorf("dcrutil.NewAmount: %v", err)
-		sendError(errInternalError, c)
-		return
-	}
-
+	minFee := dcrutil.Amount(ticket.FeeAmount)
 	if feePaid < minFee {
-		log.Warnf("Fee too small from %s: was %v, expected %v", c.ClientIP(), feePaid, minFee)
+		log.Warnf("Fee too small from %s: was %v, expected %v", c.ClientIP(),
+			feePaid, minFee)
 		sendError(errFeeTooSmall, c)
 		return
 	}
