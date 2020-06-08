@@ -19,12 +19,11 @@ import (
 )
 
 type Config struct {
-	VSPFee               float64
-	NetParams            *chaincfg.Params
-	FeeAccountName       string
-	FeeAddressExpiration time.Duration
-	SupportEmail         string
-	VspClosed            bool
+	VSPFee         float64
+	NetParams      *chaincfg.Params
+	FeeAccountName string
+	SupportEmail   string
+	VspClosed      bool
 }
 
 const (
@@ -33,6 +32,9 @@ const (
 	// requiredConfs is the number of confirmations required to consider a
 	// ticket purchase or a fee transaction to be final.
 	requiredConfs = 6
+	// feeAddressExpiration is the length of time a fee returned by /feeaddress
+	// remains valid. After this time, a new fee must be requested.
+	feeAddressExpiration = 1 * time.Hour
 )
 
 var cfg Config

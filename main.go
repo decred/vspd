@@ -6,16 +6,11 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/decred/vspd/background"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/decred/vspd/webapi"
-)
-
-const (
-	defaultFeeAddressExpiration = 1 * time.Hour
 )
 
 func main() {
@@ -89,11 +84,10 @@ func run(ctx context.Context) error {
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
-		VSPFee:               cfg.VSPFee,
-		NetParams:            cfg.netParams.Params,
-		FeeAddressExpiration: defaultFeeAddressExpiration,
-		SupportEmail:         cfg.SupportEmail,
-		VspClosed:            cfg.VspClosed,
+		VSPFee:       cfg.VSPFee,
+		NetParams:    cfg.netParams.Params,
+		SupportEmail: cfg.SupportEmail,
+		VspClosed:    cfg.VspClosed,
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
 		dcrd, wallets, cfg.WebServerDebug, apiCfg)
