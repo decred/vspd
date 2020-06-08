@@ -220,7 +220,19 @@ findAddress:
 		feeTxHash, err := dcrdClient.SendRawTransaction(payFeeRequest.FeeTx)
 		if err != nil {
 			log.Errorf("SendRawTransaction failed: %v", err)
-			sendError(errInternalError, c)
+
+			// Unset fee related fields and update the database.
+			ticket.FeeTxHex = ""
+			ticket.VotingWIF = ""
+			ticket.VoteChoices = make(map[string]string)
+
+			err = db.UpdateTicket(ticket)
+			if err != nil {
+				log.Errorf("UpdateTicket error: %v", err)
+			}
+			log.Infof("Removed fee transaction for ticket %v", ticket.Hash)
+
+			sendErrorWithMsg("could not broadcast fee transaction", errInvalidFeeTx, c)
 			return
 		}
 		ticket.FeeTxHash = feeTxHash

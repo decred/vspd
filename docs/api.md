@@ -134,6 +134,7 @@ fields:
 
 - `ticketconfirmed` is true when the ticket transaction has 6 confirmations.
 - `feetxreceived` is true when the VSP has received a valid fee transaction.
+   If the broadcast of the fee transaction fails, this will be reset to false.
 - `feetxbroadcast` is true when the VSP has broadcast the fee transaction.
 - `feeconfirmed` is true when the fee transaction has 6 confirmations.
 
