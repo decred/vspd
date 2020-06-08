@@ -1,0 +1,41 @@
+{{ template "header" . }}
+
+<form action="/admin/logout" method="post">
+    <button type="submit">Logout</button>
+</form>
+
+<table>
+    <tr>
+        <td>Hash</td>
+        <td>CommitmentAddress</td>
+        <td>FeeAddressIndex</td>
+        <td>FeeAddress</td>
+        <td>FeeAmount</td>
+        <td>FeeExpiration</td>
+        <td>Confirmed</td>
+        <td>VoteChoices</td>
+        <td>VotingWIF</td>
+        <td>FeeTxHex</td>
+        <td>FeeTxHash</td>
+        <td>FeeConfirmed</td>
+    </tr>
+    {{ range .Tickets }}
+    <tr>
+        <td>{{ printf "%.10s" .Hash }}...</td>
+        <td>{{ printf "%.10s" .CommitmentAddress }}...</td>
+        <td>{{ printf "%d" .FeeAddressIndex }}</td>
+        <td>{{ printf "%.10s" .FeeAddress }}...</td>
+        <td>{{ printf "%f" .FeeAmount }}</td>
+        <td>{{ printf "%d" .FeeExpiration }}</td>
+        <td>{{ printf "%t" .Confirmed }}</td>
+        <td>{{ printf "%.10s" .VoteChoices }}...</td>
+        <td>{{ printf "%.10s" .VotingWIF }}...</td>
+        <td>{{ printf "%.10s" .FeeTxHex }}...</td>
+        <td>{{ printf "%.10s" .FeeTxHash }}...</td>
+        <td>{{ printf "%t" .FeeConfirmed }}</td>
+    </tr>
+    {{ end }}
+</table>
+    
+</body>
+</html>

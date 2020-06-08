@@ -227,3 +227,24 @@ func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
 
 	return tickets, err
 }
+
+func (vdb *VspDatabase) GetAllTickets() ([]Ticket, error) {
+	var tickets []Ticket
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+
+		return ticketBkt.ForEach(func(k, v []byte) error {
+			var ticket Ticket
+			err := json.Unmarshal(v, &ticket)
+			if err != nil {
+				return fmt.Errorf("could not unmarshal ticket: %v", err)
+			}
+
+			tickets = append(tickets, ticket)
+
+			return nil
+		})
+	})
+
+	return tickets, err
+}

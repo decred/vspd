@@ -11,11 +11,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
-
-	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/sessions"
 )
 
 type Config struct {
@@ -83,6 +83,12 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 		return fmt.Errorf("failed to initialize fee address generator: %v", err)
 	}
 
+	// Get the secret key used to initialize the cookie store.
+	cookieSecret, err := vdb.GetCookieSecret()
+	if err != nil {
+		return fmt.Errorf("GetCookieSecret error: %v", err)
+	}
+
 	// Create TCP listener.
 	var listenConfig net.ListenConfig
 	listener, err := listenConfig.Listen(ctx, "tcp", listen)
@@ -92,7 +98,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	log.Infof("Listening on %s", listen)
 
 	srv := http.Server{
-		Handler:      router(debugMode),
+		Handler:      router(debugMode, cookieSecret),
 		ReadTimeout:  5 * time.Second,  // slow requests should not hold connections opened
 		WriteTimeout: 60 * time.Second, // hung responses must die
 	}
@@ -155,7 +161,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	return nil
 }
 
-func router(debugMode bool) *gin.Engine {
+func router(debugMode bool, cookieSecret []byte) *gin.Engine {
 	// With release mode enabled, gin will only read template files once and cache them.
 	// With release mode disabled, templates will be reloaded on the fly.
 	if !debugMode {
@@ -180,7 +186,7 @@ func router(debugMode bool) *gin.Engine {
 	router.Static("/public", "webapi/public/")
 
 	// These routes have no extra middleware. They can be accessed by anybody.
-	router.GET("/", homepage)
+	router.GET("", homepage)
 	router.GET("/api/vspinfo", vspInfo)
 
 	// These API routes access dcrd and they need authentication.
@@ -190,6 +196,16 @@ func router(debugMode bool) *gin.Engine {
 	feeOnly.POST("/feeaddress", feeAddress)
 	feeOnly.GET("/ticketstatus", ticketStatus)
 	feeOnly.POST("/payfee", payFee)
+
+	// Create a cookie store for persisting admin session information.
+	cookieStore := sessions.NewCookieStore(cookieSecret)
+
+	admin := router.Group("/admin").Use(
+		withSession(cookieStore),
+	)
+	admin.GET("", adminPage)
+	admin.POST("", adminLogin)
+	admin.POST("/logout", adminLogout)
 
 	// These API routes access dcrd and the voting wallets, and they need
 	// authentication.
