@@ -1,55 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta charset="utf-8">
+{{ template "header" . }}
 
-        <title>vspd</title>
+<table>
+    <tr><td>Total tickets:</td><td>{{ .TotalTickets }}</td></tr>
+    <tr><td>Fee confirmed tickets:</td><td>{{ .FeeConfirmedTickets }}</td></tr>
+    <tr><td>VSP Fee:</td><td>{{ .VSPFee }}% of vote reward</td></tr>
+    <tr><td>Network:</td><td>{{ .Network }}</td></tr>
+    <tr><td>Support:</td><td>{{ .SupportEmail }}</td></tr>
+    <tr><td>Pubkey:</td><td>{{ printf "%x" .PubKey }}</td></tr>
+    <tr><td>VSP closed:</td><td>{{ .VspClosed }}</td></tr>
+</table>
 
-        <link rel="stylesheet" type="text/css" href="/public/css/fonts.css" />
-        <link rel="stylesheet" type="text/css" href="/public/css/vspd.css" />
+<p>Last updated: {{ .UpdateTime }}</p>
 
-        <!--  Custom favicon  -->
-        <!-- Apple PWA -->
-        <link rel="apple-touch-icon" sizes="57x57"   href="/public/images/favicon/apple-touch-icon-57x57.png?v=gT6Mc">
-        <link rel="apple-touch-icon" sizes="60x60"   href="/public/images/favicon/apple-touch-icon-60x60.png?v=gT6Mc">
-        <link rel="apple-touch-icon" sizes="72x72"   href="/public/images/favicon/apple-touch-icon-72x72.png?v=gT6Mc">
-        <link rel="apple-touch-icon" sizes="76x76"   href="/public/images/favicon/apple-touch-icon-76x76.png?v=gT6Mc">
-        <link rel="apple-touch-icon" sizes="114x114" href="/public/images/favicon/apple-touch-icon-114x114.png?v=gT6Mc">
-        <link rel="apple-touch-icon" sizes="120x120" href="/public/images/favicon/apple-touch-icon-120x120.png?v=gT6Mc">
-        <link rel="apple-touch-icon" sizes="144x144" href="/public/images/favicon/apple-touch-icon-144x144.png?v=gT6Mc">
-        <link rel="apple-touch-icon" sizes="152x152" href="/public/images/favicon/apple-touch-icon-152x152.png?v=gT6Mc">
-        <link rel="apple-touch-icon" sizes="180x180" href="/public/images/favicon/apple-touch-icon-180x180.png?v=gT6Mc">
-
-        <!-- Browser -->
-        <link rel="icon" href="/public/images/favicon/favicon.ico?v=gT6Mc">
-        <link rel="icon" href="/public/images/favicon/favicon-32x32.png?v=gT6Mc" type="image/png" sizes="32x32">
-        <link rel="icon" href="/public/images/favicon/favicon-16x16.png?v=gT6Mc" type="image/png" sizes="16x16">
-
-        <!-- Android PWA -->
-        <link rel="manifest" href="/public/images/favicon/manifest.json?v=gT6Mc">
-
-        <!-- Safari -->
-        <link rel="mask-icon" href="/public/images/favicon/safari-pinned-tab.svg?v=gT6Mc" color="#091440">
-
-        <!-- Windows PWA -->
-        <meta name="msapplication-TileColor" content="#091440">
-        <meta name="msapplication-TileImage" content="/public/images/favicon/mstile-144x144.png?v=gT6Mc">
-        <meta name="msapplication-config"    content="/public/images/favicon/browserconfig.xml?v=gT6Mc">
-        <!-- End custom favicon -->
-    </head>
-
-    <body>
-        <img src="/public/images/decred-logo.svg" />
-        <table>
-            <tr><td>Total tickets:</td><td>{{ .TotalTickets }}</td></tr>
-            <tr><td>Fee confirmed tickets:</td><td>{{ .FeeConfirmedTickets }}</td></tr>
-            <tr><td>VSP Fee:</td><td>{{ .VSPFee }}% of vote reward</td></tr>
-            <tr><td>Network:</td><td>{{ .Network }}</td></tr>
-            <tr><td>Support:</td><td>{{ .SupportEmail }}</td></tr>
-            <tr><td>Pubkey:</td><td>{{ printf "%x" .PubKey }}</td></tr>
-            <tr><td>VSP closed:</td><td>{{ .VspClosed }}</td></tr>
-        </table>
-        <p>Last updated: {{.UpdateTime}}</p>
-    </body>
+</body>
 </html>

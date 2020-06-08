@@ -56,4 +56,4 @@ func TestDatabase(t *testing.T) {
 }
 
 // TODO: Add tests for CountTickets, GetUnconfirmedTickets, GetPendingFees,
-// GetUnconfirmedFees.
+// GetUnconfirmedFees, GetAllTickets.

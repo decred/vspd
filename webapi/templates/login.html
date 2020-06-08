@@ -1,0 +1,13 @@
+{{ template "header" . }}
+
+<form action="/admin" method="post">
+    <input type="password" name="password" required placeholder="Enter password">
+    <button type="submit">Login</button>
+</form>
+
+{{ if .IncorrectPassword }}
+    <p>Incorrect password</p>
+{{ end }}
+
+</body>
+</html>

@@ -2,14 +2,49 @@ package webapi
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/gorilla/sessions"
 )
 
 type ticketHashRequest struct {
 	TicketHash string `json:"tickethash" binding:"required"`
+}
+
+// withSession middleware adds a gorilla session to the request context for
+// downstream handlers to make use of. Sessions are used by admin pages to
+// maintain authentication status.
+func withSession(store *sessions.CookieStore) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session, err := store.Get(c.Request, "vspd-session")
+		if err != nil {
+			// "value is not valid" occurs if the cookie secret changes. This is
+			// common during development (eg. when using the test harness) but
+			// it should not occur in production.
+			if strings.Contains(err.Error(), "securecookie: the value is not valid") {
+				log.Warn("Cookie secret has changed. Generating new session.")
+
+				// Persist the newly generated session.
+				err = store.Save(c.Request, c.Writer, session)
+				if err != nil {
+					log.Errorf("Error saving session: %v", err)
+					c.String(http.StatusInternalServerError, "Error saving session")
+					c.Abort()
+					return
+				}
+			} else {
+				log.Errorf("Session error: %v", err)
+				c.String(http.StatusInternalServerError, "Error getting session")
+				c.Abort()
+				return
+			}
+		}
+
+		c.Set("session", session)
+	}
 }
 
 // withDcrdClient middleware adds a dcrd client to the request

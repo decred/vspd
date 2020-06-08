@@ -30,6 +30,8 @@ var (
 	versionK = []byte("version")
 	// feeXPub is the extended public key used for collecting VSP fees.
 	feeXPubK = []byte("feeXPub")
+	// cookieSecret is the secret key for initializing the cookie store.
+	cookieSecretK = []byte("cookieSecret")
 	// privatekey is the private key.
 	privateKeyK = []byte("privatekey")
 	// lastaddressindex is the index of the last address used for fees.
@@ -99,6 +101,18 @@ func CreateNew(dbFile, feeXPub string) error {
 			return fmt.Errorf("failed to generate signing key: %v", err)
 		}
 		err = vspBkt.Put(privateKeyK, signKey.Seed())
+		if err != nil {
+			return err
+		}
+
+		// Generate a secret key for initializing the cookie store.
+		log.Info("Generating cookie secret")
+		secret := make([]byte, 32)
+		_, err = rand.Read(secret)
+		if err != nil {
+			return err
+		}
+		err = vspBkt.Put(cookieSecretK, secret)
 		if err != nil {
 			return err
 		}
@@ -227,4 +241,17 @@ func (vdb *VspDatabase) GetFeeXPub() (string, error) {
 	})
 
 	return feeXPub, err
+}
+
+func (vdb *VspDatabase) GetCookieSecret() ([]byte, error) {
+	var cookieSecret []byte
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		vspBkt := tx.Bucket(vspBktK)
+
+		cookieSecret = vspBkt.Get(cookieSecretK)
+
+		return nil
+	})
+
+	return cookieSecret, err
 }
