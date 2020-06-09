@@ -83,7 +83,9 @@ func feeAddress(c *gin.Context) {
 	ticketHash := feeAddressRequest.TicketHash
 
 	// Respond early if we already have the fee tx for this ticket.
-	if ticket.FeeTxHex != "" {
+	if ticket.FeeTxStatus == database.FeeReceieved ||
+		ticket.FeeTxStatus == database.FeeBroadcast ||
+		ticket.FeeTxStatus == database.FeeConfirmed {
 		log.Warnf("Fee tx already received from %s: ticketHash=%s", c.ClientIP(), ticket.Hash)
 		sendError(errFeeAlreadyReceived, c)
 		return
@@ -173,7 +175,7 @@ func feeAddress(c *gin.Context) {
 		Confirmed:         confirmed,
 		FeeAmount:         int64(fee),
 		FeeExpiration:     expire,
-		// VotingKey and VoteChoices: set during payfee
+		FeeTxStatus:       database.NoFee,
 	}
 
 	err = db.InsertNewTicket(dbTicket)

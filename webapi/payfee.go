@@ -42,7 +42,9 @@ func payFee(c *gin.Context) {
 	}
 
 	// Respond early if we already have the fee tx for this ticket.
-	if ticket.FeeTxHex != "" {
+	if ticket.FeeTxStatus == database.FeeReceieved ||
+		ticket.FeeTxStatus == database.FeeBroadcast ||
+		ticket.FeeTxStatus == database.FeeConfirmed {
 		log.Warnf("Fee tx already received from %s: ticketHash=%s", c.ClientIP(), ticket.Hash)
 		sendError(errFeeAlreadyReceived, c)
 		return
@@ -199,7 +201,9 @@ findAddress:
 
 	ticket.VotingWIF = votingWIF.String()
 	ticket.FeeTxHex = payFeeRequest.FeeTx
+	ticket.FeeTxHash = feeTx.TxHash().String()
 	ticket.VoteChoices = voteChoices
+	ticket.FeeTxStatus = database.FeeReceieved
 
 	err = db.UpdateTicket(ticket)
 	if err != nil {
@@ -212,34 +216,31 @@ findAddress:
 		"ticketHash=%s", minFee, feePaid, ticket.Hash)
 
 	if ticket.Confirmed {
-		feeTxHash, err := dcrdClient.SendRawTransaction(payFeeRequest.FeeTx)
+		err = dcrdClient.SendRawTransaction(payFeeRequest.FeeTx)
 		if err != nil {
 			log.Errorf("SendRawTransaction failed: %v", err)
 
-			// Unset fee related fields and update the database.
-			ticket.FeeTxHex = ""
-			ticket.VotingWIF = ""
-			ticket.VoteChoices = make(map[string]string)
+			ticket.FeeTxStatus = database.FeeError
 
 			err = db.UpdateTicket(ticket)
 			if err != nil {
 				log.Errorf("UpdateTicket error: %v", err)
 			}
-			log.Infof("Removed fee transaction for ticket %v", ticket.Hash)
 
 			sendErrorWithMsg("could not broadcast fee transaction", errInvalidFeeTx, c)
 			return
 		}
-		ticket.FeeTxHash = feeTxHash
+
+		ticket.FeeTxStatus = database.FeeBroadcast
 
 		err = db.UpdateTicket(ticket)
 		if err != nil {
-			log.Errorf("InsertTicket failed: %v", err)
+			log.Errorf("UpdateTicket failed: %v", err)
 			sendError(errInternalError, c)
 			return
 		}
 
-		log.Debugf("Fee tx broadcast for ticket: ticketHash=%s, feeHash=%s", ticket.Hash, feeTxHash)
+		log.Debugf("Fee tx broadcast for ticket: ticketHash=%s, feeHash=%s", ticket.Hash, ticket.FeeTxHash)
 	}
 
 	sendJSONResponse(payFeeResponse{

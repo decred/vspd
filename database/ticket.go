@@ -9,6 +9,22 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+// FeeStatus represents the current state of a ticket fee payment.
+type FeeStatus string
+
+const (
+	// No fee transaction has been received yet.
+	NoFee FeeStatus = "none"
+	// Fee transaction has been received but not broadcast.
+	FeeReceieved FeeStatus = "received"
+	// Fee transaction has been broadcast but not confirmed.
+	FeeBroadcast FeeStatus = "broadcast"
+	// Fee transaction has been broadcast and confirmed.
+	FeeConfirmed FeeStatus = "confirmed"
+	// Fee transaction could not be broadcast due to an error.
+	FeeError FeeStatus = "error"
+)
+
 // Ticket is serialized to json and stored in bbolt db. The json keys are
 // deliberately kept short because they are duplicated many times in the db.
 type Ticket struct {
@@ -22,18 +38,19 @@ type Ticket struct {
 	// Confirmed will be set when the ticket has 6+ confirmations.
 	Confirmed bool `json:"conf"`
 
-	// VoteChoices and VotingWIF are set in /payfee.
+	// VotingWIF is set in /payfee.
+	VotingWIF string `json:"vwif"`
+
+	// VoteChoices is initially set in /payfee, but can be updated in
+	// /setvotechoices.
 	VoteChoices map[string]string `json:"vchces"`
-	VotingWIF   string            `json:"vwif"`
 
-	// FeeTxHex will be set when the fee tx has been received from the user.
-	FeeTxHex string `json:"fhex"`
-
-	// FeeTxHash will be set when the fee tx has been broadcast.
+	// FeeTxHex and FeeTxHash will be set when the fee tx has been received.
+	FeeTxHex  string `json:"fhex"`
 	FeeTxHash string `json:"fhsh"`
 
-	// FeeConfirmed will be set when the fee tx has 6+ confirmations.
-	FeeConfirmed bool `json:"fconf"`
+	// FeeTxStatus indicates the current state of the fee transaction.
+	FeeTxStatus FeeStatus `json:"fsts"`
 }
 
 func (t *Ticket) FeeExpired() bool {
@@ -142,7 +159,7 @@ func (vdb *VspDatabase) CountTickets() (int, int, error) {
 				return fmt.Errorf("could not unmarshal ticket: %v", err)
 			}
 
-			if ticket.FeeConfirmed {
+			if ticket.FeeTxStatus == FeeConfirmed {
 				feePaid++
 			}
 
@@ -188,11 +205,10 @@ func (vdb *VspDatabase) GetPendingFees() ([]Ticket, error) {
 				return fmt.Errorf("could not unmarshal ticket: %v", err)
 			}
 
-			// Add ticket if it is confirmed, and we have a fee tx, and the tx
-			// is not broadcast yet.
+			// Add ticket if it is confirmed, and we have a fee tx which is not
+			// yet broadcast.
 			if ticket.Confirmed &&
-				ticket.FeeTxHex != "" &&
-				ticket.FeeTxHash == "" {
+				ticket.FeeTxStatus == FeeReceieved {
 				tickets = append(tickets, ticket)
 			}
 
@@ -216,8 +232,7 @@ func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
 			}
 
 			// Add ticket if fee tx is broadcast but not confirmed yet.
-			if ticket.FeeTxHash != "" &&
-				!ticket.FeeConfirmed {
+			if ticket.FeeTxStatus == FeeBroadcast {
 				tickets = append(tickets, ticket)
 			}
 

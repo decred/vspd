@@ -33,9 +33,7 @@ func ticketStatus(c *gin.Context) {
 		Timestamp:       time.Now().Unix(),
 		Request:         ticketStatusRequest,
 		TicketConfirmed: ticket.Confirmed,
-		FeeTxReceived:   ticket.FeeTxHex != "",
-		FeeTxBroadcast:  ticket.FeeTxHash != "",
-		FeeConfirmed:    ticket.FeeConfirmed,
+		FeeTxStatus:     string(ticket.FeeTxStatus),
 		FeeTxHash:       ticket.FeeTxHash,
 		VoteChoices:     ticket.VoteChoices,
 	}, c)

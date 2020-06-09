@@ -50,6 +50,8 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 	return nil
 }
 
+// blockConnected is called once when vspd starts up, and once each time a
+// blockconnected notification is received from dcrd.
 func blockConnected() {
 
 	dcrdClient, err := dcrdRPC.Client(ctx, netParams)
@@ -92,30 +94,19 @@ func blockConnected() {
 	}
 
 	for _, ticket := range pending {
-		feeTxHash, err := dcrdClient.SendRawTransaction(ticket.FeeTxHex)
+		err = dcrdClient.SendRawTransaction(ticket.FeeTxHex)
 		if err != nil {
 			log.Errorf("SendRawTransaction error: %v", err)
-
-			// Unset fee related fields and update the database.
-			ticket.FeeTxHex = ""
-			ticket.VotingWIF = ""
-			ticket.VoteChoices = make(map[string]string)
-
-			err = db.UpdateTicket(ticket)
-			if err != nil {
-				log.Errorf("UpdateTicket error: %v", err)
-			}
-			log.Infof("Removed fee transaction for ticket %v", ticket.Hash)
-			continue
+			ticket.FeeTxStatus = database.FeeError
+		} else {
+			log.Debugf("Fee tx broadcast for ticket: ticketHash=%s, feeHash=%s", ticket.Hash, ticket.FeeTxHash)
+			ticket.FeeTxStatus = database.FeeBroadcast
 		}
 
-		ticket.FeeTxHash = feeTxHash
 		err = db.UpdateTicket(ticket)
 		if err != nil {
 			log.Errorf("UpdateTicket error: %v", err)
-			continue
 		}
-		log.Debugf("Fee tx broadcast for ticket: ticketHash=%s, feeHash=%s", ticket.Hash, feeTxHash)
 	}
 
 	// Step 3/3: Add tickets with confirmed fees to voting wallets.
@@ -153,7 +144,7 @@ func blockConnected() {
 		// If fee is confirmed, update the database and add ticket to voting
 		// wallets.
 		if feeTx.Confirmations >= requiredConfs {
-			ticket.FeeConfirmed = true
+			ticket.FeeTxStatus = database.FeeConfirmed
 			err = db.UpdateTicket(ticket)
 			if err != nil {
 				log.Errorf("UpdateTicket error: %v", err)

@@ -1,11 +1,11 @@
 package webapi
 
 type vspInfoResponse struct {
-	Timestamp     int64   `json:"timestamp" binding:"required"`
-	PubKey        []byte  `json:"pubkey" binding:"required"`
-	FeePercentage float64 `json:"feepercentage" binding:"required"`
-	VspClosed     bool    `json:"vspclosed" binding:"required"`
-	Network       string  `json:"network" binding:"required"`
+	Timestamp     int64   `json:"timestamp"`
+	PubKey        []byte  `json:"pubkey"`
+	FeePercentage float64 `json:"feepercentage"`
+	VspClosed     bool    `json:"vspclosed"`
+	Network       string  `json:"network"`
 }
 
 type FeeAddressRequest struct {
@@ -14,11 +14,11 @@ type FeeAddressRequest struct {
 }
 
 type feeAddressResponse struct {
-	Timestamp  int64             `json:"timestamp" binding:"required"`
-	FeeAddress string            `json:"feeaddress" binding:"required"`
-	FeeAmount  int64             `json:"feeamount" binding:"required"`
-	Expiration int64             `json:"expiration" binding:"required"`
-	Request    FeeAddressRequest `json:"request" binding:"required"`
+	Timestamp  int64             `json:"timestamp"`
+	FeeAddress string            `json:"feeaddress"`
+	FeeAmount  int64             `json:"feeamount"`
+	Expiration int64             `json:"expiration"`
+	Request    FeeAddressRequest `json:"request"`
 }
 
 type PayFeeRequest struct {
@@ -30,8 +30,8 @@ type PayFeeRequest struct {
 }
 
 type payFeeResponse struct {
-	Timestamp int64         `json:"timestamp" binding:"required"`
-	Request   PayFeeRequest `json:"request" binding:"required"`
+	Timestamp int64         `json:"timestamp"`
+	Request   PayFeeRequest `json:"request"`
 }
 
 type SetVoteChoicesRequest struct {
@@ -41,8 +41,8 @@ type SetVoteChoicesRequest struct {
 }
 
 type setVoteChoicesResponse struct {
-	Timestamp int64                 `json:"timestamp" binding:"required"`
-	Request   SetVoteChoicesRequest `json:"request" binding:"required"`
+	Timestamp int64                 `json:"timestamp"`
+	Request   SetVoteChoicesRequest `json:"request"`
 }
 
 type TicketStatusRequest struct {
@@ -51,12 +51,10 @@ type TicketStatusRequest struct {
 }
 
 type ticketStatusResponse struct {
-	Timestamp       int64               `json:"timestamp" binding:"required"`
-	TicketConfirmed bool                `json:"ticketconfirmed" binding:"required"`
-	FeeTxReceived   bool                `json:"feetxreceived" binding:"required"`
-	FeeTxBroadcast  bool                `json:"feetxbroadcast" binding:"required"`
-	FeeConfirmed    bool                `json:"feeconfirmed" binding:"required"`
-	FeeTxHash       string              `json:"feetxhash" binding:"required"`
-	VoteChoices     map[string]string   `json:"votechoices" binding:"required"`
-	Request         TicketStatusRequest `json:"request" binding:"required"`
+	Timestamp       int64               `json:"timestamp"`
+	TicketConfirmed bool                `json:"ticketconfirmed"`
+	FeeTxStatus     string              `json:"feetxstatus"`
+	FeeTxHash       string              `json:"feetxhash"`
+	VoteChoices     map[string]string   `json:"votechoices"`
+	Request         TicketStatusRequest `json:"request"`
 }
