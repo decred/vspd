@@ -34,9 +34,9 @@ instance of dcrwallet over RPC.
 
 ## Front-end Server
 
-The front-end server is where vspd will be running. The port vspd is listening
-on (default `3000`) should be available for clients to reach over the internet.
-This port is used for both the API, and for serving the HTML front end.
+The front-end server is where vspd will be running. A webserver (eg. nginx)
+should be configured with SSL and used to proxy requests from the internet to
+vspd.
 
 1. Start an instance of dcrd on this server with transaction index enabled
    (`--txindex`). dcrd is used for fishing ticket details out of the chain, for
@@ -65,13 +65,14 @@ dcrstakepool deployment.
 - On the voting servers...
   - The existing dcrd instance requires no changes.
   - Create a new instance of dcrwallet listening for RPC connections on a
-    different port. Ensure wallet is unlocked and voting is enabled
-    (dcrstakepool wallet should have voting disabled).
+    different port. Ensure the new wallet is unlocked and voting is enabled
+    (dcrstakepool wallet should still have voting disabled).
 
 - On the front-end server...
   - Run an instance of dcrd with txindex enabled.
-  - Run the vspd binary and ensure the listening port can be reached over the
-    internet. Configure vspd to use the newly created dcrwallet instances.
+  - Run the vspd binary
+    - Configure webserver to proxy requests from the internet to vspd.
+    - Configure vspd to use the newly created dcrwallet instances.
 
 ## Monitoring
 

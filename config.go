@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	defaultListen         = ":3000"
+	defaultListen         = ":8800"
 	defaultLogLevel       = "debug"
 	defaultVSPFee         = 3.0
 	defaultNetwork        = "testnet"
