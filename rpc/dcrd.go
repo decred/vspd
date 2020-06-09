@@ -96,31 +96,19 @@ func (c *DcrdRPC) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, erro
 	return &resp, nil
 }
 
-func (c *DcrdRPC) SendRawTransaction(txHex string) (string, error) {
+func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 	allowHighFees := false
-	var txHash string
-	err := c.Call(c.ctx, "sendrawtransaction", &txHash, txHex, allowHighFees)
+	err := c.Call(c.ctx, "sendrawtransaction", nil, txHex, allowHighFees)
 	if err != nil {
-		// It's not a problem if the transaction has already been broadcast,
-		// just need to calculate and return its hash.
-		if !strings.Contains(err.Error(), "transaction already exists") {
-			return "", err
+
+		// It's not a problem if the transaction has already been broadcast.
+		if strings.Contains(err.Error(), "transaction already exists") {
+			return nil
 		}
 
-		msgHex, err := hex.DecodeString(txHex)
-		if err != nil {
-			return "", fmt.Errorf("DecodeString error: %v", err)
-
-		}
-		msgTx := wire.NewMsgTx()
-		if err = msgTx.FromBytes(msgHex); err != nil {
-			return "", fmt.Errorf("FromBytes error: %v", err)
-
-		}
-
-		txHash = msgTx.TxHash().String()
+		return err
 	}
-	return txHash, nil
+	return nil
 }
 
 func (c *DcrdRPC) GetTicketCommitmentAddress(ticketHash string, netParams *chaincfg.Params) (string, error) {

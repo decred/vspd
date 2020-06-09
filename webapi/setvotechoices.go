@@ -24,7 +24,11 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
-	// TODO: Return an error if we dont have a FeeTx for this ticket yet.
+	if ticket.FeeTxStatus == database.NoFee {
+		log.Warnf("Setvotechoices without fee tx from %s", c.ClientIP())
+		sendError(errFeeNotReceived, c)
+		return
+	}
 
 	var setVoteChoicesRequest SetVoteChoicesRequest
 	if err := binding.JSON.BindBody(rawRequest, &setVoteChoicesRequest); err != nil {
@@ -53,7 +57,7 @@ func setVoteChoices(c *gin.Context) {
 
 	// Update vote choices on voting wallets. Tickets are only added to voting
 	// wallets if their fee is confirmed.
-	if ticket.FeeConfirmed {
+	if ticket.FeeTxStatus == database.FeeConfirmed {
 		for agenda, choice := range voteChoices {
 			for _, walletClient := range walletClients {
 				err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)

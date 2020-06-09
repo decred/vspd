@@ -56,13 +56,13 @@ func setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 		if c != nil {
 			select {
 			case <-c.Done():
-				log.Debugf("RPC already closed (%s)", addr)
+				log.Tracef("RPC already closed (%s)", addr)
 
 			default:
 				if err := c.Close(); err != nil {
 					log.Errorf("Failed to close RPC (%s): %v", addr, err)
 				} else {
-					log.Debugf("RPC closed (%s)", addr)
+					log.Tracef("RPC closed (%s)", addr)
 				}
 			}
 		}

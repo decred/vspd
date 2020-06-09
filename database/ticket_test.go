@@ -19,7 +19,7 @@ func exampleTicket() Ticket {
 		VotingWIF:         "VotingKey",
 		FeeTxHex:          "FeeTransction",
 		FeeTxHash:         "",
-		FeeConfirmed:      true,
+		FeeTxStatus:       FeeBroadcast,
 	}
 }
 
@@ -84,7 +84,7 @@ func testGetTicketByHash(t *testing.T) {
 		retrieved.VotingWIF != ticket.VotingWIF ||
 		retrieved.FeeTxHex != ticket.FeeTxHex ||
 		retrieved.FeeTxHash != ticket.FeeTxHash ||
-		retrieved.FeeConfirmed != ticket.FeeConfirmed {
+		retrieved.FeeTxStatus != ticket.FeeTxStatus {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
 

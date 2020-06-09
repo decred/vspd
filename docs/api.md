@@ -28,8 +28,8 @@
 Clients should retrieve the VSP's public key so they can check the signature on
 future API responses. A VSP should never change their public key, so it can be
 requested once and cached indefinitely. `vspclosed` indicates that the VSP is
-not currently accepting new tickets. Calling `/feeaddress` when a VSP is closed
-will result in an error.
+not currently accepting new tickets. Calling `/api/feeaddress` or `/api/payfee`
+when a VSP is closed will result in an error.
 
 - `GET /api/vspinfo`
 
@@ -61,7 +61,7 @@ DCR. Returns an error if the specified ticket is not currently immature or live.
 This call will return an error if a fee transaction has already been provided
 for the specified ticket.
 
-- `POST /feeaddress`
+- `POST /api/feeaddress`
 
     Request:
 
@@ -90,7 +90,7 @@ for the specified ticket.
 Provide the voting key for the ticket, voting preference, and a signed
 transaction which pays the fee to the specified address. If the fee has expired,
 this call will return an error and the client will need to request a new fee by
-calling `/feeaddress` again. Returns an error if the specified ticket is not
+calling `/api/feeaddress` again. Returns an error if the specified ticket is not
 currently immature or live.
 
 The VSP will not broadcast the fee transaction until the ticket purchase has 6
@@ -103,7 +103,7 @@ has 6 confirmations.
 This call will return an error if a fee transaction has already been provided
 for the specified ticket.
 
-- `POST /payfee`
+- `POST /api/payfee`
 
     Request:
 
@@ -129,20 +129,22 @@ for the specified ticket.
 ### Ticket Status
 
 Clients can check the status of a ticket at any time after calling
-`/feeaddress`. The lifecycle of the ticket is represented with a set of boolean
-fields:
+`/api/feeaddress`.
 
-- `ticketconfirmed` is true when the ticket transaction has 6 confirmations.
-- `feetxreceived` is true when the VSP has received a valid fee transaction.
-   If the broadcast of the fee transaction fails, this will be reset to false.
-- `feetxbroadcast` is true when the VSP has broadcast the fee transaction.
-- `feeconfirmed` is true when the fee transaction has 6 confirmations.
+- `ticketconfirmed` is true when the ticket purchase has 6 confirmations.
+- `feetxstatus` can have the following values:
+  - `none` - No fee transaction has been received yet.
+  - `received` - Fee transaction has been received but not broadcast.
+  - `broadcast` - Fee transaction has been broadcast but not confirmed.
+  - `confirmed` - Fee transaction has been broadcast and confirmed.
+  - `error` - Fee transaction could not be broadcast due to an error (eg. output
+    in the tx was double spent).
 
-The VSP will only add tickets to the voting wallets when all four of these
-conditions are met. `feetxhash` will only be populated if `feetxbroadcast` is
-true.
+If `feetxstatus` is `error`, the client needs to provide a new fee transaction
+using `/api/payfee`. The VSP will only add a ticket to the voting wallets once
+its `feetxstatus` is `confirmed`.
 
-- `GET /ticketstatus`
+- `GET /api/ticketstatus`
 
     Request:
 
@@ -159,9 +161,7 @@ true.
     {
       "timestamp":1590509066,
       "ticketconfirmed":true,
-      "feetxreceived":true,
-      "feetxbroadcast":true,
-      "feeconfirmed":false,
+      "feetxstatus":"broadcast",
       "feetxhash": "e1c02b04b5bbdae66cf8e3c88366c4918d458a2d27a26144df37f54a2bc956ac",
       "votechoices":{"headercommitments":"no"},
       "request": {"<Copy of request body>"}
@@ -171,9 +171,9 @@ true.
 ### Update vote choices
 
 Clients can update the voting preferences of their ticket at any time after
-after calling `/payfee`.
+after calling `/api/payfee`.
 
-- `POST /setvotechoices`
+- `POST /api/setvotechoices`
 
     Request:
 
