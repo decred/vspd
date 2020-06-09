@@ -61,26 +61,10 @@ func run(ctx context.Context) error {
 	// checking the status of fee transactions).
 	dcrd := rpc.SetupDcrd(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
 		cfg.DcrdHost, cfg.dcrdCert, nil)
-	// Dial once just to validate config.
-	_, err = dcrd.Client(ctx, cfg.netParams.Params)
-	if err != nil {
-		log.Error(err)
-		requestShutdown()
-		shutdownWg.Wait()
-		return err
-	}
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
 	wallets := rpc.SetupWallet(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass,
 		cfg.WalletHosts, cfg.walletCert)
-	// Dial once just to validate config.
-	_, failedConnections := wallets.Clients(ctx, cfg.netParams.Params)
-	if failedConnections > 0 {
-		log.Errorf("Failed RPC connection on %d of %d voting wallets", failedConnections, len(cfg.WalletHosts))
-		requestShutdown()
-		shutdownWg.Wait()
-		return err
-	}
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
