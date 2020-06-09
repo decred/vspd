@@ -12,12 +12,12 @@ import (
 // Ticket is serialized to json and stored in bbolt db. The json keys are
 // deliberately kept short because they are duplicated many times in the db.
 type Ticket struct {
-	Hash              string  `json:"hsh"`
-	CommitmentAddress string  `json:"cmtaddr"`
-	FeeAddressIndex   uint32  `json:"faddridx"`
-	FeeAddress        string  `json:"faddr"`
-	FeeAmount         float64 `json:"famt"`
-	FeeExpiration     int64   `json:"fexp"`
+	Hash              string `json:"hsh"`
+	CommitmentAddress string `json:"cmtaddr"`
+	FeeAddressIndex   uint32 `json:"faddridx"`
+	FeeAddress        string `json:"faddr"`
+	FeeAmount         int64  `json:"famt"`
+	FeeExpiration     int64  `json:"fexp"`
 
 	// Confirmed will be set when the ticket has 6+ confirmations.
 	Confirmed bool `json:"conf"`
