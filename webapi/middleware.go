@@ -49,7 +49,7 @@ func withSession(store *sessions.CookieStore) gin.HandlerFunc {
 
 // withDcrdClient middleware adds a dcrd client to the request
 // context for downstream handlers to make use of.
-func withDcrdClient() gin.HandlerFunc {
+func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		client, err := dcrd.Client(c, cfg.NetParams)
 		if err != nil {
@@ -64,7 +64,7 @@ func withDcrdClient() gin.HandlerFunc {
 
 // withWalletClients middleware adds a voting wallet clients to the request
 // context for downstream handlers to make use of.
-func withWalletClients() gin.HandlerFunc {
+func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clients, failedConnections := wallets.Clients(c, cfg.NetParams)
 		if len(clients) == 0 {

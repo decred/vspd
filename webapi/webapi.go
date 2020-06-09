@@ -40,19 +40,15 @@ const (
 
 var cfg Config
 var db *database.VspDatabase
-var dcrd rpc.DcrdConnect
-var wallets rpc.WalletConnect
 var addrGen *addressGenerator
 var signPrivKey ed25519.PrivateKey
 var signPubKey ed25519.PublicKey
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, dConnect rpc.DcrdConnect, wConnect rpc.WalletConnect, debugMode bool, config Config) error {
+	listen string, vdb *database.VspDatabase, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, debugMode bool, config Config) error {
 
 	cfg = config
 	db = vdb
-	dcrd = dConnect
-	wallets = wConnect
 
 	var err error
 
@@ -98,7 +94,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	log.Infof("Listening on %s", listen)
 
 	srv := http.Server{
-		Handler:      router(debugMode, cookieSecret),
+		Handler:      router(debugMode, cookieSecret, dcrd, wallets),
 		ReadTimeout:  5 * time.Second,  // slow requests should not hold connections opened
 		WriteTimeout: 60 * time.Second, // hung responses must die
 	}
@@ -161,7 +157,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	return nil
 }
 
-func router(debugMode bool, cookieSecret []byte) *gin.Engine {
+func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) *gin.Engine {
 	// With release mode enabled, gin will only read template files once and cache them.
 	// With release mode disabled, templates will be reloaded on the fly.
 	if !debugMode {
@@ -191,7 +187,7 @@ func router(debugMode bool, cookieSecret []byte) *gin.Engine {
 
 	// These API routes access dcrd and they need authentication.
 	feeOnly := router.Group("/api").Use(
-		withDcrdClient(), vspAuth(),
+		withDcrdClient(dcrd), vspAuth(),
 	)
 	feeOnly.POST("/feeaddress", feeAddress)
 	feeOnly.GET("/ticketstatus", ticketStatus)
@@ -210,7 +206,7 @@ func router(debugMode bool, cookieSecret []byte) *gin.Engine {
 	// These API routes access dcrd and the voting wallets, and they need
 	// authentication.
 	both := router.Group("/api").Use(
-		withDcrdClient(), withWalletClients(), vspAuth(),
+		withDcrdClient(dcrd), withWalletClients(wallets), vspAuth(),
 	)
 	both.POST("/setvotechoices", setVoteChoices)
 
