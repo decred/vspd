@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"sync"
 
 	wallettypes "decred.org/dcrwallet/rpc/jsonrpc/types"
 	"github.com/decred/dcrd/chaincfg/v3"
@@ -21,17 +20,22 @@ type WalletRPC struct {
 	ctx context.Context
 }
 
-type WalletConnect []connect
+type WalletConnect []*client
 
-func SetupWallet(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass string, addrs []string, cert []byte) WalletConnect {
+func SetupWallet(user, pass string, addrs []string, cert []byte) WalletConnect {
 	walletConnect := make(WalletConnect, len(addrs))
 
 	for i := 0; i < len(addrs); i++ {
-		walletConnect[i] = setup(ctx, shutdownWg, user, pass,
-			addrs[i], cert, nil)
+		walletConnect[i] = setup(user, pass, addrs[i], cert, nil)
 	}
 
 	return walletConnect
+}
+
+func (w *WalletConnect) Close() {
+	for _, connect := range []*client(*w) {
+		connect.Close()
+	}
 }
 
 // Clients loops over each wallet and tries to establish a connection. It
@@ -41,9 +45,9 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 	walletClients := make([]*WalletRPC, 0)
 	failedConnections := 0
 
-	for _, connect := range []connect(*w) {
+	for _, connect := range []*client(*w) {
 
-		c, newConnection, err := connect()
+		c, newConnection, err := connect.dial(ctx)
 		if err != nil {
 			log.Errorf("dcrwallet connection error: %v", err)
 			failedConnections++
