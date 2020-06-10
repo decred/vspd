@@ -42,11 +42,11 @@ var (
 // a time.
 var backupMtx sync.Mutex
 
-func writeBackup(db *bolt.DB, dbFile string) error {
+func writeBackup(db *bolt.DB) error {
 	backupMtx.Lock()
 	defer backupMtx.Unlock()
 
-	backupPath := dbFile + "-backup"
+	backupPath := db.Path() + "-backup"
 	tempPath := backupPath + "~"
 
 	// Write backup to temporary file.
@@ -153,28 +153,6 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 
 	log.Debugf("Opened database file %s", dbFile)
 
-	// Add the graceful shutdown to the waitgroup.
-	shutdownWg.Add(1)
-	go func() {
-		// Wait until shutdown is signaled before shutting down.
-		<-ctx.Done()
-
-		log.Debug("Closing database...")
-
-		err := writeBackup(db, dbFile)
-		if err != nil {
-			log.Errorf("Failed to write database backup: %v", err)
-		}
-
-		err = db.Close()
-		if err != nil {
-			log.Errorf("Error closing database: %v", err)
-		} else {
-			log.Debug("Database closed")
-		}
-		shutdownWg.Done()
-	}()
-
 	// Start a ticker to update the backup file at the specified interval.
 	shutdownWg.Add(1)
 	go func() {
@@ -182,7 +160,7 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 		for {
 			select {
 			case <-ticker.C:
-				err := writeBackup(db, dbFile)
+				err := writeBackup(db)
 				if err != nil {
 					log.Errorf("Failed to write database backup: %v", err)
 				}
@@ -195,6 +173,20 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 	}()
 
 	return &VspDatabase{db: db}, nil
+}
+
+func (vdb *VspDatabase) Close() {
+	err := writeBackup(vdb.db)
+	if err != nil {
+		log.Errorf("Failed to write database backup: %v", err)
+	}
+
+	err = vdb.db.Close()
+	if err != nil {
+		log.Errorf("Error closing database: %v", err)
+	} else {
+		log.Debug("Database closed")
+	}
 }
 
 func (vdb *VspDatabase) KeyPair() (ed25519.PrivateKey, ed25519.PublicKey, error) {

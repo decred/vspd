@@ -107,7 +107,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 
 		log.Debug("Stopping webserver...")
 		// Give the webserver 5 seconds to finish what it is doing.
-		timeoutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := srv.Shutdown(timeoutCtx); err != nil {
 			log.Errorf("Failed to stop webserver cleanly: %v", err)
