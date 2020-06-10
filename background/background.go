@@ -214,7 +214,7 @@ func connectNotifier(dcrdWithNotifs rpc.DcrdConnect) error {
 	// notifier is closed.
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		return nil
 	case <-notifierClosed:
 		return nil
 	}
@@ -240,14 +240,14 @@ func Start(c context.Context, vdb *database.VspDatabase, drpc rpc.DcrdConnect,
 			err := connectNotifier(dcrdWithNotif)
 			if err != nil {
 				log.Errorf("dcrd connect error: %v", err)
+			}
 
-				// If context is done (vspd is shutting down), return,
-				// otherwise wait 15 seconds and try to reconnect.
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(15 * time.Second):
-				}
+			// If context is done (vspd is shutting down), return,
+			// otherwise wait 15 seconds and try to reconnect.
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(15 * time.Second):
 			}
 
 		}
