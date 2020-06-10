@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/decred/dcrd/blockchain/stake/v3"
 	"github.com/decred/dcrd/chaincfg/v3"
@@ -27,17 +26,18 @@ type DcrdRPC struct {
 	ctx context.Context
 }
 
-type DcrdConnect connect
+type DcrdConnect struct {
+	*client
+}
 
-func SetupDcrd(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr string, cert []byte, n wsrpc.Notifier) DcrdConnect {
-	return DcrdConnect(setup(ctx, shutdownWg, user, pass, addr, cert, n))
+func SetupDcrd(user, pass, addr string, cert []byte, n wsrpc.Notifier) DcrdConnect {
+	return DcrdConnect{setup(user, pass, addr, cert, n)}
 }
 
 // Client creates a new DcrdRPC client instance. Returns an error if dialing
 // dcrd fails or if dcrd is misconfigured.
 func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*DcrdRPC, error) {
-
-	c, newConnection, err := connect(*d)()
+	c, newConnection, err := d.dial(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("dcrd connection error: %v", err)
 	}

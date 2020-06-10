@@ -60,12 +60,12 @@ func run(ctx context.Context) error {
 
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
-	dcrd := rpc.SetupDcrd(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
-		cfg.DcrdHost, cfg.dcrdCert, nil)
+	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, nil)
+	defer dcrd.Close()
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
-	wallets := rpc.SetupWallet(ctx, &shutdownWg, cfg.WalletUser, cfg.WalletPass,
-		cfg.WalletHosts, cfg.walletCert)
+	wallets := rpc.SetupWallet(cfg.WalletUser, cfg.WalletPass, cfg.WalletHosts, cfg.walletCert)
+	defer wallets.Close()
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
@@ -85,8 +85,9 @@ func run(ctx context.Context) error {
 	}
 
 	// Create a dcrd client with a blockconnected notification handler.
-	dcrdWithNotifs := rpc.SetupDcrd(ctx, &shutdownWg, cfg.DcrdUser, cfg.DcrdPass,
+	dcrdWithNotifs := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass,
 		cfg.DcrdHost, cfg.dcrdCert, &background.NotificationHandler{})
+	defer dcrdWithNotifs.Close()
 
 	// Start background process which will continually attempt to reconnect to
 	// dcrd if the connection drops.

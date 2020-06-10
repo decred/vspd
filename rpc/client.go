@@ -22,16 +22,18 @@ type Caller interface {
 	Call(ctx context.Context, method string, res interface{}, args ...interface{}) error
 }
 
-// connect dials and returns a connected RPC client. A boolean indicates whether
-// this connection is new (true), or if it is an existing connection which is
-// being reused (false).
-type connect func() (Caller, bool, error)
+// client wraps a wsrpc.Client, as well as all of the connection details
+// required to make a new client if the existing client is closed.
+type client struct {
+	mu       *sync.Mutex
+	client   *wsrpc.Client
+	addr     string
+	tlsOpt   wsrpc.Option
+	authOpt  wsrpc.Option
+	notifier wsrpc.Notifier
+}
 
-// setup accepts RPC connection details, creates an RPC client, and returns a
-// function which can be called to access the client. The returned function will
-// try to handle any client disconnects by attempting to reconnect, but will
-// return an error if a new connection cannot be established.
-func setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr string, cert []byte, n wsrpc.Notifier) connect {
+func setup(user, pass, addr string, cert []byte, n wsrpc.Notifier) *client {
 
 	// Create TLS options.
 	pool := x509.NewCertPool()
@@ -42,53 +44,51 @@ func setup(ctx context.Context, shutdownWg *sync.WaitGroup, user, pass, addr str
 	// Create authentication options.
 	authOpt := wsrpc.WithBasicAuth(user, pass)
 
-	fullAddr := "wss://" + addr + "/ws"
-
 	var mu sync.Mutex
 	var c *wsrpc.Client
 
-	// Add the graceful shutdown to the waitgroup.
-	shutdownWg.Add(1)
-	go func() {
-		// Wait until shutdown is signaled before shutting down.
-		<-ctx.Done()
+	return &client{&mu, c, addr, tlsOpt, authOpt, n}
+}
 
-		if c != nil {
-			select {
-			case <-c.Done():
-				log.Tracef("RPC already closed (%s)", addr)
+func (c *client) Close() {
+	if c.client != nil {
+		select {
+		case <-c.client.Done():
+			log.Tracef("RPC already closed (%s)", c.addr)
 
-			default:
-				if err := c.Close(); err != nil {
-					log.Errorf("Failed to close RPC (%s): %v", addr, err)
-				} else {
-					log.Tracef("RPC closed (%s)", addr)
-				}
+		default:
+			if err := c.client.Close(); err != nil {
+				log.Errorf("Failed to close RPC (%s): %v", c.addr, err)
+			} else {
+				log.Tracef("RPC closed (%s)", c.addr)
 			}
 		}
-		shutdownWg.Done()
-	}()
-
-	return func() (Caller, bool, error) {
-		defer mu.Unlock()
-		mu.Lock()
-
-		if c != nil {
-			select {
-			case <-c.Done():
-				log.Debugf("RPC client %s errored (%v); reconnecting...", addr, c.Err())
-				c = nil
-			default:
-				return c, false, nil
-			}
-		}
-
-		var err error
-		c, err = wsrpc.Dial(ctx, fullAddr, tlsOpt, authOpt, wsrpc.WithNotifier(n))
-		if err != nil {
-			return nil, false, err
-		}
-
-		return c, true, nil
 	}
+}
+
+// dial will return a connect rpc client if one exists, or attempt to create a
+// new one if not. A
+// boolean indicates whether this connection is new (true), or if it is an
+// existing connection which is being reused (false).
+func (c *client) dial(ctx context.Context) (Caller, bool, error) {
+	defer c.mu.Unlock()
+	c.mu.Lock()
+
+	if c.client != nil {
+		select {
+		case <-c.client.Done():
+			log.Debugf("RPC client %s errored (%v); reconnecting...", c.addr, c.client.Err())
+			c.client = nil
+		default:
+			return c.client, false, nil
+		}
+	}
+
+	var err error
+	fullAddr := "wss://" + c.addr + "/ws"
+	c.client, err = wsrpc.Dial(ctx, fullAddr, c.tlsOpt, c.authOpt, wsrpc.WithNotifier(c.notifier))
+	if err != nil {
+		return nil, false, err
+	}
+	return c.client, true, nil
 }
