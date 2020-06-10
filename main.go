@@ -91,7 +91,7 @@ func run(ctx context.Context) error {
 
 	// Start background process which will continually attempt to reconnect to
 	// dcrd if the connection drops.
-	background.Start(ctx, db, dcrd, dcrdWithNotifs, wallets, cfg.netParams.Params)
+	background.Start(ctx, &shutdownWg, db, dcrd, dcrdWithNotifs, wallets, cfg.netParams.Params)
 
 	// Wait for shutdown tasks to complete before running deferred tasks and
 	// returning.

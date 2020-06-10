@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
 	"decred.org/dcrwallet/rpc/client/dcrd"
@@ -18,6 +19,7 @@ var (
 	walletRPC      rpc.WalletConnect
 	netParams      *chaincfg.Params
 	notifierClosed chan struct{}
+	shutdownWg     *sync.WaitGroup
 )
 
 type NotificationHandler struct{}
@@ -53,6 +55,9 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 // blockConnected is called once when vspd starts up, and once each time a
 // blockconnected notification is received from dcrd.
 func blockConnected() {
+
+	shutdownWg.Add(1)
+	defer shutdownWg.Done()
 
 	dcrdClient, err := dcrdRPC.Client(ctx, netParams)
 	if err != nil {
@@ -216,11 +221,12 @@ func connectNotifier(dcrdWithNotifs rpc.DcrdConnect) error {
 	case <-ctx.Done():
 		return nil
 	case <-notifierClosed:
+		log.Warnf("dcrd notifier closed")
 		return nil
 	}
 }
 
-func Start(c context.Context, vdb *database.VspDatabase, drpc rpc.DcrdConnect,
+func Start(c context.Context, wg *sync.WaitGroup, vdb *database.VspDatabase, drpc rpc.DcrdConnect,
 	dcrdWithNotif rpc.DcrdConnect, wrpc rpc.WalletConnect, p *chaincfg.Params) {
 
 	ctx = c
@@ -228,6 +234,7 @@ func Start(c context.Context, vdb *database.VspDatabase, drpc rpc.DcrdConnect,
 	dcrdRPC = drpc
 	walletRPC = wrpc
 	netParams = p
+	shutdownWg = wg
 
 	// Run the block connected handler now to catch up with any blocks mined
 	// while vspd was shut down.
