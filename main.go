@@ -56,6 +56,7 @@ func run(ctx context.Context) error {
 		shutdownWg.Wait()
 		return err
 	}
+	defer db.Close()
 
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
@@ -91,7 +92,8 @@ func run(ctx context.Context) error {
 	// dcrd if the connection drops.
 	background.Start(ctx, db, dcrd, dcrdWithNotifs, wallets, cfg.netParams.Params)
 
-	// Wait for shutdown tasks to complete before returning.
+	// Wait for shutdown tasks to complete before running deferred tasks and
+	// returning.
 	shutdownWg.Wait()
 
 	return ctx.Err()
