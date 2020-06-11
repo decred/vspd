@@ -153,3 +153,58 @@ func testTicketFeeExpired(t *testing.T) {
 		t.Fatal("expected ticket to be expired")
 	}
 }
+
+func testFilterTickets(t *testing.T) {
+	// Insert a ticket
+	ticket := exampleTicket()
+	err := db.InsertNewTicket(ticket)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	// Insert another ticket
+	ticket.Hash = ticket.Hash + "1"
+	ticket.FeeAddress = ticket.FeeAddress + "1"
+	ticket.FeeAddressIndex = ticket.FeeAddressIndex + 1
+	ticket.Confirmed = !ticket.Confirmed
+	err = db.InsertNewTicket(ticket)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	// Expect all tickets returned.
+	retrieved, err := db.filterTickets(func(t Ticket) bool {
+		return true
+	})
+	if err != nil {
+		t.Fatalf("error filtering tickets: %v", err)
+	}
+	if len(retrieved) != 2 {
+		t.Fatal("expected to find 2 tickets")
+	}
+
+	// Only one ticket should be confirmed.
+	retrieved, err = db.filterTickets(func(t Ticket) bool {
+		return t.Confirmed
+	})
+	if err != nil {
+		t.Fatalf("error filtering tickets: %v", err)
+	}
+	if len(retrieved) != 1 {
+		t.Fatal("expected to find 2 tickets")
+	}
+	if retrieved[0].Confirmed != true {
+		t.Fatal("expected retrieved ticket to be confirmed")
+	}
+
+	// Expect no tickets with confirmed fee.
+	retrieved, err = db.filterTickets(func(t Ticket) bool {
+		return t.FeeTxStatus == FeeConfirmed
+	})
+	if err != nil {
+		t.Fatalf("error filtering tickets: %v", err)
+	}
+	if len(retrieved) != 0 {
+		t.Fatal("expected to find 0 tickets")
+	}
+}

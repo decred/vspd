@@ -26,6 +26,7 @@ func TestDatabase(t *testing.T) {
 		"testGetTicketByHash":  testGetTicketByHash,
 		"testUpdateTicket":     testUpdateTicket,
 		"testTicketFeeExpired": testTicketFeeExpired,
+		"testFilterTickets":    testFilterTickets,
 		"testAddressIndex":     testAddressIndex,
 	}
 
@@ -55,5 +56,4 @@ func TestDatabase(t *testing.T) {
 	}
 }
 
-// TODO: Add tests for CountTickets, GetUnconfirmedTickets, GetPendingFees,
-// GetUnconfirmedFees, GetAllTickets.
+// TODO: Add tests for CountTickets.

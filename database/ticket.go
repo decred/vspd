@@ -170,80 +170,39 @@ func (vdb *VspDatabase) CountTickets() (int, int, error) {
 	return total, feePaid, err
 }
 
+// GetUnconfirmedTickets returns tickets which are not yet confirmed.
 func (vdb *VspDatabase) GetUnconfirmedTickets() ([]Ticket, error) {
-	var tickets []Ticket
-	err := vdb.db.View(func(tx *bolt.Tx) error {
-		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
-
-		return ticketBkt.ForEach(func(k, v []byte) error {
-			var ticket Ticket
-			err := json.Unmarshal(v, &ticket)
-			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %v", err)
-			}
-
-			if !ticket.Confirmed {
-				tickets = append(tickets, ticket)
-			}
-
-			return nil
-		})
+	return vdb.filterTickets(func(t Ticket) bool {
+		return !t.Confirmed
 	})
-
-	return tickets, err
 }
 
+// GetPendingFees returns tickets which are confirmed and have a fee tx which is
+// not yet broadcast.
 func (vdb *VspDatabase) GetPendingFees() ([]Ticket, error) {
-	var tickets []Ticket
-	err := vdb.db.View(func(tx *bolt.Tx) error {
-		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
-
-		return ticketBkt.ForEach(func(k, v []byte) error {
-			var ticket Ticket
-			err := json.Unmarshal(v, &ticket)
-			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %v", err)
-			}
-
-			// Add ticket if it is confirmed, and we have a fee tx which is not
-			// yet broadcast.
-			if ticket.Confirmed &&
-				ticket.FeeTxStatus == FeeReceieved {
-				tickets = append(tickets, ticket)
-			}
-
-			return nil
-		})
+	return vdb.filterTickets(func(t Ticket) bool {
+		return t.Confirmed && t.FeeTxStatus == FeeReceieved
 	})
-
-	return tickets, err
 }
 
+// GetUnconfirmedFees returns tickets with a fee tx that is broadcast but not
+// confirmed yet.
 func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
-	var tickets []Ticket
-	err := vdb.db.View(func(tx *bolt.Tx) error {
-		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
-
-		return ticketBkt.ForEach(func(k, v []byte) error {
-			var ticket Ticket
-			err := json.Unmarshal(v, &ticket)
-			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %v", err)
-			}
-
-			// Add ticket if fee tx is broadcast but not confirmed yet.
-			if ticket.FeeTxStatus == FeeBroadcast {
-				tickets = append(tickets, ticket)
-			}
-
-			return nil
-		})
+	return vdb.filterTickets(func(t Ticket) bool {
+		return t.FeeTxStatus == FeeBroadcast
 	})
-
-	return tickets, err
 }
 
+// GetAllTickets returns all tickets in the database.
 func (vdb *VspDatabase) GetAllTickets() ([]Ticket, error) {
+	return vdb.filterTickets(func(t Ticket) bool {
+		return true
+	})
+}
+
+// filterTickets accepts a filter function and returns all tickets from the
+// database which match the filter.
+func (vdb *VspDatabase) filterTickets(filter func(Ticket) bool) ([]Ticket, error) {
 	var tickets []Ticket
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
@@ -255,7 +214,9 @@ func (vdb *VspDatabase) GetAllTickets() ([]Ticket, error) {
 				return fmt.Errorf("could not unmarshal ticket: %v", err)
 			}
 
-			tickets = append(tickets, ticket)
+			if filter(ticket) {
+				tickets = append(tickets, ticket)
+			}
 
 			return nil
 		})
