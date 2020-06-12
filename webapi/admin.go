@@ -14,8 +14,8 @@ func adminPage(c *gin.Context) {
 	})
 }
 
-// ticketSearch is the handler for "POST /admin/ticket". The "hash" param will
-// be used to retrieve a ticket from the database.
+// ticketSearch is the handler for "POST /admin/ticket". The hash param will be
+// used to retrieve a ticket from the database.
 func ticketSearch(c *gin.Context) {
 	hash := c.PostForm("hash")
 
@@ -57,6 +57,16 @@ func adminLogin(c *gin.Context) {
 // have its admin authentication removed.
 func adminLogout(c *gin.Context) {
 	setAdminStatus(nil, c)
+}
+
+// downloadDatabaseBackup is the handler for "GET /backup". A binary
+// representation of the whole database is generated and returned to the client.
+func downloadDatabaseBackup(c *gin.Context) {
+	err := db.BackupDB(c.Writer)
+	if err != nil {
+		log.Errorf("Error backing up database: %v", err)
+		c.String(http.StatusInternalServerError, "Error backing up database")
+	}
 }
 
 // setAdminStatus stores the authentication status of the current session and

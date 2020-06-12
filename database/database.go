@@ -6,7 +6,9 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"net/http"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -246,4 +248,18 @@ func (vdb *VspDatabase) GetCookieSecret() ([]byte, error) {
 	})
 
 	return cookieSecret, err
+}
+
+// BackupDB streams a backup of the database over an http response writer.
+func (vdb *VspDatabase) BackupDB(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", `attachment; filename="vspd.db"`)
+
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		w.Header().Set("Content-Length", strconv.Itoa(int(tx.Size())))
+		_, err := tx.WriteTo(w)
+		return err
+	})
+
+	return err
 }

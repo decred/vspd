@@ -207,6 +207,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	)
 	admin.GET("", adminPage)
 	admin.POST("/ticket", ticketSearch)
+	admin.GET("/backup", downloadDatabaseBackup)
 	admin.POST("/logout", adminLogout)
 
 	// These API routes access dcrd and the voting wallets, and they need
