@@ -18,6 +18,7 @@ type vspStats struct {
 	UpdateTime          string
 	SupportEmail        string
 	VspClosed           bool
+	Debug               bool
 }
 
 var stats *vspStats
@@ -36,9 +37,12 @@ func updateVSPStats(db *database.VspDatabase, cfg Config) (*vspStats, error) {
 		UpdateTime:          time.Now().Format("Mon Jan _2 15:04:05 2006"),
 		SupportEmail:        cfg.SupportEmail,
 		VspClosed:           cfg.VspClosed,
+		Debug:               cfg.Debug,
 	}, nil
 }
 
 func homepage(c *gin.Context) {
-	c.HTML(http.StatusOK, "homepage.html", stats)
+	c.HTML(http.StatusOK, "homepage.html", gin.H{
+		"VspStats": stats,
+	})
 }

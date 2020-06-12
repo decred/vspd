@@ -64,9 +64,9 @@ func (e apiError) defaultMessage() string {
 	case errVspClosed:
 		return "vsp is closed"
 	case errFeeAlreadyReceived:
-		return "fee tx already received"
+		return "fee tx already received for ticket"
 	case errInvalidFeeTx:
-		return "invalid fee transaction"
+		return "invalid fee tx"
 	case errFeeTooSmall:
 		return "fee too small"
 	case errUnknownTicket:
@@ -82,7 +82,7 @@ func (e apiError) defaultMessage() string {
 	case errInvalidPrivKey:
 		return "invalid private key"
 	case errFeeNotReceived:
-		return "no fee tx received for this ticket"
+		return "no fee tx received for ticket"
 	default:
 		return "unknown error"
 	}

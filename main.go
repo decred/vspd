@@ -74,9 +74,10 @@ func run(ctx context.Context) error {
 		SupportEmail: cfg.SupportEmail,
 		VspClosed:    cfg.VspClosed,
 		AdminPass:    cfg.AdminPass,
+		Debug:        cfg.WebServerDebug,
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
-		dcrd, wallets, cfg.WebServerDebug, apiCfg)
+		dcrd, wallets, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialize webapi: %v", err)
 		requestShutdown()

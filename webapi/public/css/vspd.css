@@ -2,6 +2,20 @@ body {
     background-color: #091440;
     color: white;
 }
-img {
+
+.navbar-brand img {
     height: 70px;
+}
+
+th {
+    white-space: nowrap;
+}
+
+td {
+    font-family: "vspd-code";
+    word-break: break-word;
+}
+
+.code {
+    font-family: "vspd-code";
 }
