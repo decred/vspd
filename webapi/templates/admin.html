@@ -4,13 +4,16 @@
 
 <section>
     <h3>Admin</h3>
+
+    <a class="btn btn-primary" href="/admin/backup" download>Backup Database</a>
+
     <form class="my-2" action="/admin/logout" method="post">
-        <button type="submit">Logout</button>
+        <button class="btn btn-primary" type="submit">Logout</button>
     </form>
 
     <form class="my-2" action="/admin/ticket" method="post">
         <input type="text" name="hash" size="64" minlength="64" maxlength="64" required placeholder="Ticket hash">
-        <button type="submit">Search</button>
+        <button class="btn btn-primary" type="submit">Search</button>
     </form>
 
     {{ with .SearchResult }}
