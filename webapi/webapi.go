@@ -197,11 +197,15 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	// Create a cookie store for persisting admin session information.
 	cookieStore := sessions.NewCookieStore(cookieSecret)
 
-	admin := router.Group("/admin").Use(
+	login := router.Group("/admin").Use(
 		withSession(cookieStore),
 	)
+	login.POST("", adminLogin)
+
+	admin := router.Group("/admin").Use(
+		withSession(cookieStore), requireAdmin(),
+	)
 	admin.GET("", adminPage)
-	admin.POST("", adminLogin)
 	admin.POST("/ticket", ticketSearch)
 	admin.POST("/logout", adminLogout)
 
