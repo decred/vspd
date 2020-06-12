@@ -193,13 +193,6 @@ func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
 	})
 }
 
-// GetAllTickets returns all tickets in the database.
-func (vdb *VspDatabase) GetAllTickets() ([]Ticket, error) {
-	return vdb.filterTickets(func(t Ticket) bool {
-		return true
-	})
-}
-
 // filterTickets accepts a filter function and returns all tickets from the
 // database which match the filter.
 func (vdb *VspDatabase) filterTickets(filter func(Ticket) bool) ([]Ticket, error) {

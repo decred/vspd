@@ -2,13 +2,14 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta charset="utf-8">
 
         <title>vspd</title>
 
-        <link rel="stylesheet" type="text/css" href="/public/css/fonts.css" />
-        <link rel="stylesheet" type="text/css" href="/public/css/vspd.css" />
+        <link rel="stylesheet" href="/public/css/vendor/bootstrap.min.css" />
+        <link rel="stylesheet" href="/public/css/fonts.css" />
+        <link rel="stylesheet" href="/public/css/vspd.css" />
 
         <!--  Custom favicon  -->
         <!-- Apple PWA -->
@@ -41,5 +42,22 @@
     </head>
     
     <body>
-        <img src="/public/images/decred-logo.svg" />
+        <nav>
+            <div class="container">
+                <a class="navbar-brand" href="/"><img src="/public/images/decred-logo.svg" /></a>
+            </div>
+        </nav>
+
+        <div class="container">
+            {{ if .VspStats.Debug }}
+                <div class="alert alert-warning" role="alert">
+                    Web server is running in debug mode - don't do this in production!
+                </div>
+            {{ end }}
+
+            {{ if .VspStats.VspClosed }}
+                <div class="alert alert-warning" role="alert">
+                    This VSP is closed and not accepting new tickets.
+                </div>
+            {{ end }}
 {{end}}

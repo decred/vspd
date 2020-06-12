@@ -1,41 +1,83 @@
 {{ template "header" . }}
 
-<form action="/admin/logout" method="post">
-    <button type="submit">Logout</button>
-</form>
+{{ template "vsp-stats" .VspStats }}
 
-<table>
-    <tr>
-        <td>Hash</td>
-        <td>CommitmentAddress</td>
-        <td>FeeAddressIndex</td>
-        <td>FeeAddress</td>
-        <td>FeeAmount</td>
-        <td>FeeExpiration</td>
-        <td>Confirmed</td>
-        <td>VoteChoices</td>
-        <td>VotingWIF</td>
-        <td>FeeTxHex</td>
-        <td>FeeTxHash</td>
-        <td>FeeTxStatus</td>
-    </tr>
-    {{ range .Tickets }}
-    <tr>
-        <td>{{ printf "%.10s" .Hash }}...</td>
-        <td>{{ printf "%.10s" .CommitmentAddress }}...</td>
-        <td>{{ printf "%d" .FeeAddressIndex }}</td>
-        <td>{{ printf "%.10s" .FeeAddress }}...</td>
-        <td>{{ printf "%d" .FeeAmount }}</td>
-        <td>{{ printf "%d" .FeeExpiration }}</td>
-        <td>{{ printf "%t" .Confirmed }}</td>
-        <td>{{ printf "%.10s" .VoteChoices }}...</td>
-        <td>{{ printf "%.10s" .VotingWIF }}...</td>
-        <td>{{ printf "%.10s" .FeeTxHex }}...</td>
-        <td>{{ printf "%.10s" .FeeTxHash }}...</td>
-        <td>{{ printf "%s" .FeeTxStatus }}</td>
-    </tr>
+<section>
+    <h3>Admin</h3>
+    <form class="my-2" action="/admin/logout" method="post">
+        <button type="submit">Logout</button>
+    </form>
+
+    <form class="my-2" action="/admin/ticket" method="post">
+        <input type="text" name="hash" size="64" minlength="64" maxlength="64" required placeholder="Ticket hash">
+        <button type="submit">Search</button>
+    </form>
+
+    {{ with .SearchResult }}
+        {{ if .Found }}
+            {{ with .Ticket }}
+                <table class="table table-dark my-2 ticket-table">
+                    <tr>
+                        <th>Hash</th>
+                        <td>{{ .Hash }}</td>
+                    </tr>
+                    <tr>
+                        <th>Commitment Address</th>
+                        <td>{{ .CommitmentAddress }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fee Address Index</th>
+                        <td>{{ .FeeAddressIndex }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fee Address</th>
+                        <td>{{ .FeeAddress }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fee Amount</th>
+                        <td>{{ .FeeAmount }} atoms</td>
+                    </tr>
+                    <tr>
+                        <th>Fee Expiration</th>
+                        <td>{{ .FeeExpiration }}</td>
+                    </tr>
+                    <tr>
+                        <th>Confirmed</th>
+                        <td>{{ .Confirmed }}</td>
+                    </tr>
+                    <tr>
+                        <th>Vote Choices</th>
+                        <td>
+                            {{ range $key, $value := .VoteChoices }}
+                                {{ $key }}: {{ $value }} <br />
+                            {{ end }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Voting WIF</th>
+                        <td>{{ .VotingWIF }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fee Tx</th>
+                        <td>{{ .FeeTxHex }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fee Tx Hash</th>
+                        <td>{{ .FeeTxHash }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fee Tx Status</th>
+                        <td>{{ .FeeTxStatus }}</td>
+                    </tr>
+                    <tr>
+                    </tr>
+                </table>
+            {{ end }}
+        {{ else }}
+            <p>No ticket with hash <span class="code">"{{ .Hash }}"</span></p>
+        {{ end }}
     {{ end }}
-</table>
-    
-</body>
-</html>
+
+</section>
+
+{{ template "footer" . }}

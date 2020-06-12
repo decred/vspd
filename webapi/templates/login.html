@@ -1,13 +1,15 @@
 {{ template "header" . }}
 
-<form action="/admin" method="post">
-    <input type="password" name="password" required placeholder="Enter password">
-    <button type="submit">Login</button>
-</form>
+<section>
+    <h3>Login</h3>
+    <form action="/admin" method="post">
+        <input type="password" name="password" required placeholder="Enter password">
+        <button type="submit">Login</button>
+    </form>
 
-{{ if .IncorrectPassword }}
-    <p>Incorrect password</p>
-{{ end }}
+    {{ if .IncorrectPassword }}
+        <p>Incorrect password</p>
+    {{ end }}
+</section>
 
-</body>
-</html>
+{{ template "footer" . }}

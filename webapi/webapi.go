@@ -25,6 +25,7 @@ type Config struct {
 	SupportEmail   string
 	VspClosed      bool
 	AdminPass      string
+	Debug          bool
 }
 
 const (
@@ -45,7 +46,7 @@ var signPrivKey ed25519.PrivateKey
 var signPubKey ed25519.PublicKey
 
 func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, debugMode bool, config Config) error {
+	listen string, vdb *database.VspDatabase, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, config Config) error {
 
 	cfg = config
 	db = vdb
@@ -94,7 +95,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	log.Infof("Listening on %s", listen)
 
 	srv := http.Server{
-		Handler:      router(debugMode, cookieSecret, dcrd, wallets),
+		Handler:      router(cfg.Debug, cookieSecret, dcrd, wallets),
 		ReadTimeout:  5 * time.Second,  // slow requests should not hold connections opened
 		WriteTimeout: 60 * time.Second, // hung responses must die
 	}
@@ -131,7 +132,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 
 	// Use a ticker to update template data.
 	var refresh time.Duration
-	if debugMode {
+	if cfg.Debug {
 		refresh = 1 * time.Second
 	} else {
 		refresh = 5 * time.Minute
@@ -201,6 +202,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	)
 	admin.GET("", adminPage)
 	admin.POST("", adminLogin)
+	admin.POST("/ticket", ticketSearch)
 	admin.POST("/logout", adminLogout)
 
 	// These API routes access dcrd and the voting wallets, and they need
