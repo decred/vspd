@@ -47,6 +47,23 @@ func withSession(store *sessions.CookieStore) gin.HandlerFunc {
 	}
 }
 
+// requireAdmin will only allow the request to proceed if the current session is
+// authenticated as an admin, otherwise it will render the login template.
+func requireAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := c.MustGet("session").(*sessions.Session)
+		admin := session.Values["admin"]
+
+		if admin == nil {
+			c.HTML(http.StatusUnauthorized, "login.html", gin.H{
+				"VspStats": stats,
+			})
+			c.Abort()
+			return
+		}
+	}
+}
+
 // withDcrdClient middleware adds a dcrd client to the request
 // context for downstream handlers to make use of.
 func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {

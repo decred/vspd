@@ -7,39 +7,16 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-// adminPage is the handler for "GET /admin". The admin template will be
-// rendered if the current session is authenticated as an admin, otherwise the
-// login template will be rendered.
+// adminPage is the handler for "GET /admin".
 func adminPage(c *gin.Context) {
-	session := c.MustGet("session").(*sessions.Session)
-	admin := session.Values["admin"]
-
-	if admin == nil {
-		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"VspStats": stats,
-		})
-		return
-	}
-
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"VspStats": stats,
 	})
 }
 
 // ticketSearch is the handler for "POST /admin/ticket". The "hash" param will
-// be used to retrieve a ticket from the database if the current session is
-// authenticated as an admin, otherwise the login template will be rendered.
+// be used to retrieve a ticket from the database.
 func ticketSearch(c *gin.Context) {
-	session := c.MustGet("session").(*sessions.Session)
-	admin := session.Values["admin"]
-
-	if admin == nil {
-		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"VspStats": stats,
-		})
-		return
-	}
-
 	hash := c.PostForm("hash")
 
 	ticket, found, err := db.GetTicketByHash(hash)
@@ -82,7 +59,8 @@ func adminLogout(c *gin.Context) {
 	setAdminStatus(nil, c)
 }
 
-// setAdminStatus stores the authentication status of the current session.
+// setAdminStatus stores the authentication status of the current session and
+// redirects the client to GET /admin.
 func setAdminStatus(admin interface{}, c *gin.Context) {
 	session := c.MustGet("session").(*sessions.Session)
 	session.Values["admin"] = admin
