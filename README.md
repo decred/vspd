@@ -26,7 +26,9 @@ VSP will add the ticket to a pool of always-online voting wallets.
 - **API** - Tickets are registered with the VSP using a JSON HTTP API. For more
   detail on the API and its usage, read [api.md](./docs/api.md)
 
-- **Web front-end** - A minimal, static, website providing pool stats.
+- **Web front-end** - A minimal website (no JavaScript) providing public pool
+  stats. An admin page enables searching for tickets and downloading database
+  backups.
 
 - **Two-way accountability** - All vspd requests must be signed with a private
   key corresponding to the relevant ticket, and all vspd responses are signed

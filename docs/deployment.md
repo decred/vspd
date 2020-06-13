@@ -88,6 +88,9 @@ To facilitate back-ups, vspd will periodically write a copy of the bbolt
 database to the path `{homedir}/data/{network}/vspd.db-backup`. A copy of the
 database file will also be written to this path when vspd shuts down.
 
+It is also possible to generate and download a database backup on demand from
+the admin page of the vspd web front-end.
+
 ## Disaster Recovery
 
 The database file contains everything needed to restore a vspd deployment -
