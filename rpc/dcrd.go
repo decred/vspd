@@ -17,6 +17,9 @@ import (
 
 const (
 	requiredDcrdVersion = "6.1.1"
+	// errRPCDuplicateTx is defined in dcrd/dcrjson. Copying here so we dont
+	// need to import the whole package.
+	errRPCDuplicateTx = -40
 )
 
 // DcrdRPC provides methods for calling dcrd JSON-RPCs without exposing the details
@@ -101,7 +104,29 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 	err := c.Call(c.ctx, "sendrawtransaction", nil, txHex, allowHighFees)
 	if err != nil {
 
-		// It's not a problem if the transaction has already been broadcast.
+		// sendrawtransaction can return two different errors when a tx already
+		// exists:
+		//
+		// If the tx is in mempool...
+		//  Error code: -40
+		//  message: rejected transaction <hash>: already have transaction <hash>
+		//
+		// If the tx is in a mined block...
+		//  Error code: -1
+		//  message: rejected transaction <hash>: transaction already exists
+		//
+		// It's not a problem if the transaction has already been broadcast, so
+		// we will capture these errors and return nil.
+
+		// Exists in mempool.
+		var e *wsrpc.Error
+		if errors.As(err, &e) && e.Code == errRPCDuplicateTx {
+			return nil
+		}
+
+		// Exists in mined block.
+		// We cannot use error code -1 here because it is a generic code for
+		// many errors, so we instead need to string match on the message.
 		if strings.Contains(err.Error(), "transaction already exists") {
 			return nil
 		}
