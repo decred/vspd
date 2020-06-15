@@ -103,6 +103,18 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 	})
 }
 
+func (vdb *VspDatabase) DeleteTicket(ticket Ticket) error {
+	return vdb.db.Update(func(tx *bolt.Tx) error {
+		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+
+		err := ticketBkt.Delete([]byte(ticket.Hash))
+		if err != nil {
+			return fmt.Errorf("could not delete ticket: %v", err)
+		}
+
+		return nil
+	})
+}
 func (vdb *VspDatabase) UpdateTicket(ticket Ticket) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)

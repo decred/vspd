@@ -55,6 +55,30 @@ func testInsertNewTicket(t *testing.T) {
 	}
 }
 
+func testDeleteTicket(t *testing.T) {
+	// Insert a ticket into the database.
+	ticket := exampleTicket()
+	err := db.InsertNewTicket(ticket)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	// Delete ticket
+	err = db.DeleteTicket(ticket)
+	if err != nil {
+		t.Fatalf("error deleting ticket: %v", err)
+	}
+
+	// Nothing should be in the db.
+	_, found, err := db.GetTicketByHash(ticket.Hash)
+	if err != nil {
+		t.Fatalf("error retrieving ticket by ticket hash: %v", err)
+	}
+	if found {
+		t.Fatal("expected found==false")
+	}
+}
+
 func testGetTicketByHash(t *testing.T) {
 	ticket := exampleTicket()
 	// Insert a ticket into the database.

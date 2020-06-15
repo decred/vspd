@@ -3,6 +3,7 @@ package background
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"sync"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/jrick/wsrpc/v2"
 )
 
 var (
@@ -28,6 +30,9 @@ const (
 	// requiredConfs is the number of confirmations required to consider a
 	// ticket purchase or a fee transaction to be final.
 	requiredConfs = 6
+	// errNoTxInfo is defined in dcrd/dcrjson. Copying here so we dont need to
+	// import the whole package.
+	errNoTxInfo = -5
 )
 
 // Notify is called every time a block notification is received from dcrd.
@@ -76,9 +81,26 @@ func blockConnected() {
 	for _, ticket := range unconfirmed {
 		tktTx, err := dcrdClient.GetRawTransaction(ticket.Hash)
 		if err != nil {
-			log.Errorf("GetRawTransaction error: %v", err)
+			// errNoTxInfo here probably indicates a tx which was never mined
+			// and has been removed from the mempool. For example, a ticket
+			// purchase tx close to an sdiff change, or a ticket purchase tx
+			// which expired. Remove it from the db.
+			var e *wsrpc.Error
+			if errors.As(err, &e) && e.Code == errNoTxInfo {
+				log.Infof("Removing unconfirmed ticket from db - no information available "+
+					"about transaction %s", err.Error())
+
+				err = db.DeleteTicket(ticket)
+				if err != nil {
+					log.Errorf("DeleteTicket error: %v", err)
+				}
+			} else {
+				log.Errorf("GetRawTransaction error: %v", err)
+			}
+
 			continue
 		}
+
 		if tktTx.Confirmations >= requiredConfs {
 			ticket.Confirmed = true
 			err = db.UpdateTicket(ticket)
