@@ -28,6 +28,7 @@ func TestDatabase(t *testing.T) {
 		"testTicketFeeExpired": testTicketFeeExpired,
 		"testFilterTickets":    testFilterTickets,
 		"testAddressIndex":     testAddressIndex,
+		"testDeleteTicket":     testDeleteTicket,
 	}
 
 	for testName, test := range tests {
