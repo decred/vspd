@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -64,8 +65,8 @@ func requireAdmin() gin.HandlerFunc {
 	}
 }
 
-// withDcrdClient middleware adds a dcrd client to the request
-// context for downstream handlers to make use of.
+// withDcrdClient middleware adds a dcrd client to the request context for
+// downstream handlers to make use of.
 func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		client, err := dcrd.Client(c, cfg.NetParams)
@@ -126,6 +127,21 @@ func vspAuth() gin.HandlerFunc {
 		}
 		hash := request.TicketHash
 
+		// Before hitting the db or any RPC, ensure this is a valid ticket hash.
+		// A ticket hash should be 64 chars (MaxHashStringSize) and should parse
+		// into a chainhash.Hash without error.
+		if len(hash) != chainhash.MaxHashStringSize {
+			log.Errorf("Invalid hash from %s: incorrect length", c.ClientIP())
+			sendErrorWithMsg("invalid ticket hash", errBadRequest, c)
+			return
+		}
+		_, err = chainhash.NewHashFromStr(hash)
+		if err != nil {
+			log.Errorf("Invalid hash from %s: %v", c.ClientIP(), err)
+			sendErrorWithMsg("invalid ticket hash", errBadRequest, c)
+			return
+		}
+
 		// Check if this ticket already appears in the database.
 		ticket, ticketFound, err := db.GetTicketByHash(hash)
 		if err != nil {
@@ -134,8 +150,8 @@ func vspAuth() gin.HandlerFunc {
 			return
 		}
 
-		// If the ticket was found in the database we already know its commitment
-		// address. Otherwise we need to get it from the chain.
+		// If the ticket was found in the database, we already know its
+		// commitment address. Otherwise we need to get it from the chain.
 		var commitmentAddress string
 		if ticketFound {
 			commitmentAddress = ticket.CommitmentAddress
