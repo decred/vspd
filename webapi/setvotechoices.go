@@ -61,8 +61,6 @@ func setVoteChoices(c *gin.Context) {
 		for agenda, choice := range voteChoices {
 			for _, walletClient := range walletClients {
 				err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
-				// TODO: This will error if the wallet does not know about the ticket yet.
-				// TODO: We shouldn't return on first error - we want to try all wallets.
 				if err != nil {
 					// If this fails, we still want to try the other wallets, so
 					// don't return an error response, just log an error.
