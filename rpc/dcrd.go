@@ -128,10 +128,10 @@ func (c *DcrdRPC) GetTicketCommitmentAddress(ticketHash string, netParams *chain
 
 	// Ensure transaction is a valid ticket.
 	if !stake.IsSStx(msgTx) {
-		return "", errors.New("invalid transcation - not sstx")
+		return "", errors.New("invalid transaction - not sstx")
 	}
 	if len(msgTx.TxOut) != 3 {
-		return "", fmt.Errorf("invalid transcation - expected 3 outputs, got %d", len(msgTx.TxOut))
+		return "", fmt.Errorf("invalid transaction - expected 3 outputs, got %d", len(msgTx.TxOut))
 	}
 
 	// Get ticket commitment address.
