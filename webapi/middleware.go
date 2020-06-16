@@ -57,7 +57,7 @@ func requireAdmin() gin.HandlerFunc {
 
 		if admin == nil {
 			c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-				"VspStats": stats,
+				"VspStats": getVSPStats(),
 			})
 			c.Abort()
 			return

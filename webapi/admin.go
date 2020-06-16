@@ -10,7 +10,7 @@ import (
 // adminPage is the handler for "GET /admin".
 func adminPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin.html", gin.H{
-		"VspStats": stats,
+		"VspStats": getVSPStats(),
 	})
 }
 
@@ -32,7 +32,7 @@ func ticketSearch(c *gin.Context) {
 			"Found":  found,
 			"Ticket": ticket,
 		},
-		"VspStats": stats,
+		"VspStats": getVSPStats(),
 	})
 }
 
@@ -44,7 +44,7 @@ func adminLogin(c *gin.Context) {
 	if password != cfg.AdminPass {
 		log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"VspStats":          stats,
+			"VspStats":          getVSPStats(),
 			"IncorrectPassword": true,
 		})
 		return

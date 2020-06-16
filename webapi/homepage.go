@@ -2,6 +2,7 @@ package webapi
 
 import (
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/decred/vspd/database"
@@ -21,14 +22,26 @@ type vspStats struct {
 	Debug               bool
 }
 
+var statsMtx sync.RWMutex
 var stats *vspStats
 
-func updateVSPStats(db *database.VspDatabase, cfg Config) (*vspStats, error) {
+func getVSPStats() *vspStats {
+	statsMtx.RLock()
+	defer statsMtx.RUnlock()
+
+	return stats
+}
+
+func updateVSPStats(db *database.VspDatabase, cfg Config) error {
 	total, feeConfirmed, err := db.CountTickets()
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &vspStats{
+
+	statsMtx.Lock()
+	defer statsMtx.Unlock()
+
+	stats = &vspStats{
 		PubKey:              signPubKey,
 		TotalTickets:        total,
 		FeeConfirmedTickets: feeConfirmed,
@@ -38,11 +51,13 @@ func updateVSPStats(db *database.VspDatabase, cfg Config) (*vspStats, error) {
 		SupportEmail:        cfg.SupportEmail,
 		VspClosed:           cfg.VspClosed,
 		Debug:               cfg.Debug,
-	}, nil
+	}
+
+	return nil
 }
 
 func homepage(c *gin.Context) {
 	c.HTML(http.StatusOK, "homepage.html", gin.H{
-		"VspStats": stats,
+		"VspStats": getVSPStats(),
 	})
 }
