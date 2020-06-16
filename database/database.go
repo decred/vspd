@@ -196,7 +196,13 @@ func (vdb *VspDatabase) KeyPair() (ed25519.PrivateKey, ed25519.PublicKey, error)
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		vspBkt := tx.Bucket(vspBktK)
 
-		seed = vspBkt.Get(privateKeyK)
+		s := vspBkt.Get(privateKeyK)
+
+		// Byte slices returned from Bolt are only valid during a transaction.
+		// Need to make a copy.
+		seed = make([]byte, len(s))
+		copy(seed, s)
+
 		if seed == nil {
 			// should not happen
 			return fmt.Errorf("no private key found")
@@ -242,7 +248,12 @@ func (vdb *VspDatabase) GetCookieSecret() ([]byte, error) {
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		vspBkt := tx.Bucket(vspBktK)
 
-		cookieSecret = vspBkt.Get(cookieSecretK)
+		cs := vspBkt.Get(cookieSecretK)
+
+		// Byte slices returned from Bolt are only valid during a transaction.
+		// Need to make a copy.
+		cookieSecret = make([]byte, len(cs))
+		copy(cookieSecret, cs)
 
 		return nil
 	})
