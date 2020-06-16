@@ -59,10 +59,10 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 		return fmt.Errorf("Failed to get keypair: %v", err)
 	}
 
-	// Populate template data before starting webserver.
-	stats, err = updateVSPStats(vdb, config)
+	// Populate cached VSP stats before starting webserver.
+	err = updateVSPStats(vdb, config)
 	if err != nil {
-		return fmt.Errorf("could not initialize homepage data: %v", err)
+		return fmt.Errorf("could not initialize VSP stats cache: %v", err)
 	}
 
 	// Get the last used address index and the feeXpub from the database, and
@@ -147,9 +147,9 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 				shutdownWg.Done()
 				return
 			case <-ticker.C:
-				stats, err = updateVSPStats(db, cfg)
+				err = updateVSPStats(db, cfg)
 				if err != nil {
-					log.Errorf("Failed to update homepage data: %v", err)
+					log.Errorf("Failed to update cached VSP stats: %v", err)
 				}
 			}
 		}
