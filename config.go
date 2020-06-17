@@ -32,6 +32,7 @@ var (
 	defaultWebServerDebug = false
 	defaultBackupInterval = time.Minute * 3
 	defaultVspClosed      = false
+	defaultDesignation    = "Voting Service Provider"
 )
 
 // config defines the configuration options for the VSP.
@@ -53,6 +54,7 @@ type config struct {
 	BackupInterval time.Duration `long:"backupinterval" ini-name:"backupinterval" description:"Time period between automatic database backups. Valid time units are {s,m,h}. Minimum 30 seconds."`
 	VspClosed      bool          `long:"vspclosed" ini-name:"vspclosed" description:"Closed prevents the VSP from accepting new tickets."`
 	AdminPass      string        `long:"adminpass" ini-name:"adminpass" description:"Password for accessing admin page."`
+	Designation    string        `long:"designation" ini-name:"designation" description:"Short name for the VSP. Customizes the logo in the top toolbar."`
 
 	// The following flags should be set on CLI only, not via config file.
 	FeeXPub    string `long:"feexpub" no-ini:"true" description:"Cold wallet xpub used for collecting fees. Should be provided once to initialize a vspd database."`
@@ -164,6 +166,7 @@ func loadConfig() (*config, error) {
 		WebServerDebug: defaultWebServerDebug,
 		BackupInterval: defaultBackupInterval,
 		VspClosed:      defaultVspClosed,
+		Designation:    defaultDesignation,
 	}
 
 	// Pre-parse the command line options to see if an alternative config

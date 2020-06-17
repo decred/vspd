@@ -75,6 +75,7 @@ func run(ctx context.Context) error {
 		VspClosed:    cfg.VspClosed,
 		AdminPass:    cfg.AdminPass,
 		Debug:        cfg.WebServerDebug,
+		Designation:  cfg.Designation,
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
 		dcrd, wallets, apiCfg)
