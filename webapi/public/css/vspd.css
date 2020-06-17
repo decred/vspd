@@ -67,3 +67,51 @@ footer .code {
         text-align: center;
     }
 }
+
+.btn {
+    outline: 0;
+    -webkit-box-shadow: 1px 3px 14px 0px rgba(0,0,0,0.19);
+            box-shadow: 1px 3px 14px 0px rgba(0,0,0,0.19);
+}
+
+.btn:focus, .btn:active,
+.btn-primary:not(:disabled):not(.disabled):active:focus,
+.btn-primary:not(:disabled):not(.disabled).active:focus {
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    border-color: transparent;
+}
+
+.btn-small {
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.block__content h1 {
+    color: #091440;
+    font-size: 24px;
+    padding-bottom: 10px;
+}
+
+.block__content {
+    background-color: #ffffff;
+    padding: 20px 30px; 
+    color: #3D5873;
+    line-height: 1.4;
+}
+
+.block__content th {
+    font-weight: normal;
+    padding-right: 15px;
+    text-align: right;
+}
+
+.block__content table td {
+    word-break: break-word;
+    font-family: "vspd-code";
+}
+
+.block__content table th {
+    vertical-align: top;
+    white-space: nowrap;
+}

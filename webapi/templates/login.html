@@ -1,15 +1,15 @@
 {{ template "header" . }}
 
-<section>
-    <h3>Login</h3>
+<div class="py-4 container">
+    <h1>Login</h1>
     <form action="/admin" method="post">
         <input type="password" name="password" required placeholder="Enter password">
-        <button class="btn btn-primary" type="submit">Login</button>
+        <button class="ml-3 btn btn-primary" type="submit">Login</button>
     </form>
 
     {{ if .IncorrectPassword }}
         <p>Incorrect password</p>
     {{ end }}
-</section>
+</div>
 
 {{ template "footer" . }}

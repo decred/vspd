@@ -1,86 +1,110 @@
 {{ template "header" . }}
 
-{{ template "vsp-stats" .VspStats }}
+<div class="vsp-overview pt-4 pb-3 mb-3">
+    <div class="container">
 
-<section>
-    <h3>Admin</h3>
+        <div class="d-flex flex-wrap">
+            <h1 class="mr-auto text-nowrap">Admin Panel</h1>
+            
+            <div class="row">
+                <a class="m-2 btn btn-primary btn-small" href="/admin/backup" download>Backup</a>
+                
+                <form class="p-2" action="/admin/logout" method="post">
+                    <button type="submit" class="btn btn-primary btn-small">Logout</button>
+                </form>
+            </div>
+        </div>
+        
 
-    <a class="btn btn-primary" href="/admin/backup" download>Backup Database</a>
+        {{ template "vsp-stats" .VspStats }}
 
-    <form class="my-2" action="/admin/logout" method="post">
-        <button class="btn btn-primary" type="submit">Logout</button>
-    </form>
+    </div>
+</div>
 
-    <form class="my-2" action="/admin/ticket" method="post">
-        <input type="text" name="hash" size="64" minlength="64" maxlength="64" required placeholder="Ticket hash">
-        <button class="btn btn-primary" type="submit">Search</button>
-    </form>
+<div class="container">
 
-    {{ with .SearchResult }}
-        {{ if .Found }}
-            {{ with .Ticket }}
-                <table class="table table-dark my-2 ticket-table">
-                    <tr>
-                        <th>Hash</th>
-                        <td>{{ .Hash }}</td>
-                    </tr>
-                    <tr>
-                        <th>Commitment Address</th>
-                        <td>{{ .CommitmentAddress }}</td>
-                    </tr>
-                    <tr>
-                        <th>Fee Address Index</th>
-                        <td>{{ .FeeAddressIndex }}</td>
-                    </tr>
-                    <tr>
-                        <th>Fee Address</th>
-                        <td>{{ .FeeAddress }}</td>
-                    </tr>
-                    <tr>
-                        <th>Fee Amount</th>
-                        <td>{{ .FeeAmount }} atoms</td>
-                    </tr>
-                    <tr>
-                        <th>Fee Expiration</th>
-                        <td>{{ .FeeExpiration }}</td>
-                    </tr>
-                    <tr>
-                        <th>Confirmed</th>
-                        <td>{{ .Confirmed }}</td>
-                    </tr>
-                    <tr>
-                        <th>Vote Choices</th>
-                        <td>
-                            {{ range $key, $value := .VoteChoices }}
-                                {{ $key }}: {{ $value }} <br />
-                            {{ end }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Voting WIF</th>
-                        <td>{{ .VotingWIF }}</td>
-                    </tr>
-                    <tr>
-                        <th>Fee Tx</th>
-                        <td>{{ .FeeTxHex }}</td>
-                    </tr>
-                    <tr>
-                        <th>Fee Tx Hash</th>
-                        <td>{{ .FeeTxHash }}</td>
-                    </tr>
-                    <tr>
-                        <th>Fee Tx Status</th>
-                        <td>{{ .FeeTxStatus }}</td>
-                    </tr>
-                    <tr>
-                    </tr>
-                </table>
-            {{ end }}
-        {{ else }}
-            <p>No ticket with hash <span class="code">"{{ .Hash }}"</span></p>
-        {{ end }}
-    {{ end }}
+    <div class="row">
 
-</section>
+        <div class="col-12 p-3">
+            <div class="block__content">
+                <h1>Ticket Search</h1>
+    
+
+                <form class="my-2" action="/admin/ticket" method="post">
+                    <input type="text" name="hash" size="64" minlength="64" maxlength="64" required placeholder="Ticket hash">
+                    <button class="ml-3 btn btn-primary" type="submit">Search</button>
+                </form>
+
+                {{ with .SearchResult }}
+                    {{ if .Found }}
+                        {{ with .Ticket }}
+                            <table class="table mt-4 mb-0">
+                                <tr>
+                                    <th>Hash</th>
+                                    <td>{{ .Hash }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Commitment Address</th>
+                                    <td>{{ .CommitmentAddress }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Fee Address Index</th>
+                                    <td>{{ .FeeAddressIndex }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Fee Address</th>
+                                    <td>{{ .FeeAddress }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Fee Amount</th>
+                                    <td>{{ .FeeAmount }} atoms</td>
+                                </tr>
+                                <tr>
+                                    <th>Fee Expiration</th>
+                                    <td>{{ .FeeExpiration }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Confirmed</th>
+                                    <td>{{ .Confirmed }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Vote Choices</th>
+                                    <td>
+                                        {{ range $key, $value := .VoteChoices }}
+                                            {{ $key }}: {{ $value }} <br />
+                                        {{ end }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Voting WIF</th>
+                                    <td>{{ .VotingWIF }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Fee Tx</th>
+                                    <td>{{ .FeeTxHex }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Fee Tx Hash</th>
+                                    <td>{{ .FeeTxHash }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Fee Tx Status</th>
+                                    <td>{{ .FeeTxStatus }}</td>
+                                </tr>
+                                <tr>
+                                </tr>
+                            </table>
+                        {{ end }}
+                    {{ else }}
+                        <p>No ticket found with hash <span class="code">{{ .Hash }}</span></p>
+                    {{ end }}
+                {{ end }}
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
 
 {{ template "footer" . }}
