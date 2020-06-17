@@ -1,5 +1,28 @@
 {{ template "header" . }}
 
-{{ template "vsp-stats" .VspStats }}
+<div class="vsp-overview pt-4 pb-3 mb-3">
+    <div class="container">
+
+        {{ if .VspStats.VspClosed }}
+            <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">This Voting Service Provider is closed</h4>
+                A closed VSP will still vote on tickets with already paid fees, but will not accept new any tickets.
+                Visit <a href="https://decred.org/vsp/" class="alert-link" target="_blank" rel="noopener noreferrer">decred.org</a> to find a new VSP.
+            </div>
+        {{ end }}
+
+        <h1>VSP Overview</h1>
+
+        <p class="pt-1 pb-2">A Voting Service Provider (VSP) maintains a pool of always-online voting wallets,
+            and allows Decred ticket holders to use these wallets to vote their tickets in exchange for a small fee.
+            VSPs are completely non-custodial - they never hold, manage, or have access to any user funds.
+            Visit <a href="https://docs.decred.org/proof-of-stake/overview/" target="_blank" rel="noopener noreferrer">docs.decred.org</a>
+            to find out more about VSPs, tickets, and voting.
+        </p>
+
+        {{ template "vsp-stats" .VspStats }}
+    
+    </div>
+</div>
 
 {{ template "footer" . }}

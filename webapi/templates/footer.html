@@ -1,5 +1,27 @@
 {{ define "footer" }}
-</div>
+
+  </div> <!-- page-content -->
+
+  <footer class="row m-0">
+        <div class="col-md-8 col-12 d-flex justify-content-center align-items-center">
+            <p class="py-4 m-0">
+              <strong>Stats&nbsp;updated:</strong>&nbsp;{{ .VspStats.UpdateTime }}
+              <br />
+              <strong>Support:</strong>&nbsp;<a href="mailto:{{ .VspStats.SupportEmail }}" rel="noopener noreferrer">{{ .VspStats.SupportEmail }}</a>
+              <br />
+              <strong>VSP&nbsp;public&nbsp;key:</strong>&nbsp;<span class="code">{{ printf "%x" .VspStats.PubKey }}</span>
+            </p>
+        </div>
+
+        <div class="col-md-4 col-12 footer__credit d-flex justify-content-center align-items-center">
+            <p class="py-4 m-0">
+                Decred Developers | 2020
+                <br />
+                The source code is available on <a href="https://github.com/decred/vspd" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </p>
+        </div>
+  </footer>
+
 </body>
 </html>
 {{ end }}
