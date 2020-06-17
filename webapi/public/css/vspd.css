@@ -1,6 +1,15 @@
+html, body {
+    height: 100%;
+}
 body {
-    background-color: #F3F5F6;
+    background-color: #F9FAFA;
     color: #3D5873;
+    display: flex;
+    flex-direction: column;
+}
+
+.page-content {
+    flex: 1 0 auto;
 }
 
 .logo--logo {
@@ -14,11 +23,47 @@ body {
     color: #091440;
 }
 
-th {
-    white-space: nowrap;
+.vsp-overview {
+    color: #8997A5;
+    background-color: #ffffff;
+    font-size: 16px;
 }
 
-td {
-    font-family: "vspd-code";
+.vsp-overview h1 {
+    color: #3D5873;
+    font-size: 28px;
+}
+
+.vsp-stats .stat-title {
+    font-size: 14px;
+    color: #596D81;
+}
+
+.vsp-stats .stat-value {
+    font-size: 24px;
+    color: #091440;
+}
+
+footer {
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    background-color: #091440;
+    color: #8997a5;
+    width: 100%;
+}
+
+footer .code {
     word-break: break-word;
+}
+
+.footer__credit {
+    background-color: rgba(237,239,241,.1);
+    text-align: right;
+    color: #8997a5;
+}
+
+@media (max-width: 768px) {
+    .footer__credit {
+        text-align: center;
+    }
 }

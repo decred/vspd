@@ -1,36 +1,27 @@
 {{ define "vsp-stats" }}
 
-<section>
-    <h3>VSP Stats</h3>
+<div class="row vsp-stats">
     
-    <p><em>Last updated: {{ .UpdateTime }}</em></p>
+    <div class="col-6 col-sm-4 col-lg-2 py-3">
+        <div class="stat-title">Total tickets</div>
+        <div class="stat-value" id="vsp-hash-rate">{{ .TotalTickets }}</div>
+    </div>
 
-    <table class="table table-dark">
-        <tr>
-            <th>Total tickets</th>
-            <td>{{ .TotalTickets }}</td>
-        </tr>
-        <tr>
-            <th>Fee confirmed tickets</th>
-            <td>{{ .FeeConfirmedTickets }}</td>
-        </tr>
-        <tr>
-            <th>VSP Fee</th>
-            <td>{{ .VSPFee }}% of vote reward</td>
-        </tr>
-        <tr>
-            <th>Network</th>
-            <td>{{ .Network }}</td>
-        </tr>
-        <tr>
-            <th>Support</th>
-            <td>{{ .SupportEmail }}</td>
-        </tr>
-        <tr>
-            <th>Pubkey</th>
-            <td class="code">{{ printf "%x" .PubKey }}</td>
-        </tr>
-    </table>
-</section>
+    <div class="col-6 col-sm-4 col-lg-2 py-3">
+        <div class="stat-title">Fee confirmed tickets</div>
+        <div class="stat-value" id="last-work-height">{{ .FeeConfirmedTickets }}</div>
+    </div>
+
+    <div class="col-6 col-sm-4 col-lg-2 py-3">
+        <div class="stat-title">VSP Fee</div>
+        <div class="stat-value">{{ .VSPFee }}%</div>
+    </div>
+
+    <div class="col-6 col-sm-4 col-lg-2 py-3">
+        <div class="stat-title">Network</div>
+        <div class="stat-value">{{ .Network }}</div>
+    </div>
+
+</div>
 
 {{ end }}
