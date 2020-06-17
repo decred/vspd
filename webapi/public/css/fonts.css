@@ -57,7 +57,7 @@ html, body {
     font-family: "vspd", "Verdana", "sans-serif" !important;
 }
 
-pre, code {
+pre, code, .code {
     /* use !important to prevent issues with browser extensions that change fonts */
     font-family: "vspd-code", "Courier New", "monospace" !important;
 }

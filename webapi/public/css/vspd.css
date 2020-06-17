@@ -1,10 +1,17 @@
 body {
-    background-color: #091440;
-    color: white;
+    background-color: #F3F5F6;
+    color: #3D5873;
 }
 
-.navbar-brand img {
-    height: 70px;
+.logo--logo {
+    padding-right: 5px;
+    border-right: 0.3px solid #091440;
+}
+.logo--text {
+    padding: 0 5px;
+    font-size: 15px;
+    line-height: 1;
+    color: #091440;
 }
 
 th {
@@ -14,8 +21,4 @@ th {
 td {
     font-family: "vspd-code";
     word-break: break-word;
-}
-
-.code {
-    font-family: "vspd-code";
 }

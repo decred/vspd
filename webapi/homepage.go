@@ -20,6 +20,7 @@ type vspStats struct {
 	SupportEmail        string
 	VspClosed           bool
 	Debug               bool
+	Designation         string
 }
 
 var statsMtx sync.RWMutex
@@ -51,6 +52,7 @@ func updateVSPStats(db *database.VspDatabase, cfg Config) error {
 		SupportEmail:        cfg.SupportEmail,
 		VspClosed:           cfg.VspClosed,
 		Debug:               cfg.Debug,
+		Designation:         cfg.Designation,
 	}
 
 	return nil

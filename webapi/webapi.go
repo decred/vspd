@@ -26,6 +26,7 @@ type Config struct {
 	VspClosed      bool
 	AdminPass      string
 	Debug          bool
+	Designation    string
 }
 
 const (
@@ -135,7 +136,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	if cfg.Debug {
 		refresh = 1 * time.Second
 	} else {
-		refresh = 5 * time.Minute
+		refresh = 1 * time.Minute
 	}
 	shutdownWg.Add(1)
 	go func() {

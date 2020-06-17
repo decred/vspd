@@ -126,6 +126,7 @@ supportemail = example@test.com
 backupinterval = 3m0s
 vspclosed = false
 adminpass=12345
+designation = harness
 EOF
 
 tmux new-window -t $TMUX_SESSION -n "vspd"
