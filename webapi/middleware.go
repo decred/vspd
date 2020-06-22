@@ -1,6 +1,8 @@
 package webapi
 
 import (
+	"bytes"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -107,16 +109,16 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 // use.
 func vspAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Read request bytes.
-		reqBytes, err := c.GetRawData()
+		// Read request bytes and then replace the request reader for
+		// downstream handlers to use.
+		reqBytes, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
 			log.Warnf("Error reading request from %s: %v", c.ClientIP(), err)
 			sendErrorWithMsg(err.Error(), errBadRequest, c)
 			return
 		}
-
-		// Add raw request to context for downstream handlers to use.
-		c.Set("RawRequest", reqBytes)
+		c.Request.Body.Close()
+		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
 
 		// Parse request and ensure there is a ticket hash included.
 		var request ticketHashRequest
