@@ -1,13 +1,11 @@
 package webapi
 
 import (
-	"encoding/hex"
 	"time"
 
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/txscript/v3"
-	"github.com/decred/dcrd/wire"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
@@ -95,16 +93,9 @@ func payFee(c *gin.Context) {
 	}
 
 	// Validate FeeTx.
-	feeTxBytes, err := hex.DecodeString(payFeeRequest.FeeTx)
+	feeTx, err := decodeTransaction(payFeeRequest.FeeTx)
 	if err != nil {
 		log.Warnf("Failed to decode tx: %v", err)
-		sendError(errInvalidFeeTx, c)
-		return
-	}
-
-	feeTx := wire.NewMsgTx()
-	if err = feeTx.FromBytes(feeTxBytes); err != nil {
-		log.Warnf("Failed to deserialize tx: %v", err)
 		sendError(errInvalidFeeTx, c)
 		return
 	}
@@ -150,15 +141,9 @@ findAddress:
 	}
 
 	// Decode ticket transaction to get its voting address.
-	ticketBytes, err := hex.DecodeString(rawTicket.Hex)
+	ticketTx, err := decodeTransaction(rawTicket.Hex)
 	if err != nil {
 		log.Warnf("Failed to decode tx: %v", err)
-		sendError(errInternalError, c)
-		return
-	}
-	ticketTx := wire.NewMsgTx()
-	if err = ticketTx.FromBytes(ticketBytes); err != nil {
-		log.Errorf("Failed to deserialize tx: %v", err)
 		sendError(errInternalError, c)
 		return
 	}

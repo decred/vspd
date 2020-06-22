@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/decred/dcrd/blockchain/stake/v3"
 	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
 	"github.com/decred/dcrd/wire"
@@ -138,38 +137,6 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 		return err
 	}
 	return nil
-}
-
-func (c *DcrdRPC) GetTicketCommitmentAddress(ticketHash string, netParams *chaincfg.Params) (string, error) {
-	// Retrieve and parse the transaction.
-	resp, err := c.GetRawTransaction(ticketHash)
-	if err != nil {
-		return "", err
-	}
-	msgHex, err := hex.DecodeString(resp.Hex)
-	if err != nil {
-		return "", err
-	}
-	msgTx := wire.NewMsgTx()
-	if err = msgTx.FromBytes(msgHex); err != nil {
-		return "", err
-	}
-
-	// Ensure transaction is a valid ticket.
-	if !stake.IsSStx(msgTx) {
-		return "", errors.New("invalid transaction - not sstx")
-	}
-	if len(msgTx.TxOut) != 3 {
-		return "", fmt.Errorf("invalid transaction - expected 3 outputs, got %d", len(msgTx.TxOut))
-	}
-
-	// Get ticket commitment address.
-	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, netParams)
-	if err != nil {
-		return "", err
-	}
-
-	return addr.Address(), nil
 }
 
 func (c *DcrdRPC) NotifyBlocks() error {
