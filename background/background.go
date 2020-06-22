@@ -30,9 +30,6 @@ const (
 	// requiredConfs is the number of confirmations required to consider a
 	// ticket purchase or a fee transaction to be final.
 	requiredConfs = 6
-	// errNoTxInfo is defined in dcrd/dcrjson. Copying here so we dont need to
-	// import the whole package.
-	errNoTxInfo = -5
 )
 
 // Notify is called every time a block notification is received from dcrd.
@@ -81,12 +78,12 @@ func blockConnected() {
 	for _, ticket := range unconfirmed {
 		tktTx, err := dcrdClient.GetRawTransaction(ticket.Hash)
 		if err != nil {
-			// errNoTxInfo here probably indicates a tx which was never mined
+			// ErrNoTxInfo here probably indicates a tx which was never mined
 			// and has been removed from the mempool. For example, a ticket
 			// purchase tx close to an sdiff change, or a ticket purchase tx
 			// which expired. Remove it from the db.
 			var e *wsrpc.Error
-			if errors.As(err, &e) && e.Code == errNoTxInfo {
+			if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
 				log.Infof("Removing unconfirmed ticket from db - no information available "+
 					"about transaction %s", err.Error())
 

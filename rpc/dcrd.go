@@ -17,9 +17,13 @@ import (
 
 const (
 	requiredDcrdVersion = "6.1.1"
-	// errRPCDuplicateTx is defined in dcrd/dcrjson. Copying here so we dont
-	// need to import the whole package.
-	errRPCDuplicateTx = -40
+)
+
+// These error codes are defined in dcrd/dcrjson. They are copied here so we
+// dont need to import the whole package.
+const (
+	ErrRPCDuplicateTx = -40
+	ErrNoTxInfo       = -5
 )
 
 // DcrdRPC provides methods for calling dcrd JSON-RPCs without exposing the details
@@ -120,7 +124,7 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 
 		// Exists in mempool.
 		var e *wsrpc.Error
-		if errors.As(err, &e) && e.Code == errRPCDuplicateTx {
+		if errors.As(err, &e) && e.Code == ErrRPCDuplicateTx {
 			return nil
 		}
 
