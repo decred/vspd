@@ -5,14 +5,12 @@ import (
 
 	"github.com/decred/vspd/database"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 )
 
 // ticketStatus is the handler for "GET /ticketstatus".
 func ticketStatus(c *gin.Context) {
 
 	// Get values which have been added to context by middleware.
-	rawRequest := c.MustGet("RawRequest").([]byte)
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
 
@@ -23,7 +21,7 @@ func ticketStatus(c *gin.Context) {
 	}
 
 	var ticketStatusRequest TicketStatusRequest
-	if err := binding.JSON.BindBody(rawRequest, &ticketStatusRequest); err != nil {
+	if err := c.ShouldBindJSON(&ticketStatusRequest); err != nil {
 		log.Warnf("Bad ticketstatus request from %s: %v", c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return

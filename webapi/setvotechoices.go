@@ -6,14 +6,12 @@ import (
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 )
 
 // setVoteChoices is the handler for "POST /setvotechoices".
 func setVoteChoices(c *gin.Context) {
 
 	// Get values which have been added to context by middleware.
-	rawRequest := c.MustGet("RawRequest").([]byte)
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
 	walletClients := c.MustGet("WalletClients").([]*rpc.WalletRPC)
@@ -31,7 +29,7 @@ func setVoteChoices(c *gin.Context) {
 	}
 
 	var setVoteChoicesRequest SetVoteChoicesRequest
-	if err := binding.JSON.BindBody(rawRequest, &setVoteChoicesRequest); err != nil {
+	if err := c.ShouldBindJSON(&setVoteChoicesRequest); err != nil {
 		log.Warnf("Bad setvotechoices request from %s: %v", c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return

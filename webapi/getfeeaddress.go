@@ -9,7 +9,6 @@ import (
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 )
 
 // addrMtx protects getNewFeeAddress.
@@ -62,7 +61,6 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 func feeAddress(c *gin.Context) {
 
 	// Get values which have been added to context by middleware.
-	rawRequest := c.MustGet("RawRequest").([]byte)
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
 	commitmentAddress := c.MustGet("CommitmentAddress").(string)
@@ -74,7 +72,7 @@ func feeAddress(c *gin.Context) {
 	}
 
 	var feeAddressRequest FeeAddressRequest
-	if err := binding.JSON.BindBody(rawRequest, &feeAddressRequest); err != nil {
+	if err := c.ShouldBindJSON(&feeAddressRequest); err != nil {
 		log.Warnf("Bad feeaddress request from %s: %v", c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return

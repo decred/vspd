@@ -11,14 +11,12 @@ import (
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 )
 
 // payFee is the handler for "POST /payfee".
 func payFee(c *gin.Context) {
 
 	// Get values which have been added to context by middleware.
-	rawRequest := c.MustGet("RawRequest").([]byte)
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
 	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
@@ -35,7 +33,7 @@ func payFee(c *gin.Context) {
 	}
 
 	var payFeeRequest PayFeeRequest
-	if err := binding.JSON.BindBody(rawRequest, &payFeeRequest); err != nil {
+	if err := c.ShouldBindJSON(&payFeeRequest); err != nil {
 		log.Warnf("Bad payfee request from %s: %v", c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
