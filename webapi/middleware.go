@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/decred/dcrd/blockchain/stake/v3"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
@@ -159,12 +160,36 @@ func vspAuth() gin.HandlerFunc {
 			commitmentAddress = ticket.CommitmentAddress
 		} else {
 			dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
-			commitmentAddress, err = dcrdClient.GetTicketCommitmentAddress(hash, cfg.NetParams)
+
+			resp, err := dcrdClient.GetRawTransaction(hash)
 			if err != nil {
-				log.Errorf("GetTicketCommitmentAddress error: %v", err)
+				log.Errorf("GetRawTransaction error: %v", err)
 				sendError(errInternalError, c)
 				return
 			}
+
+			msgTx, err := decodeTransaction(resp.Hex)
+			if err != nil {
+				log.Errorf("decodeTransaction error: %v", err)
+				sendError(errInternalError, c)
+				return
+			}
+
+			err = isValidTicket(msgTx)
+			if err != nil {
+				log.Warnf("Invalid ticket from %s: %v", c.ClientIP(), err)
+				sendError(errInvalidTicket, c)
+				return
+			}
+
+			addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, cfg.NetParams)
+			if err != nil {
+				log.Errorf("AddrFromSStxPkScrCommitment error: %v", err)
+				sendError(errInternalError, c)
+				return
+			}
+
+			commitmentAddress = addr.Address()
 		}
 
 		// Validate request signature to ensure ticket ownership.

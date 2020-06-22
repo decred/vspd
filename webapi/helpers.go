@@ -1,11 +1,14 @@
 package webapi
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 
+	"github.com/decred/dcrd/blockchain/stake/v3"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v3"
+	"github.com/decred/dcrd/wire"
 	"github.com/gin-gonic/gin"
 )
 
@@ -56,5 +59,28 @@ func validateSignature(reqBytes []byte, commitmentAddress string, c *gin.Context
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func decodeTransaction(txHex string) (*wire.MsgTx, error) {
+	msgHex, err := hex.DecodeString(txHex)
+	if err != nil {
+		return nil, err
+	}
+	msgTx := wire.NewMsgTx()
+	if err = msgTx.FromBytes(msgHex); err != nil {
+		return nil, err
+	}
+	return msgTx, nil
+}
+
+func isValidTicket(tx *wire.MsgTx) error {
+	if !stake.IsSStx(tx) {
+		return errors.New("invalid transaction - not sstx")
+	}
+	if len(tx.TxOut) != 3 {
+		return fmt.Errorf("invalid transaction - expected 3 outputs, got %d", len(tx.TxOut))
+	}
+
 	return nil
 }
