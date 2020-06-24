@@ -68,7 +68,8 @@ for the specified ticket.
     ```json
     {
         "timestamp":1590509066,
-        "tickethash":"484a68f7148e55d05f0b64a29fe7b148572cb5272d1ce2438cf15466d347f4f4"
+        "tickethash":"1b9f5dc3b4872c47f66b148b0633647458123d72a0f0623a90890cc51a668737",
+        "tickethex":"0100000001a8...bfa6e4bf9c5ec1"
     }
 
     ```

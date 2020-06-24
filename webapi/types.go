@@ -11,6 +11,7 @@ type vspInfoResponse struct {
 type FeeAddressRequest struct {
 	Timestamp  int64  `json:"timestamp" binding:"required"`
 	TicketHash string `json:"tickethash" binding:"required"`
+	TicketHex  string `json:"tickethex" binding:"required"`
 }
 
 type feeAddressResponse struct {

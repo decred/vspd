@@ -183,20 +183,21 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	// Serve static web resources
 	router.Static("/public", "webapi/public/")
 
-	// These routes have no extra middleware. They can be accessed by anybody.
-	router.GET("", homepage)
-	router.GET("/api/vspinfo", vspInfo)
-
-	// These API routes access dcrd and they need authentication.
-	feeOnly := router.Group("/api").Use(
-		withDcrdClient(dcrd), vspAuth(),
-	)
-	feeOnly.POST("/feeaddress", feeAddress)
-	feeOnly.GET("/ticketstatus", ticketStatus)
-	feeOnly.POST("/payfee", payFee)
-
 	// Create a cookie store for persisting admin session information.
 	cookieStore := sessions.NewCookieStore(cookieSecret)
+
+	// API routes.
+
+	api := router.Group("/api")
+	api.GET("/vspinfo", vspInfo)
+	api.POST("/feeaddress", withDcrdClient(dcrd), ensureTicketBroadcast(), vspAuth(), feeAddress)
+	api.GET("/ticketstatus", withDcrdClient(dcrd), vspAuth(), ticketStatus)
+	api.POST("/payfee", withDcrdClient(dcrd), vspAuth(), payFee)
+	api.POST("/setvotechoices", withDcrdClient(dcrd), withWalletClients(wallets), vspAuth(), setVoteChoices)
+
+	// Website routes.
+
+	router.GET("", homepage)
 
 	login := router.Group("/admin").Use(
 		withSession(cookieStore),
@@ -210,13 +211,6 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	admin.POST("/ticket", ticketSearch)
 	admin.GET("/backup", downloadDatabaseBackup)
 	admin.POST("/logout", adminLogout)
-
-	// These API routes access dcrd and the voting wallets, and they need
-	// authentication.
-	both := router.Group("/api").Use(
-		withDcrdClient(dcrd), withWalletClients(wallets), vspAuth(),
-	)
-	both.POST("/setvotechoices", setVoteChoices)
 
 	return router
 }

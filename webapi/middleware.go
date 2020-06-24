@@ -2,6 +2,7 @@ package webapi
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -12,9 +13,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/gorilla/sessions"
+	"github.com/jrick/wsrpc/v2"
 )
 
 type ticketHashRequest struct {
+	TicketHash string `json:"tickethash" binding:"required"`
+}
+
+type ticketRequest struct {
+	TicketHex  string `json:"tickethex" binding:"required"`
 	TicketHash string `json:"tickethash" binding:"required"`
 }
 
@@ -98,6 +105,81 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 				failedConnections, len(clients))
 		}
 		c.Set("WalletClients", clients)
+	}
+}
+
+// ensureTicketBroadcast will parse ticket hash and ticket hex from the request
+// body, and ensure the local dcrd instance can retrieve information about that
+// ticket. If no info can be found, the ticket hex will be broadcast.
+func ensureTicketBroadcast() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Read request bytes and then replace the request reader for
+		// downstream handlers to use.
+		reqBytes, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			log.Warnf("Error reading request from %s: %v", c.ClientIP(), err)
+			sendErrorWithMsg(err.Error(), errBadRequest, c)
+			return
+		}
+		c.Request.Body.Close()
+		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
+
+		// Parse request and ensure ticket hash and hex are included.
+		var request ticketRequest
+		if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
+			log.Warnf("Bad request from %s: %v", c.ClientIP(), err)
+			sendErrorWithMsg(err.Error(), errBadRequest, c)
+			return
+		}
+
+		// Ensure the provided hex is a valid ticket.
+		msgTx, err := decodeTransaction(request.TicketHex)
+		if err != nil {
+			log.Warnf("decodeTransaction error: %v", err)
+			sendErrorWithMsg("cannot decode ticket hex", errBadRequest, c)
+			return
+		}
+
+		err = isValidTicket(msgTx)
+		if err != nil {
+			log.Warnf("Invalid ticket from %s: %v", c.ClientIP(), err)
+			sendError(errInvalidTicket, c)
+			return
+		}
+
+		// Ensure hex matches hash.
+		if msgTx.TxHash().String() != request.TicketHash {
+			log.Warnf("Ticket hex/hash mismatch from %s", c.ClientIP())
+			sendErrorWithMsg("ticket hex does not match hash", errBadRequest, c)
+			return
+		}
+
+		dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
+
+		// Use GetRawTransaction to check if local dcrd already knows this
+		// ticket.
+		_, err = dcrdClient.GetRawTransaction(request.TicketHash)
+		if err == nil {
+			// No error means dcrd knows the ticket, we are done here.
+			return
+		}
+
+		// ErrNoTxInfo means local dcrd is not aware of the ticket. We have the
+		// hex, so we can broadcast it here.
+		var e *wsrpc.Error
+		if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
+			log.Debugf("Broadcasting ticket with hash %s", request.TicketHash)
+			err = dcrdClient.SendRawTransaction(request.TicketHex)
+			if err != nil {
+				log.Errorf("SendRawTransaction error: %v", err)
+				sendError(errInternalError, c)
+				return
+			}
+		} else {
+			log.Errorf("GetRawTransaction error: %v", err)
+			sendError(errInternalError, c)
+			return
+		}
 	}
 }
 
