@@ -65,7 +65,9 @@ func downloadDatabaseBackup(c *gin.Context) {
 	err := db.BackupDB(c.Writer)
 	if err != nil {
 		log.Errorf("Error backing up database: %v", err)
-		c.String(http.StatusInternalServerError, "Error backing up database")
+		// Don't write any http body here because Content-Length has already
+		// been set in db.BackupDB. Status is enough to indicate an error.
+		c.Status(http.StatusInternalServerError)
 	}
 }
 
