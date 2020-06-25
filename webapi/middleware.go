@@ -110,11 +110,13 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 // use.
 func vspAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		funcName := "vspAuth"
+
 		// Read request bytes and then replace the request reader for
 		// downstream handlers to use.
 		reqBytes, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
-			log.Warnf("Error reading request from %s: %v", c.ClientIP(), err)
+			log.Warnf("%s: Error reading request from %s: %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg(err.Error(), errBadRequest, c)
 			return
 		}
@@ -124,7 +126,7 @@ func vspAuth() gin.HandlerFunc {
 		// Parse request and ensure there is a ticket hash included.
 		var request ticketHashRequest
 		if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-			log.Warnf("Bad request from %s: %v", c.ClientIP(), err)
+			log.Warnf("%s: Bad request from %s: %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg(err.Error(), errBadRequest, c)
 			return
 		}
@@ -134,13 +136,13 @@ func vspAuth() gin.HandlerFunc {
 		// A ticket hash should be 64 chars (MaxHashStringSize) and should parse
 		// into a chainhash.Hash without error.
 		if len(hash) != chainhash.MaxHashStringSize {
-			log.Errorf("Invalid hash from %s: incorrect length", c.ClientIP())
+			log.Errorf("%s: Invalid hash from %s: incorrect length", funcName, c.ClientIP())
 			sendErrorWithMsg("invalid ticket hash", errBadRequest, c)
 			return
 		}
 		_, err = chainhash.NewHashFromStr(hash)
 		if err != nil {
-			log.Errorf("Invalid hash from %s: %v", c.ClientIP(), err)
+			log.Errorf("%s: Invalid hash from %s: %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg("invalid ticket hash", errBadRequest, c)
 			return
 		}
@@ -148,7 +150,7 @@ func vspAuth() gin.HandlerFunc {
 		// Check if this ticket already appears in the database.
 		ticket, ticketFound, err := db.GetTicketByHash(hash)
 		if err != nil {
-			log.Errorf("GetTicketByHash error: %v", err)
+			log.Errorf("%s: GetTicketByHash error: %v", funcName, err)
 			sendError(errInternalError, c)
 			return
 		}
@@ -163,28 +165,28 @@ func vspAuth() gin.HandlerFunc {
 
 			resp, err := dcrdClient.GetRawTransaction(hash)
 			if err != nil {
-				log.Errorf("GetRawTransaction error: %v", err)
+				log.Errorf("%s: GetRawTransaction error: %v", funcName, err)
 				sendError(errInternalError, c)
 				return
 			}
 
 			msgTx, err := decodeTransaction(resp.Hex)
 			if err != nil {
-				log.Errorf("decodeTransaction error: %v", err)
+				log.Errorf("%s: decodeTransaction error: %v", funcName, err)
 				sendError(errInternalError, c)
 				return
 			}
 
 			err = isValidTicket(msgTx)
 			if err != nil {
-				log.Warnf("Invalid ticket from %s: %v", c.ClientIP(), err)
+				log.Warnf("%s: Invalid ticket from %s: %v", funcName, c.ClientIP(), err)
 				sendError(errInvalidTicket, c)
 				return
 			}
 
 			addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, cfg.NetParams)
 			if err != nil {
-				log.Errorf("AddrFromSStxPkScrCommitment error: %v", err)
+				log.Errorf("%s: AddrFromSStxPkScrCommitment error: %v", funcName, err)
 				sendError(errInternalError, c)
 				return
 			}
@@ -195,7 +197,7 @@ func vspAuth() gin.HandlerFunc {
 		// Validate request signature to ensure ticket ownership.
 		err = validateSignature(reqBytes, commitmentAddress, c)
 		if err != nil {
-			log.Warnf("Bad signature from %s: %v", c.ClientIP(), err)
+			log.Warnf("%s: Bad signature from %s: %v", funcName, c.ClientIP(), err)
 			sendError(errBadSignature, c)
 			return
 		}
