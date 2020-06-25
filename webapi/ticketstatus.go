@@ -9,20 +9,21 @@ import (
 
 // ticketStatus is the handler for "GET /ticketstatus".
 func ticketStatus(c *gin.Context) {
+	funcName := "ticketStatus"
 
 	// Get values which have been added to context by middleware.
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
 
 	if !knownTicket {
-		log.Warnf("Unknown ticket from %s", c.ClientIP())
+		log.Warnf("%s: Unknown ticket from %s", funcName, c.ClientIP())
 		sendError(errUnknownTicket, c)
 		return
 	}
 
 	var ticketStatusRequest TicketStatusRequest
 	if err := c.ShouldBindJSON(&ticketStatusRequest); err != nil {
-		log.Warnf("Bad ticketstatus request from %s: %v", c.ClientIP(), err)
+		log.Warnf("%s: Bad request from %s: %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
