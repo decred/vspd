@@ -133,7 +133,7 @@ func feeAddress(c *gin.Context) {
 				sendError(errInternalError, c)
 				return
 			}
-			log.Debugf("%s: Expired fee updated for ticket: newFeeAmt=%f, ticketHash=%s",
+			log.Debugf("%s: Expired fee updated for ticket: newFeeAmt=%s, ticketHash=%s",
 				funcName, newFee, ticket.Hash)
 		}
 		sendJSONResponse(feeAddressResponse{
