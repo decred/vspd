@@ -16,14 +16,14 @@ func ticketStatus(c *gin.Context) {
 	knownTicket := c.MustGet("KnownTicket").(bool)
 
 	if !knownTicket {
-		log.Warnf("%s: Unknown ticket from %s", funcName, c.ClientIP())
+		log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
 		sendError(errUnknownTicket, c)
 		return
 	}
 
 	var ticketStatusRequest TicketStatusRequest
 	if err := c.ShouldBindJSON(&ticketStatusRequest); err != nil {
-		log.Warnf("%s: Bad request from %s: %v", funcName, c.ClientIP(), err)
+		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
