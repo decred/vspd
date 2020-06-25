@@ -18,20 +18,21 @@ func setVoteChoices(c *gin.Context) {
 	walletClients := c.MustGet("WalletClients").([]*rpc.WalletRPC)
 
 	if !knownTicket {
-		log.Warnf("%s: Unknown ticket from %s", funcName, c.ClientIP())
+		log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
 		sendError(errUnknownTicket, c)
 		return
 	}
 
 	if ticket.FeeTxStatus == database.NoFee {
-		log.Warnf("%s: Setvotechoices without fee tx from %s", funcName, c.ClientIP())
+		log.Warnf("%s: No fee tx for ticket (clientIP=%s, ticketHash=%s)",
+			funcName, c.ClientIP(), ticket.Hash)
 		sendError(errFeeNotReceived, c)
 		return
 	}
 
 	var setVoteChoicesRequest SetVoteChoicesRequest
 	if err := c.ShouldBindJSON(&setVoteChoicesRequest); err != nil {
-		log.Warnf("%s: Bad request from %s: %v", funcName, c.ClientIP(), err)
+		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
@@ -39,7 +40,8 @@ func setVoteChoices(c *gin.Context) {
 	voteChoices := setVoteChoicesRequest.VoteChoices
 	err := isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
 	if err != nil {
-		log.Warnf("%s: Invalid votechoices from %s: %v", funcName, c.ClientIP(), err)
+		log.Warnf("%s: Invalid vote choices (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), ticket.Hash, err)
 		sendErrorWithMsg(err.Error(), errInvalidVoteChoices, c)
 		return
 	}
@@ -49,7 +51,7 @@ func setVoteChoices(c *gin.Context) {
 	ticket.VoteChoices = voteChoices
 	err = db.UpdateTicket(ticket)
 	if err != nil {
-		log.Errorf("%s: UpdateTicket error: %v", funcName, err)
+		log.Errorf("%s: UpdateTicket error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
 		return
 	}
@@ -63,13 +65,13 @@ func setVoteChoices(c *gin.Context) {
 				if err != nil {
 					// If this fails, we still want to try the other wallets, so
 					// don't return an error response, just log an error.
-					log.Errorf("%s: SetVoteChoice failed: %v", funcName, err)
+					log.Errorf("%s: SetVoteChoice failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
 				}
 			}
 		}
 	}
 
-	log.Debugf("%s: Vote choices updated for ticket: ticketHash=%s", funcName, ticket.Hash)
+	log.Debugf("%s: Vote choices updated (ticketHash=%s)", funcName, ticket.Hash)
 
 	// TODO: DB - error if given timestamp is older than any previous requests
 

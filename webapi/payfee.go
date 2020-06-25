@@ -26,14 +26,14 @@ func payFee(c *gin.Context) {
 	}
 
 	if !knownTicket {
-		log.Warnf("%s: Unknown ticket from %s", funcName, c.ClientIP())
+		log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
 		sendError(errUnknownTicket, c)
 		return
 	}
 
 	var payFeeRequest PayFeeRequest
 	if err := c.ShouldBindJSON(&payFeeRequest); err != nil {
-		log.Warnf("%s: Bad request from %s: %v", funcName, c.ClientIP(), err)
+		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
@@ -42,7 +42,8 @@ func payFee(c *gin.Context) {
 	if ticket.FeeTxStatus == database.FeeReceieved ||
 		ticket.FeeTxStatus == database.FeeBroadcast ||
 		ticket.FeeTxStatus == database.FeeConfirmed {
-		log.Warnf("%s: Fee tx already received from %s: ticketHash=%s", funcName, c.ClientIP(), ticket.Hash)
+		log.Warnf("%s: Fee tx already received (clientIP=%s, ticketHash=%s)",
+			funcName, c.ClientIP(), ticket.Hash)
 		sendError(errFeeAlreadyReceived, c)
 		return
 	}
@@ -50,7 +51,7 @@ func payFee(c *gin.Context) {
 	// Get ticket details.
 	rawTicket, err := dcrdClient.GetRawTransaction(ticket.Hash)
 	if err != nil {
-		log.Errorf("%s: Could not retrieve tx %s for %s: %v", funcName, ticket.Hash, c.ClientIP(), err)
+		log.Errorf("%s: GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
 		return
 	}
@@ -58,19 +59,21 @@ func payFee(c *gin.Context) {
 	// Ensure this ticket is eligible to vote at some point in the future.
 	canVote, err := dcrdClient.CanTicketVote(rawTicket, ticket.Hash, cfg.NetParams)
 	if err != nil {
-		log.Errorf("%s: canTicketVote error: %v", funcName, err)
+		log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
 		return
 	}
 	if !canVote {
-		log.Warnf("%s: Unvotable ticket %s from %s", funcName, ticket.Hash, c.ClientIP())
+		log.Warnf("%s: Unvotable ticket (clientIP=%s, ticketHash=%s)",
+			funcName, c.ClientIP(), ticket.Hash)
 		sendError(errTicketCannotVote, c)
 		return
 	}
 
 	// Respond early if the fee for this ticket is expired.
 	if ticket.FeeExpired() {
-		log.Warnf("%s: Expired payfee request from %s", funcName, c.ClientIP())
+		log.Warnf("%s: Expired payfee request (clientIP=%s, ticketHash=%s)",
+			funcName, c.ClientIP(), ticket.Hash)
 		sendError(errFeeExpired, c)
 		return
 	}
@@ -79,7 +82,8 @@ func payFee(c *gin.Context) {
 	votingKey := payFeeRequest.VotingKey
 	votingWIF, err := dcrutil.DecodeWIF(votingKey, cfg.NetParams.PrivateKeyID)
 	if err != nil {
-		log.Warnf("%s: Failed to decode WIF: %v", funcName, err)
+		log.Warnf("%s: Failed to decode WIF (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), ticket.Hash, err)
 		sendError(errInvalidPrivKey, c)
 		return
 	}
@@ -88,7 +92,8 @@ func payFee(c *gin.Context) {
 	voteChoices := payFeeRequest.VoteChoices
 	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
 	if err != nil {
-		log.Warnf("%s: Invalid votechoices from %s: %v", funcName, c.ClientIP(), err)
+		log.Warnf("%s: Invalid vote choices (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), ticket.Hash, err)
 		sendErrorWithMsg(err.Error(), errInvalidVoteChoices, c)
 		return
 	}
@@ -96,7 +101,8 @@ func payFee(c *gin.Context) {
 	// Validate FeeTx.
 	feeTx, err := decodeTransaction(payFeeRequest.FeeTx)
 	if err != nil {
-		log.Warnf("%s: Failed to decode tx: %v", funcName, err)
+		log.Warnf("%s: Failed to decode fee tx hex (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), ticket.Hash, err)
 		sendError(errInvalidFeeTx, c)
 		return
 	}
@@ -109,13 +115,16 @@ func payFee(c *gin.Context) {
 findAddress:
 	for _, txOut := range feeTx.TxOut {
 		if txOut.Version != scriptVersion {
+			log.Errorf("%s: Fee tx with invalid script version (clientIP=%s, ticketHash=%s): was %d, expected %d",
+				funcName, c.ClientIP(), ticket.Hash, txOut.Version, scriptVersion)
 			sendErrorWithMsg("invalid script version", errInvalidFeeTx, c)
 			return
 		}
 		_, addresses, _, err := txscript.ExtractPkScriptAddrs(scriptVersion,
 			txOut.PkScript, cfg.NetParams)
 		if err != nil {
-			log.Errorf("%s: Extract PK error: %v", funcName, err)
+			log.Errorf("%s: Extract PK error (clientIP=%s, ticketHash=%s): %v",
+				funcName, c.ClientIP(), ticket.Hash, err)
 			sendError(errInternalError, c)
 			return
 		}
@@ -128,8 +137,8 @@ findAddress:
 	}
 
 	if feePaid == 0 {
-		log.Warnf("%s: FeeTx for ticket %s did not include any payments for address %s",
-			funcName, ticket.Hash, ticket.FeeAddress)
+		log.Warnf("%s: Fee tx did not include expected payment (ticketHash=%s, feeAddress=%s, clientIP=%s)",
+			funcName, ticket.Hash, ticket.FeeAddress, c.ClientIP())
 		sendErrorWithMsg("feetx did not include any payments for fee address", errInvalidFeeTx, c)
 		return
 	}
@@ -137,7 +146,8 @@ findAddress:
 	wifAddr, err := dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), cfg.NetParams,
 		dcrec.STEcdsaSecp256k1)
 	if err != nil {
-		log.Errorf("%s: NewAddressPubKeyHash: %v", funcName, err)
+		log.Errorf("%s: Failed to get voting address from WIF (ticketHash=%s, clientIP=%s): %v",
+			funcName, ticket.Hash, c.ClientIP(), err)
 		sendError(errInvalidPrivKey, c)
 		return
 	}
@@ -145,7 +155,8 @@ findAddress:
 	// Decode ticket transaction to get its voting address.
 	ticketTx, err := decodeTransaction(rawTicket.Hex)
 	if err != nil {
-		log.Warnf("%s: Failed to decode tx: %v", funcName, err)
+		log.Warnf("%s: Failed to decode ticket hex (ticketHash=%s): %v",
+			funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
 		return
 	}
@@ -153,20 +164,20 @@ findAddress:
 	// Get ticket voting address.
 	_, votingAddr, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, ticketTx.TxOut[0].PkScript, cfg.NetParams)
 	if err != nil {
-		log.Errorf("%s: ExtractPK error: %v", funcName, err)
+		log.Errorf("%s: ExtractPK error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
 		return
 	}
 	if len(votingAddr) == 0 {
-		log.Error("%s: No voting address found for ticket %s", funcName, ticket.Hash)
+		log.Error("%s: No voting address found for ticket (ticketHash=%s)", funcName, ticket.Hash)
 		sendError(errInternalError, c)
 		return
 	}
 
 	// Ensure provided private key will allow us to vote this ticket.
 	if votingAddr[0].Address() != wifAddr.Address() {
-		log.Warnf("%s: Voting address does not match provided private key: "+
-			"votingAddr=%+v, wifAddr=%+v", funcName, votingAddr[0], wifAddr)
+		log.Warnf("%s: Voting address does not match provided private key: (ticketHash=%s, votingAddr=%+v, wifAddr=%+v)",
+			funcName, ticket.Hash, votingAddr[0], wifAddr)
 		sendErrorWithMsg("voting address does not match provided private key",
 			errInvalidPrivKey, c)
 		return
@@ -174,13 +185,13 @@ findAddress:
 
 	minFee := dcrutil.Amount(ticket.FeeAmount)
 	if feePaid < minFee {
-		log.Warnf("%s: Fee too small from %s: was %v, expected %v", funcName, c.ClientIP(),
-			feePaid, minFee)
+		log.Warnf("%s: Fee too small (ticketHash=%s, clientIP=%s): was %s, expected minimum %s",
+			funcName, ticket.Hash, c.ClientIP(), feePaid, minFee)
 		sendError(errFeeTooSmall, c)
 		return
 	}
 
-	// At this point we are satisfied that the request is valid and the FeeTx
+	// At this point we are satisfied that the request is valid and the fee tx
 	// pays sufficient fees to the expected address. Proceed to update the
 	// database, and if the ticket is confirmed broadcast the transaction.
 
@@ -192,24 +203,25 @@ findAddress:
 
 	err = db.UpdateTicket(ticket)
 	if err != nil {
-		log.Errorf("%s: InsertTicket failed: %v", funcName, err)
+		log.Errorf("%s: InsertTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
 		return
 	}
 
-	log.Debugf("%s: Fee tx received for ticket: minExpectedFee=%v, feePaid=%v, "+
-		"ticketHash=%s", funcName, minFee, feePaid, ticket.Hash)
+	log.Debugf("%s: Fee tx received for ticket (minExpectedFee=%v, feePaid=%v, ticketHash=%s)",
+		funcName, minFee, feePaid, ticket.Hash)
 
 	if ticket.Confirmed {
 		err = dcrdClient.SendRawTransaction(payFeeRequest.FeeTx)
 		if err != nil {
-			log.Errorf("%s: SendRawTransaction failed: %v", funcName, err)
+			log.Errorf("%s: SendRawTransaction for fee tx failed (ticketHash=%s): %v",
+				funcName, ticket.Hash, err)
 
 			ticket.FeeTxStatus = database.FeeError
 
 			err = db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("%s: UpdateTicket error: %v", funcName, err)
+				log.Errorf("%s: UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
 			}
 
 			sendErrorWithMsg("could not broadcast fee transaction", errInvalidFeeTx, c)
@@ -220,12 +232,12 @@ findAddress:
 
 		err = db.UpdateTicket(ticket)
 		if err != nil {
-			log.Errorf("%s: UpdateTicket failed: %v", funcName, err)
+			log.Errorf("%s: UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
 			sendError(errInternalError, c)
 			return
 		}
 
-		log.Debugf("%s: Fee tx broadcast for ticket: ticketHash=%s, feeHash=%s",
+		log.Debugf("%s: Fee tx broadcast for ticket (ticketHash=%s, feeHash=%s)",
 			funcName, ticket.Hash, ticket.FeeTxHash)
 	}
 

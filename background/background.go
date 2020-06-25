@@ -87,14 +87,16 @@ func blockConnected() {
 			var e *wsrpc.Error
 			if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
 				log.Infof("%s: Removing unconfirmed ticket from db - no information available "+
-					"about transaction %s", funcName, err)
+					"about transaction (ticketHash=%s)", funcName, ticket.Hash)
 
 				err = db.DeleteTicket(ticket)
 				if err != nil {
-					log.Errorf("%s: DeleteTicket error: %v", funcName, err)
+					log.Errorf("%s: DeleteTicket error (ticketHash=%s): %v",
+						funcName, ticket.Hash, err)
 				}
 			} else {
-				log.Errorf("%s: GetRawTransaction error: %v", funcName, err)
+				log.Errorf("%s: GetRawTransaction for ticket failed (ticketHash=%s): %v",
+					funcName, ticket.Hash, err)
 			}
 
 			continue
@@ -104,11 +106,11 @@ func blockConnected() {
 			ticket.Confirmed = true
 			err = db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("%s: UpdateTicket error: %v", funcName, err)
+				log.Errorf("%s: UpdateTicket error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 				continue
 			}
 
-			log.Debugf("%s: Ticket confirmed: ticketHash=%s", funcName, ticket.Hash)
+			log.Debugf("%s: Ticket confirmed (ticketHash=%s)", funcName, ticket.Hash)
 		}
 	}
 
@@ -122,16 +124,18 @@ func blockConnected() {
 	for _, ticket := range pending {
 		err = dcrdClient.SendRawTransaction(ticket.FeeTxHex)
 		if err != nil {
-			log.Errorf("%s: SendRawTransaction error: %v", funcName, err)
+			log.Errorf("%s: SendRawTransaction for fee tx failed (ticketHash=%s): %v",
+				funcName, ticket.Hash, err)
 			ticket.FeeTxStatus = database.FeeError
 		} else {
-			log.Debugf("%s: Fee tx broadcast for ticket: ticketHash=%s, feeHash=%s", funcName, ticket.Hash, ticket.FeeTxHash)
+			log.Debugf("%s: Fee tx broadcast for ticket (ticketHash=%s, feeHash=%s)",
+				funcName, ticket.Hash, ticket.FeeTxHash)
 			ticket.FeeTxStatus = database.FeeBroadcast
 		}
 
 		err = db.UpdateTicket(ticket)
 		if err != nil {
-			log.Errorf("%s: UpdateTicket error: %v", funcName, err)
+			log.Errorf("%s: UpdateTicket error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		}
 	}
 
@@ -163,7 +167,8 @@ func blockConnected() {
 	for _, ticket := range unconfirmedFees {
 		feeTx, err := dcrdClient.GetRawTransaction(ticket.FeeTxHash)
 		if err != nil {
-			log.Errorf("%s: GetRawTransaction error: %v", funcName, err)
+			log.Errorf("%s: GetRawTransaction for fee tx failed (feeTxHash=%s, ticketHash=%s): %v",
+				funcName, ticket.FeeTxHash, ticket.Hash, err)
 			continue
 		}
 
@@ -173,30 +178,31 @@ func blockConnected() {
 			ticket.FeeTxStatus = database.FeeConfirmed
 			err = db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("%s: UpdateTicket error: %v", funcName, err)
+				log.Errorf("%s: UpdateTicket error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 				return
 			}
-			log.Debugf("%s: Fee tx confirmed for ticket: ticketHash=%s", funcName, ticket.Hash)
+			log.Debugf("%s: Fee tx confirmed (ticketHash=%s)", funcName, ticket.Hash)
 
 			// Add ticket to the voting wallet.
 
 			rawTicket, err := dcrdClient.GetRawTransaction(ticket.Hash)
 			if err != nil {
-				log.Errorf("%s: GetRawTransaction error: %v", funcName, err)
+				log.Errorf("%s: GetRawTransaction for ticket failed (ticketHash=%s): %v",
+					funcName, ticket.Hash, err)
 				continue
 			}
 			for _, walletClient := range walletClients {
 				err = walletClient.ImportPrivKey(ticket.VotingWIF)
 				if err != nil {
-					log.Errorf("%s: ImportPrivKey error on dcrwallet '%s': %v",
-						funcName, walletClient.String(), err)
+					log.Errorf("%s: ImportPrivKey error on dcrwallet (wallet=%s, ticketHash=%s): %v",
+						funcName, walletClient.String(), ticket.Hash, err)
 					continue
 				}
 
 				err = walletClient.AddTransaction(rawTicket.BlockHash, rawTicket.Hex)
 				if err != nil {
-					log.Errorf("%s: AddTransaction error on dcrwallet '%s': %v",
-						funcName, walletClient.String(), err)
+					log.Errorf("%s: AddTransaction error on dcrwallet (wallet=%s, ticketHash=%s): %v",
+						funcName, walletClient.String(), ticket.Hash, err)
 					continue
 				}
 
@@ -204,12 +210,12 @@ func blockConnected() {
 				for agenda, choice := range ticket.VoteChoices {
 					err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 					if err != nil {
-						log.Errorf("%s: SetVoteChoice error on dcrwallet '%s': %v",
-							funcName, walletClient.String(), err)
+						log.Errorf("%s: SetVoteChoice error on dcrwallet (wallet=%s, ticketHash=%s): %v",
+							funcName, walletClient.String(), ticket.Hash, err)
 						continue
 					}
 				}
-				log.Debugf("%s: Ticket added to voting wallet '%s': ticketHash=%s",
+				log.Debugf("%s: Ticket added to voting wallet (wallet=%s, ticketHash=%s)",
 					funcName, walletClient.String(), ticket.Hash)
 			}
 		}
