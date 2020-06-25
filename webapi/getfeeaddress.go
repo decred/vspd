@@ -60,6 +60,8 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 // feeAddress is the handler for "POST /feeaddress".
 func feeAddress(c *gin.Context) {
 
+	funcName := "feeAddress"
+
 	// Get values which have been added to context by middleware.
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
@@ -73,7 +75,7 @@ func feeAddress(c *gin.Context) {
 
 	var feeAddressRequest FeeAddressRequest
 	if err := c.ShouldBindJSON(&feeAddressRequest); err != nil {
-		log.Warnf("Bad feeaddress request from %s: %v", c.ClientIP(), err)
+		log.Warnf("%s: Bad request from %s: %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
@@ -84,7 +86,7 @@ func feeAddress(c *gin.Context) {
 	if ticket.FeeTxStatus == database.FeeReceieved ||
 		ticket.FeeTxStatus == database.FeeBroadcast ||
 		ticket.FeeTxStatus == database.FeeConfirmed {
-		log.Warnf("Fee tx already received from %s: ticketHash=%s", c.ClientIP(), ticket.Hash)
+		log.Warnf("%s: Fee tx already received from %s: ticketHash=%s", funcName, c.ClientIP(), ticket.Hash)
 		sendError(errFeeAlreadyReceived, c)
 		return
 	}
@@ -92,7 +94,7 @@ func feeAddress(c *gin.Context) {
 	// Get ticket details.
 	rawTicket, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
-		log.Errorf("Could not retrieve tx %s for %s: %v", ticketHash, c.ClientIP(), err)
+		log.Errorf("%s: Could not retrieve tx %s for %s: %v", funcName, ticketHash, c.ClientIP(), err)
 		sendError(errInternalError, c)
 		return
 	}
@@ -100,12 +102,12 @@ func feeAddress(c *gin.Context) {
 	// Ensure this ticket is eligible to vote at some point in the future.
 	canVote, err := dcrdClient.CanTicketVote(rawTicket, ticketHash, cfg.NetParams)
 	if err != nil {
-		log.Errorf("canTicketVote error: %v", err)
+		log.Errorf("%s: canTicketVote error: %v", funcName, err)
 		sendError(errInternalError, c)
 		return
 	}
 	if !canVote {
-		log.Warnf("Unvotable ticket %s from %s", ticketHash, c.ClientIP())
+		log.Warnf("%s: Unvotable ticket %s from %s", funcName, ticketHash, c.ClientIP())
 		sendError(errTicketCannotVote, c)
 		return
 	}
@@ -118,7 +120,7 @@ func feeAddress(c *gin.Context) {
 		if ticket.FeeExpired() {
 			newFee, err := getCurrentFee(dcrdClient)
 			if err != nil {
-				log.Errorf("getCurrentFee error: %v", err)
+				log.Errorf("%s: getCurrentFee error: %v", funcName, err)
 				sendError(errInternalError, c)
 				return
 			}
@@ -127,12 +129,12 @@ func feeAddress(c *gin.Context) {
 
 			err = db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("UpdateTicket error: %v", err)
+				log.Errorf("%s: UpdateTicket error: %v", funcName, err)
 				sendError(errInternalError, c)
 				return
 			}
-			log.Debugf("Expired fee updated for ticket: newFeeAmt=%f, ticketHash=%s",
-				newFee, ticket.Hash)
+			log.Debugf("%s: Expired fee updated for ticket: newFeeAmt=%f, ticketHash=%s",
+				funcName, newFee, ticket.Hash)
 		}
 		sendJSONResponse(feeAddressResponse{
 			Timestamp:  now.Unix(),
@@ -150,14 +152,14 @@ func feeAddress(c *gin.Context) {
 
 	fee, err := getCurrentFee(dcrdClient)
 	if err != nil {
-		log.Errorf("getCurrentFee error: %v", err)
+		log.Errorf("%s: getCurrentFee error: %v", funcName, err)
 		sendError(errInternalError, c)
 		return
 	}
 
 	newAddress, newAddressIdx, err := getNewFeeAddress(db, addrGen)
 	if err != nil {
-		log.Errorf("getNewFeeAddress error: %v", err)
+		log.Errorf("%s: getNewFeeAddress error: %v", funcName, err)
 	}
 
 	now := time.Now()
@@ -178,13 +180,13 @@ func feeAddress(c *gin.Context) {
 
 	err = db.InsertNewTicket(dbTicket)
 	if err != nil {
-		log.Errorf("InsertTicket error: %v", err)
+		log.Errorf("%s: InsertTicket error: %v", funcName, err)
 		sendError(errInternalError, c)
 		return
 	}
 
-	log.Debugf("Fee address created for new ticket: tktConfirmed=%t, feeAddrIdx=%d, "+
-		"feeAddr=%s, feeAmt=%s, ticketHash=%s", confirmed, newAddressIdx, newAddress, fee, ticketHash)
+	log.Debugf("%s: Fee address created for new ticket: tktConfirmed=%t, feeAddrIdx=%d, "+
+		"feeAddr=%s, feeAmt=%s, ticketHash=%s", funcName, confirmed, newAddressIdx, newAddress, fee, ticketHash)
 
 	sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),

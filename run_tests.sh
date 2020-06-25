@@ -15,7 +15,6 @@ else
     OUT_FORMAT="colored-line-number"
 fi
 
-# some linters are commented until code is in a more stable state.
 golangci-lint run --disable-all --deadline=10m \
   --out-format=$OUT_FORMAT \
   --enable=gofmt \
