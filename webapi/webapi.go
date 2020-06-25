@@ -57,7 +57,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	// Get keys for signing API responses from the database.
 	signPrivKey, signPubKey, err = vdb.KeyPair()
 	if err != nil {
-		return fmt.Errorf("Failed to get keypair: %v", err)
+		return fmt.Errorf("db.Keypair error: %v", err)
 	}
 
 	// Populate cached VSP stats before starting webserver.
@@ -70,11 +70,11 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	// use them to initialize the address generator.
 	idx, err := vdb.GetLastAddressIndex()
 	if err != nil {
-		return fmt.Errorf("GetLastAddressIndex error: %v", err)
+		return fmt.Errorf("db.GetLastAddressIndex error: %v", err)
 	}
 	feeXPub, err := vdb.GetFeeXPub()
 	if err != nil {
-		return fmt.Errorf("GetFeeXPub error: %v", err)
+		return fmt.Errorf("db.GetFeeXPub error: %v", err)
 	}
 	addrGen, err = newAddressGenerator(feeXPub, config.NetParams, idx)
 	if err != nil {
@@ -84,7 +84,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	// Get the secret key used to initialize the cookie store.
 	cookieSecret, err := vdb.GetCookieSecret()
 	if err != nil {
-		return fmt.Errorf("GetCookieSecret error: %v", err)
+		return fmt.Errorf("db.GetCookieSecret error: %v", err)
 	}
 
 	// Create TCP listener.

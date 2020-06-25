@@ -151,7 +151,7 @@ func vspAuth() gin.HandlerFunc {
 		// Check if this ticket already appears in the database.
 		ticket, ticketFound, err := db.GetTicketByHash(hash)
 		if err != nil {
-			log.Errorf("%s: GetTicketByHash error (ticketHash=%s): %v", funcName, hash, err)
+			log.Errorf("%s: db.GetTicketByHash error (ticketHash=%s): %v", funcName, hash, err)
 			sendError(errInternalError, c)
 			return
 		}
@@ -166,7 +166,7 @@ func vspAuth() gin.HandlerFunc {
 
 			resp, err := dcrdClient.GetRawTransaction(hash)
 			if err != nil {
-				log.Errorf("%s: GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, hash, err)
+				log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, hash, err)
 				sendError(errInternalError, c)
 				return
 			}

@@ -21,7 +21,7 @@ func ticketSearch(c *gin.Context) {
 
 	ticket, found, err := db.GetTicketByHash(hash)
 	if err != nil {
-		log.Errorf("GetTicketByHash error: %v", err)
+		log.Errorf("db.GetTicketByHash error: %v", err)
 		c.String(http.StatusInternalServerError, "Error getting ticket from db")
 		return
 	}

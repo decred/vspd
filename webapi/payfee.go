@@ -51,7 +51,7 @@ func payFee(c *gin.Context) {
 	// Get ticket details.
 	rawTicket, err := dcrdClient.GetRawTransaction(ticket.Hash)
 	if err != nil {
-		log.Errorf("%s: GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+		log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
 		return
 	}
@@ -59,7 +59,7 @@ func payFee(c *gin.Context) {
 	// Ensure this ticket is eligible to vote at some point in the future.
 	canVote, err := dcrdClient.CanTicketVote(rawTicket, ticket.Hash, cfg.NetParams)
 	if err != nil {
-		log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+		log.Errorf("%s: dcrd.CanTicketVote error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
 		return
 	}
@@ -214,14 +214,14 @@ findAddress:
 	if ticket.Confirmed {
 		err = dcrdClient.SendRawTransaction(payFeeRequest.FeeTx)
 		if err != nil {
-			log.Errorf("%s: SendRawTransaction for fee tx failed (ticketHash=%s): %v",
+			log.Errorf("%s: dcrd.SendRawTransaction for fee tx failed (ticketHash=%s): %v",
 				funcName, ticket.Hash, err)
 
 			ticket.FeeTxStatus = database.FeeError
 
 			err = db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("%s: UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+				log.Errorf("%s: db.UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
 			}
 
 			sendErrorWithMsg("could not broadcast fee transaction", errInvalidFeeTx, c)
@@ -232,7 +232,7 @@ findAddress:
 
 		err = db.UpdateTicket(ticket)
 		if err != nil {
-			log.Errorf("%s: UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+			log.Errorf("%s: db.UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
 			sendError(errInternalError, c)
 			return
 		}

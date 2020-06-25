@@ -51,7 +51,7 @@ func setVoteChoices(c *gin.Context) {
 	ticket.VoteChoices = voteChoices
 	err = db.UpdateTicket(ticket)
 	if err != nil {
-		log.Errorf("%s: UpdateTicket error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+		log.Errorf("%s: db.UpdateTicket error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
 		return
 	}
@@ -65,7 +65,7 @@ func setVoteChoices(c *gin.Context) {
 				if err != nil {
 					// If this fails, we still want to try the other wallets, so
 					// don't return an error response, just log an error.
-					log.Errorf("%s: SetVoteChoice failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+					log.Errorf("%s: dcrwallet.SetVoteChoice failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
 				}
 			}
 		}

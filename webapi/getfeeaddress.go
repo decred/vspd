@@ -95,7 +95,7 @@ func feeAddress(c *gin.Context) {
 	// Get ticket details.
 	rawTicket, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
-		log.Errorf("%s: GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
+		log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
 		sendError(errInternalError, c)
 		return
 	}
@@ -103,7 +103,7 @@ func feeAddress(c *gin.Context) {
 	// Ensure this ticket is eligible to vote at some point in the future.
 	canVote, err := dcrdClient.CanTicketVote(rawTicket, ticketHash, cfg.NetParams)
 	if err != nil {
-		log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
+		log.Errorf("%s: dcrd.CanTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
 		sendError(errInternalError, c)
 		return
 	}
@@ -131,7 +131,7 @@ func feeAddress(c *gin.Context) {
 
 			err = db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("%s: UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+				log.Errorf("%s: db.UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
 				sendError(errInternalError, c)
 				return
 			}
@@ -182,7 +182,7 @@ func feeAddress(c *gin.Context) {
 
 	err = db.InsertNewTicket(dbTicket)
 	if err != nil {
-		log.Errorf("%s: InsertNewTicket failed (ticketHash=%s): %v", funcName, ticketHash, err)
+		log.Errorf("%s: db.InsertNewTicket failed (ticketHash=%s): %v", funcName, ticketHash, err)
 		sendError(errInternalError, c)
 		return
 	}
