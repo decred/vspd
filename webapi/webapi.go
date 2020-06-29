@@ -190,7 +190,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 
 	api := router.Group("/api")
 	api.GET("/vspinfo", vspInfo)
-	api.POST("/feeaddress", withDcrdClient(dcrd), ensureTicketBroadcast(), vspAuth(), feeAddress)
+	api.POST("/feeaddress", withDcrdClient(dcrd), broadcastTicket(), vspAuth(), feeAddress)
 	api.GET("/ticketstatus", withDcrdClient(dcrd), vspAuth(), ticketStatus)
 	api.POST("/payfee", withDcrdClient(dcrd), vspAuth(), payFee)
 	api.POST("/setvotechoices", withDcrdClient(dcrd), withWalletClients(wallets), vspAuth(), setVoteChoices)

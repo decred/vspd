@@ -108,16 +108,18 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 	}
 }
 
-// ensureTicketBroadcast will parse ticket hash and ticket hex from the request
-// body, and ensure the local dcrd instance can retrieve information about that
-// ticket. If no info can be found, the ticket hex will be broadcast.
-func ensureTicketBroadcast() gin.HandlerFunc {
+// broadcastTicket will parse ticket hash and ticket hex from the request body,
+// and ensure the local dcrd instance can retrieve information about the ticket.
+// If no info can be found, the ticket hex will be broadcast.
+func broadcastTicket() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		funcName := "broadcastTicket"
+
 		// Read request bytes and then replace the request reader for
 		// downstream handlers to use.
 		reqBytes, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
-			log.Warnf("Error reading request from %s: %v", c.ClientIP(), err)
+			log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg(err.Error(), errBadRequest, c)
 			return
 		}
@@ -127,7 +129,7 @@ func ensureTicketBroadcast() gin.HandlerFunc {
 		// Parse request and ensure ticket hash and hex are included.
 		var request ticketRequest
 		if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-			log.Warnf("Bad request from %s: %v", c.ClientIP(), err)
+			log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg(err.Error(), errBadRequest, c)
 			return
 		}
@@ -135,21 +137,23 @@ func ensureTicketBroadcast() gin.HandlerFunc {
 		// Ensure the provided hex is a valid ticket.
 		msgTx, err := decodeTransaction(request.TicketHex)
 		if err != nil {
-			log.Warnf("decodeTransaction error: %v", err)
+			log.Errorf("%s: Failed to decode ticket hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
 			sendErrorWithMsg("cannot decode ticket hex", errBadRequest, c)
 			return
 		}
 
 		err = isValidTicket(msgTx)
 		if err != nil {
-			log.Warnf("Invalid ticket from %s: %v", c.ClientIP(), err)
+			log.Warnf("%s: Invalid ticket (clientIP=%s, ticketHash=%s): %v",
+				funcName, c.ClientIP(), request.TicketHash, err)
 			sendError(errInvalidTicket, c)
 			return
 		}
 
 		// Ensure hex matches hash.
 		if msgTx.TxHash().String() != request.TicketHash {
-			log.Warnf("Ticket hex/hash mismatch from %s", c.ClientIP())
+			log.Warnf("%s: Ticket hex/hash mismatch (clientIP=%s, ticketHash=%s)",
+				funcName, c.ClientIP(), request.TicketHash)
 			sendErrorWithMsg("ticket hex does not match hash", errBadRequest, c)
 			return
 		}
@@ -160,7 +164,7 @@ func ensureTicketBroadcast() gin.HandlerFunc {
 		// ticket.
 		_, err = dcrdClient.GetRawTransaction(request.TicketHash)
 		if err == nil {
-			// No error means dcrd knows the ticket, we are done here.
+			// No error means dcrd already knows the ticket, we are done here.
 			return
 		}
 
@@ -168,15 +172,17 @@ func ensureTicketBroadcast() gin.HandlerFunc {
 		// hex, so we can broadcast it here.
 		var e *wsrpc.Error
 		if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
-			log.Debugf("Broadcasting ticket with hash %s", request.TicketHash)
+			log.Debugf("%s: Broadcasting ticket (ticketHash=%s)", funcName, request.TicketHash)
 			err = dcrdClient.SendRawTransaction(request.TicketHex)
 			if err != nil {
-				log.Errorf("SendRawTransaction error: %v", err)
+				log.Errorf("%s: dcrd.SendRawTransaction for ticket failed (ticketHash=%s): %v",
+					funcName, request.TicketHash, err)
 				sendError(errInternalError, c)
 				return
 			}
 		} else {
-			log.Errorf("GetRawTransaction error: %v", err)
+			log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v",
+				funcName, request.TicketHash, err)
 			sendError(errInternalError, c)
 			return
 		}
