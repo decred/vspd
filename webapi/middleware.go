@@ -100,9 +100,9 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 			sendError(errInternalError, c)
 			return
 		}
-		if failedConnections > 0 {
+		if len(failedConnections) > 0 {
 			log.Errorf("Failed to connect to %d wallet(s), proceeding with only %d",
-				failedConnections, len(clients))
+				len(failedConnections), len(clients))
 		}
 		c.Set("WalletClients", clients)
 	}
