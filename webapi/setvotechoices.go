@@ -65,7 +65,8 @@ func setVoteChoices(c *gin.Context) {
 				if err != nil {
 					// If this fails, we still want to try the other wallets, so
 					// don't return an error response, just log an error.
-					log.Errorf("%s: dcrwallet.SetVoteChoice failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+					log.Errorf("%s: dcrwallet.SetVoteChoice failed (wallet=%s, ticketHash=%s): %v",
+						funcName, walletClient.String(), ticket.Hash, err)
 				}
 			}
 		}
