@@ -66,19 +66,19 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		var verMap map[string]dcrdtypes.VersionResult
 		err = c.Call(ctx, "version", &verMap)
 		if err != nil {
-			log.Errorf("version check on dcrwallet '%s' failed: %v", c.String(), err)
+			log.Errorf("dcrwallet.Version error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 		walletVersion, exists := verMap["dcrwalletjsonrpcapi"]
 		if !exists {
-			log.Errorf("version response on dcrwallet '%s' missing 'dcrwalletjsonrpcapi'",
+			log.Errorf("dcrwallet.Version response missing 'dcrwalletjsonrpcapi' (wallet=%s)",
 				c.String())
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 		if walletVersion.VersionString != requiredWalletVersion {
-			log.Errorf("dcrwallet '%s' has wrong RPC version: got %s, expected %s",
+			log.Errorf("dcrwallet has wrong RPC version (wallet=%s): got %s, expected %s",
 				c.String(), walletVersion.VersionString, requiredWalletVersion)
 			failedConnections = append(failedConnections, connect.addr)
 			continue
@@ -88,12 +88,13 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		var netID wire.CurrencyNet
 		err = c.Call(ctx, "getcurrentnet", &netID)
 		if err != nil {
-			log.Errorf("getcurrentnet check on dcrwallet '%s' failed: %v", c.String(), err)
+			log.Errorf("dcrwallet.GetCurrentNet error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 		if netID != netParams.Net {
-			log.Errorf("dcrwallet '%s' running on %s, expected %s", c.String(), netID, netParams.Net)
+			log.Errorf("dcrwallet on wrong network (wallet=%s): running on %s, expected %s",
+				c.String(), netID, netParams.Net)
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
@@ -102,7 +103,7 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		walletRPC := &WalletRPC{c, ctx}
 		walletInfo, err := walletRPC.WalletInfo()
 		if err != nil {
-			log.Errorf("walletinfo check on dcrwallet '%s' failed: %v", c.String(), err)
+			log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
@@ -110,12 +111,12 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		if !walletInfo.Voting {
 			// All wallet RPCs can still be used if voting is disabled, so just
 			// log an error here. Don't count this as a failed connection.
-			log.Errorf("wallet '%s' has voting disabled", c.String())
+			log.Errorf("wallet is not voting (wallet=%s)", c.String())
 		}
 		if !walletInfo.Unlocked {
 			// SetVoteChoice can still be used even if the wallet is locked, so
 			// just log an error here. Don't count this as a failed connection.
-			log.Errorf("wallet '%s' is not unlocked", c.String())
+			log.Errorf("wallet is not unlocked (wallet=%s)", c.String())
 		}
 
 		walletClients = append(walletClients, walletRPC)
