@@ -46,8 +46,8 @@ func setup(user, pass, addr string, cert []byte, n wsrpc.Notifier) *client {
 
 	var mu sync.Mutex
 	var c *wsrpc.Client
-
-	return &client{&mu, c, addr, tlsOpt, authOpt, n}
+	fullAddr := "wss://" + addr + "/ws"
+	return &client{&mu, c, fullAddr, tlsOpt, authOpt, n}
 }
 
 func (c *client) Close() {
@@ -85,8 +85,7 @@ func (c *client) dial(ctx context.Context) (Caller, bool, error) {
 	}
 
 	var err error
-	fullAddr := "wss://" + c.addr + "/ws"
-	c.client, err = wsrpc.Dial(ctx, fullAddr, c.tlsOpt, c.authOpt, wsrpc.WithNotifier(c.notifier))
+	c.client, err = wsrpc.Dial(ctx, c.addr, c.tlsOpt, c.authOpt, wsrpc.WithNotifier(c.notifier))
 	if err != nil {
 		return nil, false, err
 	}
