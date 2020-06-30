@@ -84,6 +84,20 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 			continue
 		}
 
+		// Verify dcrwallet is on the correct network.
+		var netID wire.CurrencyNet
+		err = c.Call(ctx, "getcurrentnet", &netID)
+		if err != nil {
+			log.Errorf("getcurrentnet check on dcrwallet '%s' failed: %v", c.String(), err)
+			failedConnections++
+			continue
+		}
+		if netID != netParams.Net {
+			log.Errorf("dcrwallet '%s' running on %s, expected %s", c.String(), netID, netParams.Net)
+			failedConnections++
+			continue
+		}
+
 		// Verify dcrwallet is voting and unlocked.
 		var walletInfo wallettypes.WalletInfoResult
 		err = c.Call(ctx, "walletinfo", &walletInfo)
@@ -101,20 +115,6 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		if !walletInfo.Unlocked {
 			// If wallet is locked, ImportPrivKey cannot be used.
 			log.Errorf("wallet '%s' is not unlocked", c.String())
-			failedConnections++
-			continue
-		}
-
-		// Verify dcrwallet is on the correct network.
-		var netID wire.CurrencyNet
-		err = c.Call(ctx, "getcurrentnet", &netID)
-		if err != nil {
-			log.Errorf("getcurrentnet check on dcrwallet '%s' failed: %v", c.String(), err)
-			failedConnections++
-			continue
-		}
-		if netID != netParams.Net {
-			log.Errorf("dcrwallet '%s' running on %s, expected %s", c.String(), netID, netParams.Net)
 			failedConnections++
 			continue
 		}
