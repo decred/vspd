@@ -99,8 +99,8 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		}
 
 		// Verify dcrwallet is voting and unlocked.
-		var walletInfo wallettypes.WalletInfoResult
-		err = c.Call(ctx, "walletinfo", &walletInfo)
+		walletRPC := &WalletRPC{c, ctx}
+		walletInfo, err := walletRPC.WalletInfo()
 		if err != nil {
 			log.Errorf("walletinfo check on dcrwallet '%s' failed: %v", c.String(), err)
 			failedConnections++
@@ -119,11 +119,20 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 			continue
 		}
 
-		walletClients = append(walletClients, &WalletRPC{c, ctx})
+		walletClients = append(walletClients, walletRPC)
 
 	}
 
 	return walletClients, failedConnections
+}
+
+func (c *WalletRPC) WalletInfo() (*wallettypes.WalletInfoResult, error) {
+	var walletInfo wallettypes.WalletInfoResult
+	err := c.Call(c.ctx, "walletinfo", &walletInfo)
+	if err != nil {
+		return nil, err
+	}
+	return &walletInfo, nil
 }
 
 func (c *WalletRPC) AddTicketForVoting(votingWIF, blockHash, txHex string) error {
