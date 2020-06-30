@@ -113,10 +113,9 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 			log.Errorf("wallet '%s' has voting disabled", c.String())
 		}
 		if !walletInfo.Unlocked {
-			// If wallet is locked, ImportPrivKey cannot be used.
+			// SetVoteChoice can still be used even if the wallet is locked, so
+			// just log an error here. Don't count this as a failed connection.
 			log.Errorf("wallet '%s' is not unlocked", c.String())
-			failedConnections++
-			continue
 		}
 
 		walletClients = append(walletClients, walletRPC)
