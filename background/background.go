@@ -159,9 +159,9 @@ func blockConnected() {
 		log.Errorf("%s: Could not connect to any wallets", funcName)
 		return
 	}
-	if failedConnections > 0 {
+	if len(failedConnections) > 0 {
 		log.Errorf("%s: Failed to connect to %d wallet(s), proceeding with only %d",
-			funcName, failedConnections, len(walletClients))
+			funcName, len(failedConnections), len(walletClients))
 	}
 
 	for _, ticket := range unconfirmedFees {

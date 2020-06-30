@@ -42,16 +42,16 @@ func (w *WalletConnect) Close() {
 // Clients loops over each wallet and tries to establish a connection. It
 // increments a count of failed connections if a connection cannot be
 // established, or if the wallet is misconfigured.
-func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params) ([]*WalletRPC, int) {
+func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params) ([]*WalletRPC, []string) {
 	walletClients := make([]*WalletRPC, 0)
-	failedConnections := 0
+	failedConnections := make([]string, 0)
 
 	for _, connect := range []*client(*w) {
 
 		c, newConnection, err := connect.dial(ctx)
 		if err != nil {
 			log.Errorf("dcrwallet connection error: %v", err)
-			failedConnections++
+			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 
@@ -67,20 +67,20 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		err = c.Call(ctx, "version", &verMap)
 		if err != nil {
 			log.Errorf("version check on dcrwallet '%s' failed: %v", c.String(), err)
-			failedConnections++
+			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 		walletVersion, exists := verMap["dcrwalletjsonrpcapi"]
 		if !exists {
 			log.Errorf("version response on dcrwallet '%s' missing 'dcrwalletjsonrpcapi'",
 				c.String())
-			failedConnections++
+			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 		if walletVersion.VersionString != requiredWalletVersion {
 			log.Errorf("dcrwallet '%s' has wrong RPC version: got %s, expected %s",
 				c.String(), walletVersion.VersionString, requiredWalletVersion)
-			failedConnections++
+			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 
@@ -89,12 +89,12 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		err = c.Call(ctx, "getcurrentnet", &netID)
 		if err != nil {
 			log.Errorf("getcurrentnet check on dcrwallet '%s' failed: %v", c.String(), err)
-			failedConnections++
+			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 		if netID != netParams.Net {
 			log.Errorf("dcrwallet '%s' running on %s, expected %s", c.String(), netID, netParams.Net)
-			failedConnections++
+			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 
@@ -103,7 +103,7 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		walletInfo, err := walletRPC.WalletInfo()
 		if err != nil {
 			log.Errorf("walletinfo check on dcrwallet '%s' failed: %v", c.String(), err)
-			failedConnections++
+			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 
