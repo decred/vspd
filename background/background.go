@@ -192,16 +192,9 @@ func blockConnected() {
 				continue
 			}
 			for _, walletClient := range walletClients {
-				err = walletClient.ImportPrivKey(ticket.VotingWIF)
+				err = walletClient.AddTicketForVoting(ticket.VotingWIF, rawTicket.BlockHash, rawTicket.Hex)
 				if err != nil {
-					log.Errorf("%s: dcrwallet.ImportPrivKey error (wallet=%s, ticketHash=%s): %v",
-						funcName, walletClient.String(), ticket.Hash, err)
-					continue
-				}
-
-				err = walletClient.AddTransaction(rawTicket.BlockHash, rawTicket.Hex)
-				if err != nil {
-					log.Errorf("%s: dcrwallet.AddTransaction error (wallet=%s, ticketHash=%s): %v",
+					log.Errorf("%s: dcrwallet.AddTicketForVoting error (wallet=%s, ticketHash=%s): %v",
 						funcName, walletClient.String(), ticket.Hash, err)
 					continue
 				}

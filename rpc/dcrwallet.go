@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 
 	wallettypes "decred.org/dcrwallet/rpc/jsonrpc/types"
 	"github.com/decred/dcrd/chaincfg/v3"
@@ -125,15 +126,21 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 	return walletClients, failedConnections
 }
 
-func (c *WalletRPC) AddTransaction(blockHash, txHex string) error {
-	return c.Call(c.ctx, "addtransaction", nil, blockHash, txHex)
-}
-
-func (c *WalletRPC) ImportPrivKey(votingWIF string) error {
+func (c *WalletRPC) AddTicketForVoting(votingWIF, blockHash, txHex string) error {
 	label := "imported"
 	rescan := false
 	scanFrom := 0
-	return c.Call(c.ctx, "importprivkey", nil, votingWIF, label, rescan, scanFrom)
+	err := c.Call(c.ctx, "importprivkey", nil, votingWIF, label, rescan, scanFrom)
+	if err != nil {
+		return fmt.Errorf("importprivkey failed: %v", err)
+	}
+
+	err = c.Call(c.ctx, "addtransaction", nil, blockHash, txHex)
+	if err != nil {
+		return fmt.Errorf("addtransaction failed: %v", err)
+	}
+
+	return nil
 }
 
 func (c *WalletRPC) SetVoteChoice(agenda, choice, ticketHash string) error {
