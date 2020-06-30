@@ -19,6 +19,8 @@ import (
 // convenience functions.
 type VspDatabase struct {
 	db *bolt.DB
+
+	ticketsMtx sync.RWMutex
 }
 
 // The keys used in the database.
