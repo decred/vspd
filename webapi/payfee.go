@@ -3,6 +3,7 @@ package webapi
 import (
 	"time"
 
+	"github.com/decred/dcrd/blockchain/v3"
 	"github.com/decred/dcrd/dcrec"
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/txscript/v3"
@@ -102,6 +103,14 @@ func payFee(c *gin.Context) {
 	feeTx, err := decodeTransaction(payFeeRequest.FeeTx)
 	if err != nil {
 		log.Warnf("%s: Failed to decode fee tx hex (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), ticket.Hash, err)
+		sendError(errInvalidFeeTx, c)
+		return
+	}
+
+	err = blockchain.CheckTransactionSanity(feeTx, cfg.NetParams)
+	if err != nil {
+		log.Warnf("%s: Fee tx failed sanity check (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 		sendError(errInvalidFeeTx, c)
 		return
