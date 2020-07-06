@@ -3,14 +3,64 @@ package webapi
 import (
 	"net/http"
 
+	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 )
 
+// WalletStatus describes the current status of a single voting wallet.
+type WalletStatus struct {
+	Connected       bool
+	InfoError       bool
+	DaemonConnected bool
+	VoteVersion     uint32
+	Unlocked        bool
+	Voting          bool
+	BestBlockError  bool
+	BestBlockHeight int64
+}
+
+func walletStatus(c *gin.Context) map[string]WalletStatus {
+	walletClients := c.MustGet("WalletClients").([]*rpc.WalletRPC)
+	failedWalletClients := c.MustGet("FailedWalletClients").([]string)
+
+	walletStatus := make(map[string]WalletStatus)
+	for _, v := range walletClients {
+		ws := WalletStatus{Connected: true}
+
+		walletInfo, err := v.WalletInfo()
+		if err != nil {
+			log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", v.String(), err)
+			ws.InfoError = true
+		} else {
+			ws.DaemonConnected = walletInfo.DaemonConnected
+			ws.VoteVersion = walletInfo.VoteVersion
+			ws.Unlocked = walletInfo.Unlocked
+			ws.Voting = walletInfo.Voting
+		}
+
+		height, err := v.GetBestBlockHeight()
+		if err != nil {
+			log.Errorf("dcrwallet.GetBestBlockHeight error (wallet=%s): %v", v.String(), err)
+			ws.BestBlockError = true
+		} else {
+			ws.BestBlockHeight = height
+		}
+
+		walletStatus[v.String()] = ws
+	}
+	for _, v := range failedWalletClients {
+		ws := WalletStatus{Connected: false}
+		walletStatus[v] = ws
+	}
+	return walletStatus
+}
+
 // adminPage is the handler for "GET /admin".
 func adminPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin.html", gin.H{
-		"VspStats": getVSPStats(),
+		"VspStats":     getVSPStats(),
+		"WalletStatus": walletStatus(c),
 	})
 }
 
@@ -32,7 +82,8 @@ func ticketSearch(c *gin.Context) {
 			"Found":  found,
 			"Ticket": ticket,
 		},
-		"VspStats": getVSPStats(),
+		"VspStats":     getVSPStats(),
+		"WalletStatus": walletStatus(c),
 	})
 }
 

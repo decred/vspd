@@ -22,13 +22,69 @@
 </div>
 
 <div class="container">
+    <div class="row">
 
+        <div class="col-12 p-3">
+            <div class="block__content">
+                <h1>Voting Wallet Status</h1>
+
+                <table class="table status-table mb-0" width="100%">
+                    <tr>
+                        <th>URL</th>
+                        <th>Best Block Height</th>
+                        <th>Daemon Connected</th>
+                        <th>Unlocked</th>
+                        <th>Voting</th>
+                        <th>Vote Version</th>
+                    </tr>
+                    {{ range $host, $status := .WalletStatus }}
+                    <tr>
+                        <td>{{ $host }}</td>
+                        
+                        {{ if $status.Connected }}
+
+                            {{ if $status.BestBlockError }}
+                                <td class="status-bad">Error</td>
+                            {{ else }}
+                                <td>{{ $status.BestBlockHeight }}</td>
+                            {{ end }}
+
+                            {{ if $status.InfoError }}
+                                <td class="status-bad" colspan="4">Error</td>
+                            {{ else }}
+                                <td class="{{ if $status.DaemonConnected }}status-good{{else}}status-bad{{end}}"
+                                >{{ $status.DaemonConnected }}</td>
+                                
+                                
+                                <td class="{{ if $status.Unlocked }}status-good{{else}}status-bad{{end}}"
+                                >{{ $status.Unlocked }}</td>
+                                
+                                
+                                <td class="{{ if $status.Voting }}status-good{{else}}status-bad{{end}}"
+                                >{{ $status.Voting }}</td>
+                                
+                                <td>{{ $status.VoteVersion }}</td>
+                            {{ end }}
+
+                        {{else}}
+                            <td class="status-bad" colspan="4">Cannot connect to wallet</td>
+                        {{end}}
+                    </tr>
+                    {{end}}
+                </table>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="container">
     <div class="row">
 
         <div class="col-12 p-3">
             <div class="block__content">
                 <h1>Ticket Search</h1>
-    
 
                 <form class="my-2" action="/admin/ticket" method="post">
                     <input type="text" name="hash" size="64" minlength="64" maxlength="64" required placeholder="Ticket hash" autocomplete="off">
@@ -38,7 +94,7 @@
                 {{ with .SearchResult }}
                     {{ if .Found }}
                         {{ with .Ticket }}
-                            <table class="table mt-4 mb-0">
+                            <table class="table ticket-table mt-4 mb-0">
                                 <tr>
                                     <th>Hash</th>
                                     <td>{{ .Hash }}</td>
@@ -104,7 +160,6 @@
         </div>
 
     </div>
-
 </div>
 
 {{ template "footer" . }}

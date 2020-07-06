@@ -205,7 +205,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	login.POST("", adminLogin)
 
 	admin := router.Group("/admin").Use(
-		withSession(cookieStore), requireAdmin(),
+		withWalletClients(wallets), withSession(cookieStore), requireAdmin(),
 	)
 	admin.GET("", adminPage)
 	admin.POST("/ticket", ticketSearch)
