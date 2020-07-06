@@ -208,6 +208,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 		withWalletClients(wallets), withSession(cookieStore), requireAdmin(),
 	)
 	admin.GET("", adminPage)
+	admin.GET("/status", statusJSON)
 	admin.POST("/ticket", ticketSearch)
 	admin.GET("/backup", downloadDatabaseBackup)
 	admin.POST("/logout", adminLogout)
