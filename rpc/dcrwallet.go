@@ -155,3 +155,12 @@ func (c *WalletRPC) AddTicketForVoting(votingWIF, blockHash, txHex string) error
 func (c *WalletRPC) SetVoteChoice(agenda, choice, ticketHash string) error {
 	return c.Call(c.ctx, "setvotechoice", nil, agenda, choice, ticketHash)
 }
+
+func (c *WalletRPC) GetBestBlockHeight() (int64, error) {
+	var block dcrdtypes.GetBestBlockResult
+	err := c.Call(c.ctx, "getbestblock", &block)
+	if err != nil {
+		return 0, err
+	}
+	return block.Height, nil
+}

@@ -103,7 +103,8 @@ footer .code {
 .block__content th {
     font-weight: normal;
     padding-right: 15px;
-    text-align: right;
+    color: #495057;
+    background-color: #e9ecef;
 }
 
 .block__content table td {
@@ -114,4 +115,23 @@ footer .code {
 .block__content table th {
     vertical-align: top;
     white-space: nowrap;
+}
+
+td.status-good{
+    background-color: #C4ECCA;
+}
+td.status-bad{
+    background-color: #FEB8A5;
+}
+
+.ticket-table th {
+    text-align: right;
+}
+.ticket-table td {
+    text-align: left;
+}
+
+.status-table th,
+.status-table td {
+    text-align: center;
 }

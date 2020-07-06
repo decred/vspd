@@ -105,6 +105,7 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 				len(failedConnections), len(clients))
 		}
 		c.Set("WalletClients", clients)
+		c.Set("FailedWalletClients", failedConnections)
 	}
 }
 
