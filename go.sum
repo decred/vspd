@@ -28,6 +28,7 @@ github.com/decred/dcrd/blockchain/stake/v3 v3.0.0-20200616182840-3baf1f590cb1 h1
 github.com/decred/dcrd/blockchain/stake/v3 v3.0.0-20200616182840-3baf1f590cb1/go.mod h1:1e94ovQXEcOjIn7BRzkXpswA7pWQXqB2el5l0w0Srf8=
 github.com/decred/dcrd/blockchain/standalone v1.1.0 h1:yclvVGEY09Gf8A4GSAo+NCtL1dW2TYJ4OKp4+g0ICI0=
 github.com/decred/dcrd/blockchain/standalone v1.1.0/go.mod h1:6K8ZgzlWM1Kz2TwXbrtiAvfvIwfAmlzrtpA7CVPCUPE=
+github.com/decred/dcrd/blockchain/v3 v3.0.0-20200311044114-143c1884e4c8 h1:I3psccIeKb9eld+TNd69SgUOy6940uflH/J3aLM2ctU=
 github.com/decred/dcrd/blockchain/v3 v3.0.0-20200311044114-143c1884e4c8/go.mod h1:R9rIXU8kEJVC9Z4LAlh9bo9hiT3a+ihys3mCrz4PVao=
 github.com/decred/dcrd/certgen v1.1.0/go.mod h1:ivkPLChfjdAgFh7ZQOtl6kJRqVkfrCq67dlq3AbZBQE=
 github.com/decred/dcrd/chaincfg/chainhash v1.0.2 h1:rt5Vlq/jM3ZawwiacWjPa+smINyLRN07EO0cNBV6DGU=
