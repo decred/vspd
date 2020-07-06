@@ -76,6 +76,38 @@ dcrstakepool deployment.
 
 ## Monitoring
 
+### Logs
+
+Any event logged at the `[ERR]` level is worthy of immediate investigation.
+Examples include configuration or deployment issues, RPC failures and database
+errors.
+
+The `[WRN]` level is used to indicate events which are of interest, but do not
+necessarily require investigation (eg. bad requests from clients, recoverable
+errors).
+
+### Voting Wallets
+
+The current status of the voting wallets is displayed in a table on the `/admin`
+page, and the same information can be retrieved as a JSON object from
+`/admin/status` for automated monitoring.
+
+```json
+{
+  "wss://127.0.0.1:20111/ws":
+    {
+      "connected":true,
+      "infoerror":false,
+      "daemonconnected":true,
+      "voteversion":8,
+      "unlocked":true,
+      "voting":true,
+      "bestblockerror":false,
+      "bestblockheight":462345
+    }
+}
+```
+
 // TODO
 
 ## Backup
