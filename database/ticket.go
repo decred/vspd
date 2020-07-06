@@ -63,6 +63,9 @@ var (
 )
 
 func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
+	defer vdb.ticketsMtx.Unlock()
+	vdb.ticketsMtx.Lock()
+
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
@@ -104,6 +107,9 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 }
 
 func (vdb *VspDatabase) DeleteTicket(ticket Ticket) error {
+	defer vdb.ticketsMtx.Unlock()
+	vdb.ticketsMtx.Lock()
+
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
@@ -116,6 +122,9 @@ func (vdb *VspDatabase) DeleteTicket(ticket Ticket) error {
 	})
 }
 func (vdb *VspDatabase) UpdateTicket(ticket Ticket) error {
+	defer vdb.ticketsMtx.Unlock()
+	vdb.ticketsMtx.Lock()
+
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
@@ -135,6 +144,9 @@ func (vdb *VspDatabase) UpdateTicket(ticket Ticket) error {
 }
 
 func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, bool, error) {
+	defer vdb.ticketsMtx.RUnlock()
+	vdb.ticketsMtx.RLock()
+
 	var ticket Ticket
 	var found bool
 	err := vdb.db.View(func(tx *bolt.Tx) error {
@@ -159,6 +171,9 @@ func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, bool, error)
 }
 
 func (vdb *VspDatabase) CountTickets() (int, int, error) {
+	defer vdb.ticketsMtx.RUnlock()
+	vdb.ticketsMtx.RLock()
+
 	var total, feePaid int
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
@@ -184,6 +199,9 @@ func (vdb *VspDatabase) CountTickets() (int, int, error) {
 
 // GetUnconfirmedTickets returns tickets which are not yet confirmed.
 func (vdb *VspDatabase) GetUnconfirmedTickets() ([]Ticket, error) {
+	defer vdb.ticketsMtx.RUnlock()
+	vdb.ticketsMtx.RLock()
+
 	return vdb.filterTickets(func(t Ticket) bool {
 		return !t.Confirmed
 	})
@@ -192,6 +210,9 @@ func (vdb *VspDatabase) GetUnconfirmedTickets() ([]Ticket, error) {
 // GetPendingFees returns tickets which are confirmed and have a fee tx which is
 // not yet broadcast.
 func (vdb *VspDatabase) GetPendingFees() ([]Ticket, error) {
+	defer vdb.ticketsMtx.RUnlock()
+	vdb.ticketsMtx.RLock()
+
 	return vdb.filterTickets(func(t Ticket) bool {
 		return t.Confirmed && t.FeeTxStatus == FeeReceieved
 	})
@@ -200,6 +221,9 @@ func (vdb *VspDatabase) GetPendingFees() ([]Ticket, error) {
 // GetUnconfirmedFees returns tickets with a fee tx that is broadcast but not
 // confirmed yet.
 func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
+	defer vdb.ticketsMtx.RUnlock()
+	vdb.ticketsMtx.RLock()
+
 	return vdb.filterTickets(func(t Ticket) bool {
 		return t.FeeTxStatus == FeeBroadcast
 	})
@@ -207,6 +231,8 @@ func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
 
 // filterTickets accepts a filter function and returns all tickets from the
 // database which match the filter.
+//
+// This function must be called with the lock held.
 func (vdb *VspDatabase) filterTickets(filter func(Ticket) bool) ([]Ticket, error) {
 	var tickets []Ticket
 	err := vdb.db.View(func(tx *bolt.Tx) error {
