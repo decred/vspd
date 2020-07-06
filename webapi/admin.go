@@ -8,16 +8,18 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-// WalletStatus describes the current status of a single voting wallet.
+// WalletStatus describes the current status of a single voting wallet. This is
+// used by the admin.html template, and also serialized to JSON for the
+// /admin/status endpoint.
 type WalletStatus struct {
-	Connected       bool
-	InfoError       bool
-	DaemonConnected bool
-	VoteVersion     uint32
-	Unlocked        bool
-	Voting          bool
-	BestBlockError  bool
-	BestBlockHeight int64
+	Connected       bool   `json:"connected"`
+	InfoError       bool   `json:"infoerror"`
+	DaemonConnected bool   `json:"daemonconnected"`
+	VoteVersion     uint32 `json:"voteversion"`
+	Unlocked        bool   `json:"unlocked"`
+	Voting          bool   `json:"voting"`
+	BestBlockError  bool   `json:"bestblockerror"`
+	BestBlockHeight int64  `json:"bestblockheight"`
 }
 
 func walletStatus(c *gin.Context) map[string]WalletStatus {
@@ -54,6 +56,12 @@ func walletStatus(c *gin.Context) map[string]WalletStatus {
 		walletStatus[v] = ws
 	}
 	return walletStatus
+}
+
+// statusJSON is the handler for "GET /admin/status". It returns a JSON object
+// describing the current status of voting wallets.
+func statusJSON(c *gin.Context) {
+	c.AbortWithStatusJSON(http.StatusOK, walletStatus(c))
 }
 
 // adminPage is the handler for "GET /admin".
