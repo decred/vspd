@@ -1,6 +1,7 @@
 package webapi
 
 import (
+	"encoding/base64"
 	"net/http"
 	"sync"
 	"time"
@@ -11,7 +12,7 @@ import (
 )
 
 type vspStats struct {
-	PubKey              []byte
+	PubKey              string
 	TotalTickets        int
 	FeeConfirmedTickets int
 	VSPFee              float64
@@ -43,7 +44,7 @@ func updateVSPStats(db *database.VspDatabase, cfg Config) error {
 	defer statsMtx.Unlock()
 
 	stats = &vspStats{
-		PubKey:              signPubKey,
+		PubKey:              base64.StdEncoding.EncodeToString(signPubKey),
 		TotalTickets:        total,
 		FeeConfirmedTickets: feeConfirmed,
 		VSPFee:              cfg.VSPFee,
