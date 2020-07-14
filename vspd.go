@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 
 	"github.com/decred/vspd/background"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/version"
 	"github.com/decred/vspd/webapi"
 )
 
@@ -38,6 +40,10 @@ func run(ctx context.Context) error {
 		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
 		return err
 	}
+
+	// Show version at startup.
+	log.Infof("Version %s (Go version %s %s/%s)", version.String(), runtime.Version(),
+		runtime.GOOS, runtime.GOARCH)
 
 	if cfg.VspClosed {
 		log.Warnf("Config --vspclosed is set. This will prevent vspd from " +

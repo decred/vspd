@@ -43,7 +43,8 @@ when a VSP is closed will result in an error.
         "pubkey":"SjAmrAqH7LScCUwM1qo5O6Cu7aKhrM1ORszgZwD7HmU=",
         "feepercentage":3.0,
         "vspclosed":false,
-        "network":"testnet3"
+        "network":"testnet3",
+        "vspdversion":"1.0.0-pre"
     }
     ```
 
