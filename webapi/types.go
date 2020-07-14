@@ -6,6 +6,7 @@ type vspInfoResponse struct {
 	FeePercentage float64 `json:"feepercentage"`
 	VspClosed     bool    `json:"vspclosed"`
 	Network       string  `json:"network"`
+	VspdVersion   string  `json:"vspdversion"`
 }
 
 type FeeAddressRequest struct {

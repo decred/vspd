@@ -3,6 +3,7 @@ package webapi
 import (
 	"time"
 
+	"github.com/decred/vspd/version"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,5 +15,6 @@ func vspInfo(c *gin.Context) {
 		FeePercentage: cfg.VSPFee,
 		Network:       cfg.NetParams.Name,
 		VspClosed:     cfg.VspClosed,
+		VspdVersion:   version.String(),
 	}, c)
 }
