@@ -146,7 +146,7 @@ If `feetxstatus` is `error`, the client needs to provide a new fee transaction
 using `/api/payfee`. The VSP will only add a ticket to the voting wallets once
 its `feetxstatus` is `confirmed`.
 
-- `GET /api/ticketstatus`
+- `POST /api/ticketstatus`
 
     Request:
 
