@@ -1,6 +1,7 @@
 package webapi
 
 type vspInfoResponse struct {
+	APIVersions   []int64 `json:"apiversions"`
 	Timestamp     int64   `json:"timestamp"`
 	PubKey        []byte  `json:"pubkey"`
 	FeePercentage float64 `json:"feepercentage"`

@@ -73,6 +73,7 @@ dcrstakepool deployment.
   - Run the vspd binary
     - Configure webserver to proxy requests from the internet to vspd.
     - Configure vspd to use the newly created dcrwallet instances.
+  - Web requests for `/api/v3` should be redirected to vspd.
 
 ## Monitoring
 

@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// payFee is the handler for "POST /payfee".
+// payFee is the handler for "POST /api/v3/payfee".
 func payFee(c *gin.Context) {
 	funcName := "payFee"
 

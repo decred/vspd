@@ -57,7 +57,7 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 	return fee, nil
 }
 
-// feeAddress is the handler for "POST /feeaddress".
+// feeAddress is the handler for "POST /api/v3/feeaddress".
 func feeAddress(c *gin.Context) {
 
 	funcName := "feeAddress"

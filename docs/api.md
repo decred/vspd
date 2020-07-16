@@ -21,6 +21,11 @@
 - Implementation of request and response types can be found in
   [webapi/types.go](../webapi/types.go).
 
+- The initial version of the vspd API is version 3. This is because the first
+  version of the vspd API actually represents the third iteration of VSP APIs.
+  The first and second iterations of VSP API were implemented by
+  [dcrstakepool](https://github.com/decred/dcrstakepool).
+
 ## Expected usage
 
 ### Get VSP info
@@ -28,10 +33,10 @@
 Clients should retrieve the VSP's public key so they can check the signature on
 future API responses. A VSP should never change their public key, so it can be
 requested once and cached indefinitely. `vspclosed` indicates that the VSP is
-not currently accepting new tickets. Calling `/api/feeaddress` or `/api/payfee`
+not currently accepting new tickets. Calling `/feeaddress` or `/payfee`
 when a VSP is closed will result in an error.
 
-- `GET /api/vspinfo`
+- `GET /api/v3/vspinfo`
 
     No request body.
 
@@ -39,6 +44,7 @@ when a VSP is closed will result in an error.
   
     ```json
     {
+        "apiversions":[3],
         "timestamp":1590599436,
         "pubkey":"SjAmrAqH7LScCUwM1qo5O6Cu7aKhrM1ORszgZwD7HmU=",
         "feepercentage":3.0,
@@ -62,7 +68,7 @@ DCR. Returns an error if the specified ticket is not currently immature or live.
 This call will return an error if a fee transaction has already been provided
 for the specified ticket.
 
-- `POST /api/feeaddress`
+- `POST /api/v3/feeaddress`
 
     Request:
 
@@ -92,7 +98,7 @@ for the specified ticket.
 Provide the voting key for the ticket, voting preference, and a signed
 transaction which pays the fee to the specified address. If the fee has expired,
 this call will return an error and the client will need to request a new fee by
-calling `/api/feeaddress` again. Returns an error if the specified ticket is not
+calling `/feeaddress` again. Returns an error if the specified ticket is not
 currently immature or live.
 
 The VSP will not broadcast the fee transaction until the ticket purchase has 6
@@ -105,7 +111,7 @@ has 6 confirmations.
 This call will return an error if a fee transaction has already been provided
 for the specified ticket.
 
-- `POST /api/payfee`
+- `POST /api/v3/payfee`
 
     Request:
 
@@ -131,7 +137,7 @@ for the specified ticket.
 ### Ticket Status
 
 Clients can check the status of a ticket at any time after calling
-`/api/feeaddress`.
+`/feeaddress`.
 
 - `ticketconfirmed` is true when the ticket purchase has 6 confirmations.
 - `feetxstatus` can have the following values:
@@ -143,16 +149,15 @@ Clients can check the status of a ticket at any time after calling
     in the tx was double spent).
 
 If `feetxstatus` is `error`, the client needs to provide a new fee transaction
-using `/api/payfee`. The VSP will only add a ticket to the voting wallets once
+using `/payfee`. The VSP will only add a ticket to the voting wallets once
 its `feetxstatus` is `confirmed`.
 
-- `POST /api/ticketstatus`
+- `POST /api/v3/ticketstatus`
 
     Request:
 
     ```json
     {
-        "timestamp":1590509066,
         "tickethash":"484a68f7148e55d05f0b64a29fe7b148572cb5272d1ce2438cf15466d347f4f4"
     }
     ```
@@ -173,9 +178,9 @@ its `feetxstatus` is `confirmed`.
 ### Update vote choices
 
 Clients can update the voting preferences of their ticket at any time after
-after calling `/api/payfee`.
+after calling `/payfee`.
 
-- `POST /api/setvotechoices`
+- `POST /api/v3/setvotechoices`
 
     Request:
 

@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ticketStatus is the handler for "POST /ticketstatus".
+// ticketStatus is the handler for "POST /api/v3/ticketstatus".
 func ticketStatus(c *gin.Context) {
 	funcName := "ticketStatus"
 

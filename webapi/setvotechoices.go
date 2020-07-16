@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// setVoteChoices is the handler for "POST /setvotechoices".
+// setVoteChoices is the handler for "POST /api/v3/setvotechoices".
 func setVoteChoices(c *gin.Context) {
 	funcName := "setVoteChoices"
 
