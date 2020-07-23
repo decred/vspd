@@ -109,7 +109,19 @@ page, and the same information can be retrieved as a JSON object from
 }
 ```
 
-// TODO
+<!-- 
+
+// TODO: Content copied from dcrstakepool repo, should be updated for vspd when we have a
+suitable HTTP endpoint:
+
+  A monitoring system with alerting should be pointed at dcrstakepool and
+  tested/verified to be operating properly. There is a hidden /status page which
+  throws 500 if the RPC client is shutdown. If your monitoring system supports it,
+  add additional points of verification such as: checking that the /stats page
+  loads and has expected information in it, create a test account and setup
+  automated login testing, etc.
+
+-->
 
 ## Backup
 
@@ -119,7 +131,10 @@ file, so it cannot be opened by any other processes while vspd is running.
 
 To facilitate back-ups, vspd will periodically write a copy of the bbolt
 database to the path `{homedir}/data/{network}/vspd.db-backup`. A copy of the
-database file will also be written to this path when vspd shuts down.
+database file will also be written to this path when vspd shuts down. This file
+should be backed up often and regularly (probably at least hourly). Backups
+should be transferred off-site, ideally to a server which is not part of the
+vspd deployment.
 
 It is also possible to generate and download a database backup on demand from
 the admin page of the vspd web front-end.
@@ -129,3 +144,20 @@ the admin page of the vspd web front-end.
 The database file contains everything needed to restore a vspd deployment -
 simply place the database file into the vspd data directory and start vspd as
 normal.
+
+<!-- 
+
+// TODO: Content copied from dcrstakepool repo, should be updated for vspd once
+consistency checking is implemented:
+
+  In the case of a total failure of a wallet server:
+    Restore the failed wallet(s) from seed.
+    Restart the dcrstakepool process to allow automatic syncing to occur.
+
+-->
+
+## Listing on decred.org
+
+The process for listing a new VSP on [decred.org](https://decred.org/vsp/), and
+consequently in Decrediton, is detailed at
+[docs.decred.org](https://docs.decred.org/advanced/operating-a-vsp/).
