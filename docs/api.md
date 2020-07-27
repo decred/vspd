@@ -50,7 +50,10 @@ when a VSP is closed will result in an error.
         "feepercentage":3.0,
         "vspclosed":false,
         "network":"testnet3",
-        "vspdversion":"1.0.0-pre"
+        "vspdversion":"1.0.0-pre",
+        "voting":10,
+        "voted":25,
+        "revoked":3
     }
     ```
 

@@ -164,3 +164,24 @@ func (c *WalletRPC) GetBestBlockHeight() (int64, error) {
 	}
 	return block.Height, nil
 }
+
+func (c *WalletRPC) TicketInfo() (map[string]*wallettypes.TicketInfoResult, error) {
+	var result []*wallettypes.TicketInfoResult
+	err := c.Call(c.ctx, "ticketinfo", &result)
+	if err != nil {
+		return nil, err
+	}
+
+	// For easier access later on, store the tickets in a map using their hash
+	// as the key.
+	tickets := make(map[string]*wallettypes.TicketInfoResult, len(result))
+	for _, t := range result {
+		tickets[t.Hash] = t
+	}
+
+	return tickets, err
+}
+
+func (c *WalletRPC) RescanFrom(fromHeight int64) error {
+	return c.Call(c.ctx, "rescanwallet", nil, fromHeight)
+}

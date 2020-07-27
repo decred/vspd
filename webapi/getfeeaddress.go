@@ -131,7 +131,8 @@ func feeAddress(c *gin.Context) {
 
 			err = db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("%s: db.UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+				log.Errorf("%s: db.UpdateTicket error, failed to update fee expiry (ticketHash=%s): %v",
+					funcName, ticket.Hash, err)
 				sendError(errInternalError, c)
 				return
 			}

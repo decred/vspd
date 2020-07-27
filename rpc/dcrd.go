@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	requiredDcrdVersion = "6.1.1"
+	requiredDcrdVersion = "6.1.2"
 )
 
 // These error codes are defined in dcrd/dcrjson. They are copied here so we

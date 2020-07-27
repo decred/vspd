@@ -212,7 +212,8 @@ findAddress:
 
 	err = db.UpdateTicket(ticket)
 	if err != nil {
-		log.Errorf("%s: InsertTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+		log.Errorf("%s: db.UpdateTicket error, failed to set fee tx (ticketHash=%s): %v",
+			funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
 		return
 	}
@@ -230,7 +231,8 @@ findAddress:
 
 			err = db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("%s: db.UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+				log.Errorf("%s: db.UpdateTicket error, failed to set fee tx error (ticketHash=%s): %v",
+					funcName, ticket.Hash, err)
 			}
 
 			sendErrorWithMsg("could not broadcast fee transaction", errInvalidFeeTx, c)
@@ -241,7 +243,8 @@ findAddress:
 
 		err = db.UpdateTicket(ticket)
 		if err != nil {
-			log.Errorf("%s: db.UpdateTicket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+			log.Errorf("%s: db.UpdateTicket error, failed to set fee tx as broadcast (ticketHash=%s): %v",
+				funcName, ticket.Hash, err)
 			sendError(errInternalError, c)
 			return
 		}

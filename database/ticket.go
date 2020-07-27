@@ -25,6 +25,16 @@ const (
 	FeeError FeeStatus = "error"
 )
 
+// TicketOutcome describes the reason a ticket is no longer votable.
+type TicketOutcome string
+
+const (
+	// Ticket has been revoked, either because it was missed or it expired.
+	Revoked TicketOutcome = "revoked"
+	// Ticket has already voted.
+	Voted TicketOutcome = "voted"
+)
+
 // Ticket is serialized to json and stored in bbolt db. The json keys are
 // deliberately kept short because they are duplicated many times in the db.
 type Ticket struct {
@@ -51,6 +61,10 @@ type Ticket struct {
 
 	// FeeTxStatus indicates the current state of the fee transaction.
 	FeeTxStatus FeeStatus `json:"fsts"`
+
+	// Outcome is set once a ticket is either voted or revoked. An empty outcome
+	// indicates that a ticket is still votable.
+	Outcome TicketOutcome `json:"otcme"`
 }
 
 func (t *Ticket) FeeExpired() bool {
@@ -170,16 +184,15 @@ func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, bool, error)
 	return ticket, found, err
 }
 
-func (vdb *VspDatabase) CountTickets() (int, int, error) {
+func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 	defer vdb.ticketsMtx.RUnlock()
 	vdb.ticketsMtx.RLock()
 
-	var total, feePaid int
+	var voting, voted, revoked int64
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
 		return ticketBkt.ForEach(func(k, v []byte) error {
-			total++
 			var ticket Ticket
 			err := json.Unmarshal(v, &ticket)
 			if err != nil {
@@ -187,14 +200,21 @@ func (vdb *VspDatabase) CountTickets() (int, int, error) {
 			}
 
 			if ticket.FeeTxStatus == FeeConfirmed {
-				feePaid++
+				switch ticket.Outcome {
+				case Voted:
+					voted++
+				case Revoked:
+					revoked++
+				default:
+					voting++
+				}
 			}
 
 			return nil
 		})
 	})
 
-	return total, feePaid, err
+	return voting, voted, revoked, err
 }
 
 // GetUnconfirmedTickets returns tickets which are not yet confirmed.
@@ -226,6 +246,14 @@ func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
 
 	return vdb.filterTickets(func(t Ticket) bool {
 		return t.FeeTxStatus == FeeBroadcast
+	})
+}
+
+// GetVotableTickets returns tickets with a confirmed fee tx and no outcome (ie.
+// not expired/voted/missed).
+func (vdb *VspDatabase) GetVotableTickets() ([]Ticket, error) {
+	return vdb.filterTickets(func(t Ticket) bool {
+		return t.FeeTxStatus == FeeConfirmed && t.Outcome == ""
 	})
 }
 
