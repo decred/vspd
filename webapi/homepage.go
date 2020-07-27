@@ -12,16 +12,17 @@ import (
 )
 
 type vspStats struct {
-	PubKey              string
-	TotalTickets        int
-	FeeConfirmedTickets int
-	VSPFee              float64
-	Network             string
-	UpdateTime          string
-	SupportEmail        string
-	VspClosed           bool
-	Debug               bool
-	Designation         string
+	PubKey       string
+	Voting       int64
+	Voted        int64
+	Revoked      int64
+	VSPFee       float64
+	Network      string
+	UpdateTime   string
+	SupportEmail string
+	VspClosed    bool
+	Debug        bool
+	Designation  string
 }
 
 var statsMtx sync.RWMutex
@@ -35,7 +36,7 @@ func getVSPStats() *vspStats {
 }
 
 func updateVSPStats(db *database.VspDatabase, cfg Config) error {
-	total, feeConfirmed, err := db.CountTickets()
+	voting, voted, revoked, err := db.CountTickets()
 	if err != nil {
 		return err
 	}
@@ -44,16 +45,17 @@ func updateVSPStats(db *database.VspDatabase, cfg Config) error {
 	defer statsMtx.Unlock()
 
 	stats = &vspStats{
-		PubKey:              base64.StdEncoding.EncodeToString(signPubKey),
-		TotalTickets:        total,
-		FeeConfirmedTickets: feeConfirmed,
-		VSPFee:              cfg.VSPFee,
-		Network:             cfg.NetParams.Name,
-		UpdateTime:          time.Now().Format("Mon Jan _2 15:04:05 2006"),
-		SupportEmail:        cfg.SupportEmail,
-		VspClosed:           cfg.VspClosed,
-		Debug:               cfg.Debug,
-		Designation:         cfg.Designation,
+		PubKey:       base64.StdEncoding.EncodeToString(signPubKey),
+		Voting:       voting,
+		Voted:        voted,
+		Revoked:      revoked,
+		VSPFee:       cfg.VSPFee,
+		Network:      cfg.NetParams.Name,
+		UpdateTime:   time.Now().Format("Mon Jan _2 15:04:05 2006"),
+		SupportEmail: cfg.SupportEmail,
+		VspClosed:    cfg.VspClosed,
+		Debug:        cfg.Debug,
+		Designation:  cfg.Designation,
 	}
 
 	return nil

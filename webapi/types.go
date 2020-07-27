@@ -8,6 +8,9 @@ type vspInfoResponse struct {
 	VspClosed     bool    `json:"vspclosed"`
 	Network       string  `json:"network"`
 	VspdVersion   string  `json:"vspdversion"`
+	Voting        int64   `json:"voting"`
+	Voted         int64   `json:"voted"`
+	Revoked       int64   `json:"revoked"`
 }
 
 type FeeAddressRequest struct {

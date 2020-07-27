@@ -27,6 +27,8 @@ var (
 type NotificationHandler struct{}
 
 const (
+	// consistencyInterval is the time period between wallet consistency checks.
+	consistencyInterval = 30 * time.Minute
 	// requiredConfs is the number of confirmations required to consider a
 	// ticket purchase or a fee transaction to be final.
 	requiredConfs = 6
@@ -69,7 +71,7 @@ func blockConnected() {
 		return
 	}
 
-	// Step 1/3: Update the database with any tickets which now have 6+
+	// Step 1/4: Update the database with any tickets which now have 6+
 	// confirmations.
 
 	unconfirmed, err := db.GetUnconfirmedTickets()
@@ -106,15 +108,16 @@ func blockConnected() {
 			ticket.Confirmed = true
 			err = db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("%s: db.UpdateTicket error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+				log.Errorf("%s: db.UpdateTicket error, failed to set ticket as confirmed (ticketHash=%s): %v",
+					funcName, ticket.Hash, err)
 				continue
 			}
 
-			log.Debugf("%s: Ticket confirmed (ticketHash=%s)", funcName, ticket.Hash)
+			log.Infof("%s: Ticket confirmed (ticketHash=%s)", funcName, ticket.Hash)
 		}
 	}
 
-	// Step 2/3: Broadcast fee tx for tickets which are confirmed.
+	// Step 2/4: Broadcast fee tx for tickets which are confirmed.
 
 	pending, err := db.GetPendingFees()
 	if err != nil {
@@ -128,36 +131,28 @@ func blockConnected() {
 				funcName, ticket.Hash, err)
 			ticket.FeeTxStatus = database.FeeError
 		} else {
-			log.Debugf("%s: Fee tx broadcast for ticket (ticketHash=%s, feeHash=%s)",
+			log.Infof("%s: Fee tx broadcast for ticket (ticketHash=%s, feeHash=%s)",
 				funcName, ticket.Hash, ticket.FeeTxHash)
 			ticket.FeeTxStatus = database.FeeBroadcast
 		}
 
 		err = db.UpdateTicket(ticket)
 		if err != nil {
-			log.Errorf("%s: db.UpdateTicket error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+			log.Errorf("%s: db.UpdateTicket error, failed to set fee tx as broadcast (ticketHash=%s): %v",
+				funcName, ticket.Hash, err)
 		}
 	}
 
-	// Step 3/3: Add tickets with confirmed fees to voting wallets.
+	// Step 3/4: Add tickets with confirmed fees to voting wallets.
 
 	unconfirmedFees, err := db.GetUnconfirmedFees()
 	if err != nil {
 		log.Errorf("%s: db.GetUnconfirmedFees error: %v", funcName, err)
-		// If this fails, there is nothing more we can do. Return.
-		return
-	}
-
-	// If there are no confirmed fees, there is nothing more to do. Return.
-	if len(unconfirmedFees) == 0 {
-		return
 	}
 
 	walletClients, failedConnections := walletRPC.Clients(ctx, netParams)
 	if len(walletClients) == 0 {
-		// If no wallet clients, there is nothing more we can do. Return.
 		log.Errorf("%s: Could not connect to any wallets", funcName)
-		return
 	}
 	if len(failedConnections) > 0 {
 		log.Errorf("%s: Failed to connect to %d wallet(s), proceeding with only %d",
@@ -178,10 +173,11 @@ func blockConnected() {
 			ticket.FeeTxStatus = database.FeeConfirmed
 			err = db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("%s: db.UpdateTicket error (ticketHash=%s): %v", funcName, ticket.Hash, err)
-				return
+				log.Errorf("%s: db.UpdateTicket error, failed to set fee tx as confirmed (ticketHash=%s): %v",
+					funcName, ticket.Hash, err)
+				continue
 			}
-			log.Debugf("%s: Fee tx confirmed (ticketHash=%s)", funcName, ticket.Hash)
+			log.Infof("%s: Fee tx confirmed (ticketHash=%s)", funcName, ticket.Hash)
 
 			// Add ticket to the voting wallet.
 
@@ -208,11 +204,63 @@ func blockConnected() {
 						continue
 					}
 				}
-				log.Debugf("%s: Ticket added to voting wallet (wallet=%s, ticketHash=%s)",
+				log.Infof("%s: Ticket added to voting wallet (wallet=%s, ticketHash=%s)",
 					funcName, walletClient.String(), ticket.Hash)
 			}
 		}
 	}
+
+	// Step 4/4: Set ticket outcome in database if any tickets are voted/revoked.
+
+	// Ticket status needs to be checked on every wallet. This is because only
+	// one of the voting wallets will actually succeed in voting/revoking
+	// tickets (the others will get errors like "tx already exists"). Only the
+	// successful wallet will have the most up-to-date ticket status, the others
+	// will be outdated.
+	for _, walletClient := range walletClients {
+		dbTickets, err := db.GetVotableTickets()
+		if err != nil {
+			log.Errorf("%s: db.GetVotableTickets failed: %v", funcName, err)
+			continue
+		}
+
+		ticketInfo, err := walletClient.TicketInfo()
+		if err != nil {
+			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
+				funcName, walletClient.String(), err)
+			continue
+		}
+
+		for _, dbTicket := range dbTickets {
+			tInfo, ok := ticketInfo[dbTicket.Hash]
+			if !ok {
+				log.Warnf("%s: TicketInfo response did not include expected ticket (wallet=%s, ticketHash=%s)",
+					funcName, walletClient.String(), dbTicket.Hash)
+				continue
+			}
+
+			switch tInfo.Status {
+			case "revoked":
+				dbTicket.Outcome = database.Revoked
+			case "voted":
+				dbTicket.Outcome = database.Voted
+			default:
+				// Skip to next ticket.
+				continue
+			}
+
+			err = db.UpdateTicket(dbTicket)
+			if err != nil {
+				log.Errorf("%s: db.UpdateTicket error, failed to set ticket outcome (ticketHash=%s): %v",
+					funcName, dbTicket.Hash, err)
+				continue
+			}
+
+			log.Infof("%s: Ticket no longer votable: outcome=%s, ticketHash=%s", funcName,
+				dbTicket.Outcome, dbTicket.Hash)
+		}
+	}
+
 }
 
 func (n *NotificationHandler) Close() error {
@@ -260,6 +308,24 @@ func Start(c context.Context, wg *sync.WaitGroup, vdb *database.VspDatabase, drp
 	// while vspd was shut down.
 	blockConnected()
 
+	// Run voting wallet consistency check now to ensure all wallets are up to
+	// date.
+	checkWalletConsistency()
+
+	// Run voting wallet consistency check periodically.
+	go func() {
+		ticker := time.NewTicker(consistencyInterval)
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				checkWalletConsistency()
+			}
+		}
+	}()
+
 	// Loop forever attempting to create a connection to the dcrd server for
 	// notifications.
 	go func() {
@@ -279,4 +345,146 @@ func Start(c context.Context, wg *sync.WaitGroup, vdb *database.VspDatabase, drp
 
 		}
 	}()
+}
+
+// checkWalletConsistency will retrieve all votable tickets from the database
+// and ensure they are all added to voting wallets with the correct vote
+// choices.
+func checkWalletConsistency() {
+
+	funcName := "checkWalletConsistency"
+
+	log.Info("Checking voting wallet consistency")
+
+	dcrdClient, err := dcrdRPC.Client(ctx, netParams)
+	if err != nil {
+		log.Errorf("%s: %v", funcName, err)
+		return
+	}
+
+	walletClients, failedConnections := walletRPC.Clients(ctx, netParams)
+	if len(walletClients) == 0 {
+		log.Errorf("%s: Could not connect to any wallets", funcName)
+		return
+	}
+	if len(failedConnections) > 0 {
+		log.Errorf("%s: Failed to connect to %d wallet(s), proceeding with only %d",
+			funcName, len(failedConnections), len(walletClients))
+	}
+
+	// Step 1/2: Check all tickets are added to all voting wallets.
+
+	votableTickets, err := db.GetVotableTickets()
+	if err != nil {
+		log.Errorf("%s: db.GetVotableTickets failed: %v", funcName, err)
+		return
+	}
+
+	// Iterate over each wallet and add any missing tickets.
+	for _, walletClient := range walletClients {
+		// Get all tickets the wallet is aware of.
+		walletTickets, err := walletClient.TicketInfo()
+		if err != nil {
+			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
+				funcName, walletClient.String(), err)
+			continue
+		}
+
+		// If missing tickets are added, set a flag and keep track of the
+		// earliest purchase height.
+		var added bool
+		var minHeight int64
+		for _, dbTicket := range votableTickets {
+			// If wallet already knows this ticket, skip to the next one.
+			_, exists := walletTickets[dbTicket.Hash]
+			if exists {
+				continue
+			}
+
+			log.Debugf("%s: Adding missing ticket (wallet=%s, ticketHash=%s)",
+				funcName, walletClient.String(), dbTicket.Hash)
+
+			rawTicket, err := dcrdClient.GetRawTransaction(dbTicket.Hash)
+			if err != nil {
+				log.Errorf("%s: dcrd.GetRawTransaction error: %v", funcName, err)
+				continue
+			}
+
+			err = walletClient.AddTicketForVoting(dbTicket.VotingWIF, rawTicket.BlockHash, rawTicket.Hex)
+			if err != nil {
+				log.Errorf("%s: dcrwallet.AddTicketForVoting error (wallet=%s, ticketHash=%s): %v",
+					funcName, walletClient.String(), dbTicket.Hash, err)
+				continue
+			}
+
+			added = true
+			if minHeight == 0 || minHeight > rawTicket.BlockHeight {
+				minHeight = rawTicket.BlockHeight
+			}
+		}
+
+		// Perform a rescan if any missing tickets were added to this wallet.
+		if added {
+			log.Infof("%s: Performing a rescan on wallet %s (fromHeight=%d)",
+				funcName, walletClient.String(), minHeight)
+			err = walletClient.RescanFrom(minHeight)
+			if err != nil {
+				log.Errorf("%s: dcrwallet.RescanFrom failed (wallet=%s): %v",
+					funcName, walletClient.String(), err)
+				continue
+			}
+		}
+	}
+
+	// Step 2/2: Ensure vote choices are set correctly for all tickets on
+	// all wallets.
+
+	for _, walletClient := range walletClients {
+		// Get all tickets the wallet is aware of.
+		walletTickets, err := walletClient.TicketInfo()
+		if err != nil {
+			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
+				funcName, walletClient.String(), err)
+			continue
+		}
+
+		for _, dbTicket := range votableTickets {
+			// All tickets should be added to all wallets at this point, so log
+			// a warning if any are still missing.
+			walletTicket, exists := walletTickets[dbTicket.Hash]
+			if !exists {
+				log.Warnf("%s: Ticket missing from voting wallet (wallet=%s, ticketHash=%s)",
+					funcName, walletClient.String, dbTicket.Hash)
+				continue
+			}
+
+			// Check if vote choices match
+			for dbAgenda, dbChoice := range dbTicket.VoteChoices {
+				match := false
+				for _, walletChoice := range walletTicket.Choices {
+					if walletChoice.AgendaID == dbAgenda && walletChoice.ChoiceID == dbChoice {
+						match = true
+					}
+				}
+
+				// Skip to next agenda if db and wallet are matching.
+				if match {
+					continue
+				}
+
+				log.Debugf("%s: Updating incorrect vote choices (wallet=%s, agenda=%s, ticketHash=%s)",
+					funcName, walletClient.String(), dbAgenda, dbTicket.Hash)
+
+				// If db and wallet are not matching, update wallet with correct
+				// choice.
+				err = walletClient.SetVoteChoice(dbAgenda, dbChoice, dbTicket.Hash)
+				if err != nil {
+					log.Errorf("%s: dcrwallet.SetVoteChoice error (wallet=%s, ticketHash=%s): %v",
+						funcName, walletClient.String(), dbTicket.Hash, err)
+					continue
+				}
+			}
+		}
+
+	}
 }
