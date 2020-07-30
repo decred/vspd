@@ -74,7 +74,20 @@ sleep 1 # Give dcrd time to start
 
 for ((i = 1; i <= $NUMBER_OF_WALLETS; i++)); do
     WALLET_RPC_LISTEN="127.0.0.1:2011${i}"
-    ALL_WALLETS="${ALL_WALLETS}"$'\n'wallethost="${WALLET_RPC_LISTEN}"
+
+    # Concatenate all wallet details for vspd config file.
+    if [ $i == 1 ]; then
+        ALL_WALLET_HOST="${WALLET_RPC_LISTEN}"
+        ALL_WALLET_USER="${RPC_USER}"
+        ALL_WALLET_PASS="${RPC_PASS}"
+        ALL_WALLET_CERT="${WALLET_RPC_CERT}"
+    else
+        ALL_WALLET_HOST="${ALL_WALLET_HOST},${WALLET_RPC_LISTEN}"
+        ALL_WALLET_USER="${ALL_WALLET_USER},${RPC_USER}"
+        ALL_WALLET_PASS="${ALL_WALLET_PASS},${RPC_PASS}"
+        ALL_WALLET_CERT="${ALL_WALLET_CERT},${WALLET_RPC_CERT}"
+    fi
+
 
 echo ""
 echo "Writing config for dcrwallet-${i}"
@@ -115,10 +128,10 @@ cat > "${HARNESS_ROOT}/vspd/vspd.conf" <<EOF
 dcrduser = ${RPC_USER}
 dcrdpass = ${RPC_PASS}
 dcrdcert = ${DCRD_RPC_CERT}
-${ALL_WALLETS}
-walletuser = ${RPC_USER}
-walletpass = ${RPC_PASS}
-walletcert = ${WALLET_RPC_CERT}
+wallethost = ${ALL_WALLET_HOST}
+walletuser = ${ALL_WALLET_USER}
+walletpass = ${ALL_WALLET_PASS}
+walletcert = ${ALL_WALLET_CERT}
 loglevel = debug
 network = testnet
 webserverdebug = false
