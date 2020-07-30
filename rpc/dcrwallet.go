@@ -23,11 +23,11 @@ type WalletRPC struct {
 
 type WalletConnect []*client
 
-func SetupWallet(user, pass string, addrs []string, cert []byte) WalletConnect {
+func SetupWallet(user, pass, addrs []string, cert [][]byte) WalletConnect {
 	walletConnect := make(WalletConnect, len(addrs))
 
 	for i := 0; i < len(addrs); i++ {
-		walletConnect[i] = setup(user, pass, addrs[i], cert, nil)
+		walletConnect[i] = setup(user[i], pass[i], addrs[i], cert[i], nil)
 	}
 
 	return walletConnect

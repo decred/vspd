@@ -70,7 +70,7 @@ func run(ctx context.Context) error {
 	defer dcrd.Close()
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
-	wallets := rpc.SetupWallet(cfg.WalletUser, cfg.WalletPass, cfg.WalletHosts, cfg.walletCert)
+	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts)
 	defer wallets.Close()
 
 	// Create and start webapi server.

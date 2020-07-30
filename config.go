@@ -37,34 +37,35 @@ var (
 
 // config defines the configuration options for the VSP.
 type config struct {
-	Listen         string        `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
-	LogLevel       string        `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
-	Network        string        `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
-	VSPFee         float64       `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 2.0 (2%), 0.5 (0.5%)."`
-	DcrdHost       string        `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where vspd is running."`
-	DcrdUser       string        `long:"dcrduser" ini-name:"dcrduser" description:"Username for dcrd RPC connections."`
-	DcrdPass       string        `long:"dcrdpass" ini-name:"dcrdpass" description:"Password for dcrd RPC connections."`
-	DcrdCert       string        `long:"dcrdcert" ini-name:"dcrdcert" description:"The dcrd RPC certificate file."`
-	WalletHosts    []string      `long:"wallethost" ini-name:"wallethost" description:"Add an ip:port to establish a JSON-RPC connection with voting dcrwallet."`
-	WalletUser     string        `long:"walletuser" ini-name:"walletuser" description:"Username for dcrwallet RPC connections."`
-	WalletPass     string        `long:"walletpass" ini-name:"walletpass" description:"Password for dcrwallet RPC connections."`
-	WalletCert     string        `long:"walletcert" ini-name:"walletcert" description:"The dcrwallet RPC certificate file."`
-	WebServerDebug bool          `long:"webserverdebug" ini-name:"webserverdebug" description:"Enable web server debug mode (verbose logging to terminal and live-reloading templates)."`
-	SupportEmail   string        `long:"supportemail" ini-name:"supportemail" description:"Email address for users in need of support."`
-	BackupInterval time.Duration `long:"backupinterval" ini-name:"backupinterval" description:"Time period between automatic database backups. Valid time units are {s,m,h}. Minimum 30 seconds."`
-	VspClosed      bool          `long:"vspclosed" ini-name:"vspclosed" description:"Closed prevents the VSP from accepting new tickets."`
-	AdminPass      string        `long:"adminpass" ini-name:"adminpass" description:"Password for accessing admin page."`
-	Designation    string        `long:"designation" ini-name:"designation" description:"Short name for the VSP. Customizes the logo in the top toolbar."`
+	Listen          string        `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
+	LogLevel        string        `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
+	Network         string        `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
+	VSPFee          float64       `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 2.0 (2%), 0.5 (0.5%)."`
+	DcrdHost        string        `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where vspd is running."`
+	DcrdUser        string        `long:"dcrduser" ini-name:"dcrduser" description:"Username for dcrd RPC connections."`
+	DcrdPass        string        `long:"dcrdpass" ini-name:"dcrdpass" description:"Password for dcrd RPC connections."`
+	DcrdCert        string        `long:"dcrdcert" ini-name:"dcrdcert" description:"The dcrd RPC certificate file."`
+	WalletHosts     string        `long:"wallethost" ini-name:"wallethost" description:"Comma separated list of ip:port to establish JSON-RPC connections with voting dcrwallet."`
+	WalletUsers     string        `long:"walletuser" ini-name:"walletuser" description:"Comma separated list of username for dcrwallet RPC connections."`
+	WalletPasswords string        `long:"walletpass" ini-name:"walletpass" description:"Comma separated list of password for dcrwallet RPC connections."`
+	WalletCerts     string        `long:"walletcert" ini-name:"walletcert" description:"Comma separated list of dcrwallet RPC certificate files."`
+	WebServerDebug  bool          `long:"webserverdebug" ini-name:"webserverdebug" description:"Enable web server debug mode (verbose logging to terminal and live-reloading templates)."`
+	SupportEmail    string        `long:"supportemail" ini-name:"supportemail" description:"Email address for users in need of support."`
+	BackupInterval  time.Duration `long:"backupinterval" ini-name:"backupinterval" description:"Time period between automatic database backups. Valid time units are {s,m,h}. Minimum 30 seconds."`
+	VspClosed       bool          `long:"vspclosed" ini-name:"vspclosed" description:"Closed prevents the VSP from accepting new tickets."`
+	AdminPass       string        `long:"adminpass" ini-name:"adminpass" description:"Password for accessing admin page."`
+	Designation     string        `long:"designation" ini-name:"designation" description:"Short name for the VSP. Customizes the logo in the top toolbar."`
 
 	// The following flags should be set on CLI only, not via config file.
 	FeeXPub    string `long:"feexpub" no-ini:"true" description:"Cold wallet xpub used for collecting fees. Should be provided once to initialize a vspd database."`
 	HomeDir    string `long:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile string `long:"configfile" no-ini:"true" description:"Path to configuration file."`
 
-	dbPath     string
-	netParams  *netParams
-	dcrdCert   []byte
-	walletCert []byte
+	dbPath                                    string
+	netParams                                 *netParams
+	dcrdCert                                  []byte
+	walletHosts, walletUsers, walletPasswords []string
+	walletCerts                               [][]byte
 }
 
 // fileExists reports whether the named file or directory exists.
@@ -162,7 +163,7 @@ func loadConfig() (*config, error) {
 		HomeDir:        defaultHomeDir,
 		ConfigFile:     defaultConfigFile,
 		DcrdHost:       defaultDcrdHost,
-		WalletHosts:    []string{defaultWalletHost},
+		WalletHosts:    defaultWalletHost,
 		WebServerDebug: defaultWebServerDebug,
 		BackupInterval: defaultBackupInterval,
 		VspClosed:      defaultVspClosed,
@@ -303,36 +304,67 @@ func loadConfig() (*config, error) {
 	}
 
 	// Ensure the dcrwallet RPC username is set.
-	if cfg.WalletUser == "" {
+	if cfg.WalletUsers == "" {
 		return nil, errors.New("the walletuser option is not set")
 	}
 
 	// Ensure the dcrwallet RPC password is set.
-	if cfg.WalletPass == "" {
+	if cfg.WalletPasswords == "" {
 		return nil, errors.New("the walletpass option is not set")
 	}
 
 	// Ensure the dcrwallet RPC cert path is set.
-	if cfg.WalletCert == "" {
+	if cfg.WalletCerts == "" {
 		return nil, errors.New("the walletcert option is not set")
 	}
 
-	// Load dcrwallet RPC certificate.
-	cfg.WalletCert = cleanAndExpandPath(cfg.WalletCert)
-	cfg.walletCert, err = ioutil.ReadFile(cfg.WalletCert)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read dcrwallet cert file: %v", err)
+	// Parse list of wallet hosts.
+	cfg.walletHosts = strings.Split(cfg.WalletHosts, ",")
+	numHost := len(cfg.walletHosts)
+
+	// An RPC username must be specified for each wallet host.
+	cfg.walletUsers = strings.Split(cfg.WalletUsers, ",")
+	numUser := len(cfg.walletUsers)
+	if numUser != numHost {
+		return nil, fmt.Errorf("%d wallet hosts specified, expected %d RPC usernames, got %d",
+			numHost, numHost, numUser)
+	}
+
+	// An RPC password must be specified for each wallet host.
+	cfg.walletPasswords = strings.Split(cfg.WalletPasswords, ",")
+	numPass := len(cfg.walletPasswords)
+	if numPass != numHost {
+		return nil, fmt.Errorf("%d wallet hosts specified, expected %d RPC passwords, got %d",
+			numHost, numHost, numPass)
+	}
+
+	// An RPC certificate must be specified for each wallet host.
+	certs := strings.Split(cfg.WalletCerts, ",")
+	numCert := len(certs)
+	if numCert != numHost {
+		return nil, fmt.Errorf("%d wallet hosts specified, expected %d RPC certificates, got %d",
+			numHost, numHost, numCert)
+	}
+
+	// Load dcrwallet RPC certificate(s).
+	cfg.walletCerts = make([][]byte, numCert)
+	for i := 0; i < numCert; i++ {
+		certs[i] = cleanAndExpandPath(certs[i])
+		cfg.walletCerts[i], err = ioutil.ReadFile(certs[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to read dcrwallet cert file: %v", err)
+		}
 	}
 
 	// Verify minimum number of voting wallets are configured.
-	if len(cfg.WalletHosts) < minRequired {
+	if numHost < minRequired {
 		return nil, fmt.Errorf("minimum required voting wallets has not been met: %d < %d",
-			len(cfg.WalletHosts), minRequired)
+			numHost, minRequired)
 	}
 
 	// Add default port for the active network if there is no port specified.
-	for i := 0; i < len(cfg.WalletHosts); i++ {
-		cfg.WalletHosts[i] = normalizeAddress(cfg.WalletHosts[i], cfg.netParams.WalletRPCServerPort)
+	for i := 0; i < numHost; i++ {
+		cfg.walletHosts[i] = normalizeAddress(cfg.walletHosts[i], cfg.netParams.WalletRPCServerPort)
 	}
 	cfg.DcrdHost = normalizeAddress(cfg.DcrdHost, cfg.netParams.DcrdRPCServerPort)
 
