@@ -164,6 +164,13 @@ func blockConnected() {
 		if err != nil {
 			log.Errorf("%s: dcrd.GetRawTransaction for fee tx failed (feeTxHash=%s, ticketHash=%s): %v",
 				funcName, ticket.FeeTxHash, ticket.Hash, err)
+
+			ticket.FeeTxStatus = database.FeeError
+			err = db.UpdateTicket(ticket)
+			if err != nil {
+				log.Errorf("%s: db.UpdateTicket error, failed to set fee tx status to error (ticketHash=%s): %v",
+					funcName, ticket.Hash, err)
+			}
 			continue
 		}
 
