@@ -14,8 +14,8 @@ import (
 	"github.com/jrick/wsrpc/v2"
 )
 
-const (
-	requiredDcrdVersion = "6.1.2"
+var (
+	requiredDcrdVersion = semver{Major: 6, Minor: 1, Patch: 2}
 )
 
 // These error codes are defined in dcrd/dcrjson. They are copied here so we
@@ -60,13 +60,16 @@ func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*
 	if err != nil {
 		return nil, fmt.Errorf("dcrd version check failed: %v", err)
 	}
-	dcrdVersion, exists := verMap["dcrdjsonrpcapi"]
+
+	ver, exists := verMap["dcrdjsonrpcapi"]
 	if !exists {
 		return nil, fmt.Errorf("dcrd version response missing 'dcrdjsonrpcapi'")
 	}
-	if dcrdVersion.VersionString != requiredDcrdVersion {
-		return nil, fmt.Errorf("wrong dcrd RPC version: got %s, expected %s",
-			dcrdVersion.VersionString, requiredDcrdVersion)
+
+	sVer := semver{ver.Major, ver.Minor, ver.Patch}
+	if !semverCompatible(requiredDcrdVersion, sVer) {
+		return nil, fmt.Errorf("dcrd has incompatible JSON-RPC version: got %s, expected %s",
+			sVer, requiredDcrdVersion)
 	}
 
 	// Verify dcrd is on the correct network.
