@@ -10,8 +10,8 @@ import (
 	"github.com/decred/dcrd/wire"
 )
 
-const (
-	requiredWalletVersion = "8.1.0"
+var (
+	requiredWalletVersion = semver{Major: 8, Minor: 1, Patch: 0}
 )
 
 // WalletRPC provides methods for calling dcrwallet JSON-RPCs without exposing the details
@@ -70,16 +70,19 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
-		walletVersion, exists := verMap["dcrwalletjsonrpcapi"]
+
+		ver, exists := verMap["dcrwalletjsonrpcapi"]
 		if !exists {
 			log.Errorf("dcrwallet.Version response missing 'dcrwalletjsonrpcapi' (wallet=%s)",
 				c.String())
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
-		if walletVersion.VersionString != requiredWalletVersion {
-			log.Errorf("dcrwallet has wrong RPC version (wallet=%s): got %s, expected %s",
-				c.String(), walletVersion.VersionString, requiredWalletVersion)
+
+		sVer := semver{ver.Major, ver.Minor, ver.Patch}
+		if !semverCompatible(requiredWalletVersion, sVer) {
+			log.Errorf("dcrwallet has incompatible JSON-RPC version (wallet=%s): got %s, expected %s",
+				c.String(), sVer, requiredWalletVersion)
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
