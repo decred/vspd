@@ -27,7 +27,7 @@ servers hosting these wallets should ideally be in geographically seperate
 locations.
 
 Each voting server should be running an instance of dcrd and dcrwallet. The
-wallet on these servers should be completely empty and not used of any other
+wallet on these servers should be completely empty and not used for any other
 purpose. dcrwallet should be permenantly unlocked and have voting enabled
 (`--enablevoting`). vspd on the front-end server must be able to reach each
 instance of dcrwallet over RPC.
@@ -141,20 +141,24 @@ the admin page of the vspd web front-end.
 
 ## Disaster Recovery
 
-The database file contains everything needed to restore a vspd deployment -
-simply place the database file into the vspd data directory and start vspd as
-normal.
+### Voting Wallets
 
-<!-- 
+To recover from a total failure of a wallet or wallet server (or to add a new
+wallet to the vspd deployment):
 
-// TODO: Content copied from dcrstakepool repo, should be updated for vspd once
-consistency checking is implemented:
+- Set up a new empty wallet. Ensure voting is enabled and the wallet is
+  unlocked.
+- Update the vspd config file to include the new wallet (and remove the old
+  wallet if necessary).
+- Restart vspd and it will connect to the new wallet and automatically insert
+  all required data to bring it up to date.
 
-  In the case of a total failure of a wallet server:
-    Restore the failed wallet(s) from seed.
-    Restart the dcrstakepool process to allow automatic syncing to occur.
+### Front-end
 
--->
+The vspd database file contains everything needed to restore a vspd deployment
+from scratch. Simply place the database file into the vspd data directory and
+start vspd as normal. vspd will use the database to insert all necessary data
+into all of the voting wallets.
 
 ## Listing on decred.org
 
