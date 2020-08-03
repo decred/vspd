@@ -50,7 +50,7 @@
                             {{ end }}
 
                             {{ if $status.InfoError }}
-                                <td class="status-bad" colspan="4">Error</td>
+                                <td class="status-bad" colspan="4">Error getting wallet info</td>
                             {{ else }}
                                 <td class="{{ if $status.DaemonConnected }}status-good{{else}}status-bad{{end}}"
                                 >{{ $status.DaemonConnected }}</td>
@@ -67,7 +67,7 @@
                             {{ end }}
 
                         {{else}}
-                            <td class="status-bad" colspan="4">Cannot connect to wallet</td>
+                            <td class="status-bad" colspan="5">Cannot connect to wallet</td>
                         {{end}}
                     </tr>
                     {{end}}
