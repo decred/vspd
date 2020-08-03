@@ -17,6 +17,13 @@ func setVoteChoices(c *gin.Context) {
 	knownTicket := c.MustGet("KnownTicket").(bool)
 	walletClients := c.MustGet("WalletClients").([]*rpc.WalletRPC)
 
+	// If we cannot set the vote choices on at least one voting wallet right
+	// now, don't update the database, just return an error.
+	if len(walletClients) == 0 {
+		sendError(errInternalError, c)
+		return
+	}
+
 	if !knownTicket {
 		log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
 		sendError(errUnknownTicket, c)
