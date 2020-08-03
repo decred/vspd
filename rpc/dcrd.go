@@ -58,16 +58,19 @@ func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*
 	var verMap map[string]dcrdtypes.VersionResult
 	err = c.Call(ctx, "version", &verMap)
 	if err != nil {
+		d.Close()
 		return nil, fmt.Errorf("dcrd version check failed: %v", err)
 	}
 
 	ver, exists := verMap["dcrdjsonrpcapi"]
 	if !exists {
+		d.Close()
 		return nil, fmt.Errorf("dcrd version response missing 'dcrdjsonrpcapi'")
 	}
 
 	sVer := semver{ver.Major, ver.Minor, ver.Patch}
 	if !semverCompatible(requiredDcrdVersion, sVer) {
+		d.Close()
 		return nil, fmt.Errorf("dcrd has incompatible JSON-RPC version: got %s, expected %s",
 			sVer, requiredDcrdVersion)
 	}
@@ -76,9 +79,11 @@ func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*
 	var netID wire.CurrencyNet
 	err = c.Call(ctx, "getcurrentnet", &netID)
 	if err != nil {
+		d.Close()
 		return nil, fmt.Errorf("dcrd getcurrentnet check failed: %v", err)
 	}
 	if netID != netParams.Net {
+		d.Close()
 		return nil, fmt.Errorf("dcrd running on %s, expected %s", netID, netParams.Net)
 	}
 
@@ -86,9 +91,11 @@ func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*
 	var info dcrdtypes.InfoChainResult
 	err = c.Call(ctx, "getinfo", &info)
 	if err != nil {
+		d.Close()
 		return nil, fmt.Errorf("dcrd getinfo check failed: %v", err)
 	}
 	if !info.TxIndex {
+		d.Close()
 		return nil, errors.New("dcrd does not have transaction index enabled (--txindex)")
 	}
 

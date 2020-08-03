@@ -68,6 +68,7 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		if err != nil {
 			log.Errorf("dcrwallet.Version error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
+			connect.Close()
 			continue
 		}
 
@@ -76,6 +77,7 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 			log.Errorf("dcrwallet.Version response missing 'dcrwalletjsonrpcapi' (wallet=%s)",
 				c.String())
 			failedConnections = append(failedConnections, connect.addr)
+			connect.Close()
 			continue
 		}
 
@@ -84,6 +86,7 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 			log.Errorf("dcrwallet has incompatible JSON-RPC version (wallet=%s): got %s, expected %s",
 				c.String(), sVer, requiredWalletVersion)
 			failedConnections = append(failedConnections, connect.addr)
+			connect.Close()
 			continue
 		}
 
@@ -93,12 +96,14 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		if err != nil {
 			log.Errorf("dcrwallet.GetCurrentNet error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
+			connect.Close()
 			continue
 		}
 		if netID != netParams.Net {
 			log.Errorf("dcrwallet on wrong network (wallet=%s): running on %s, expected %s",
 				c.String(), netID, netParams.Net)
 			failedConnections = append(failedConnections, connect.addr)
+			connect.Close()
 			continue
 		}
 
@@ -108,6 +113,7 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 		if err != nil {
 			log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
+			connect.Close()
 			continue
 		}
 
