@@ -90,17 +90,15 @@ func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 	}
 }
 
-// withWalletClients middleware adds a voting wallet clients to the request
-// context for downstream handlers to make use of.
+// withWalletClients middleware attempts to add voting wallet clients to the
+// request context for downstream handlers to make use of. Downstream handlers
+// must handle the case where no wallet clients are connected.
 func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clients, failedConnections := wallets.Clients(c, cfg.NetParams)
 		if len(clients) == 0 {
 			log.Error("Could not connect to any wallets")
-			sendError(errInternalError, c)
-			return
-		}
-		if len(failedConnections) > 0 {
+		} else if len(failedConnections) > 0 {
 			log.Errorf("Failed to connect to %d wallet(s), proceeding with only %d",
 				len(failedConnections), len(clients))
 		}
