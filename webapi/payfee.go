@@ -32,8 +32,8 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	var payFeeRequest PayFeeRequest
-	if err := c.ShouldBindJSON(&payFeeRequest); err != nil {
+	var request payFeeRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
@@ -80,7 +80,7 @@ func payFee(c *gin.Context) {
 	}
 
 	// Validate VotingKey.
-	votingKey := payFeeRequest.VotingKey
+	votingKey := request.VotingKey
 	votingWIF, err := dcrutil.DecodeWIF(votingKey, cfg.NetParams.PrivateKeyID)
 	if err != nil {
 		log.Warnf("%s: Failed to decode WIF (clientIP=%s, ticketHash=%s): %v",
@@ -90,7 +90,7 @@ func payFee(c *gin.Context) {
 	}
 
 	// Validate VoteChoices.
-	voteChoices := payFeeRequest.VoteChoices
+	voteChoices := request.VoteChoices
 	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
 	if err != nil {
 		log.Warnf("%s: Invalid vote choices (clientIP=%s, ticketHash=%s): %v",
@@ -100,7 +100,7 @@ func payFee(c *gin.Context) {
 	}
 
 	// Validate FeeTx.
-	feeTx, err := decodeTransaction(payFeeRequest.FeeTx)
+	feeTx, err := decodeTransaction(request.FeeTx)
 	if err != nil {
 		log.Warnf("%s: Failed to decode fee tx hex (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
@@ -205,7 +205,7 @@ findAddress:
 	// database, and if the ticket is confirmed broadcast the transaction.
 
 	ticket.VotingWIF = votingWIF.String()
-	ticket.FeeTxHex = payFeeRequest.FeeTx
+	ticket.FeeTxHex = request.FeeTx
 	ticket.FeeTxHash = feeTx.TxHash().String()
 	ticket.VoteChoices = voteChoices
 	ticket.FeeTxStatus = database.FeeReceieved
@@ -222,7 +222,7 @@ findAddress:
 		funcName, minFee, feePaid, ticket.Hash)
 
 	if ticket.Confirmed {
-		err = dcrdClient.SendRawTransaction(payFeeRequest.FeeTx)
+		err = dcrdClient.SendRawTransaction(request.FeeTx)
 		if err != nil {
 			log.Errorf("%s: dcrd.SendRawTransaction for fee tx failed (ticketHash=%s): %v",
 				funcName, ticket.Hash, err)
@@ -255,6 +255,6 @@ findAddress:
 
 	sendJSONResponse(payFeeResponse{
 		Timestamp: time.Now().Unix(),
-		Request:   payFeeRequest,
+		Request:   request,
 	}, c)
 }

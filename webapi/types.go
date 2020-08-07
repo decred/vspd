@@ -13,7 +13,7 @@ type vspInfoResponse struct {
 	Revoked       int64   `json:"revoked"`
 }
 
-type FeeAddressRequest struct {
+type feeAddressRequest struct {
 	Timestamp  int64  `json:"timestamp" binding:"required"`
 	TicketHash string `json:"tickethash" binding:"required"`
 	TicketHex  string `json:"tickethex" binding:"required"`
@@ -24,10 +24,10 @@ type feeAddressResponse struct {
 	FeeAddress string            `json:"feeaddress"`
 	FeeAmount  int64             `json:"feeamount"`
 	Expiration int64             `json:"expiration"`
-	Request    FeeAddressRequest `json:"request"`
+	Request    feeAddressRequest `json:"request"`
 }
 
-type PayFeeRequest struct {
+type payFeeRequest struct {
 	Timestamp   int64             `json:"timestamp" binding:"required"`
 	TicketHash  string            `json:"tickethash" binding:"required"`
 	FeeTx       string            `json:"feetx" binding:"required"`
@@ -37,10 +37,10 @@ type PayFeeRequest struct {
 
 type payFeeResponse struct {
 	Timestamp int64         `json:"timestamp"`
-	Request   PayFeeRequest `json:"request"`
+	Request   payFeeRequest `json:"request"`
 }
 
-type SetVoteChoicesRequest struct {
+type setVoteChoicesRequest struct {
 	Timestamp   int64             `json:"timestamp" binding:"required"`
 	TicketHash  string            `json:"tickethash" binding:"required"`
 	VoteChoices map[string]string `json:"votechoices" binding:"required"`
@@ -48,10 +48,10 @@ type SetVoteChoicesRequest struct {
 
 type setVoteChoicesResponse struct {
 	Timestamp int64                 `json:"timestamp"`
-	Request   SetVoteChoicesRequest `json:"request"`
+	Request   setVoteChoicesRequest `json:"request"`
 }
 
-type TicketStatusRequest struct {
+type ticketStatusRequest struct {
 	TicketHash string `json:"tickethash" binding:"required"`
 }
 
@@ -61,5 +61,5 @@ type ticketStatusResponse struct {
 	FeeTxStatus     string              `json:"feetxstatus"`
 	FeeTxHash       string              `json:"feetxhash"`
 	VoteChoices     map[string]string   `json:"votechoices"`
-	Request         TicketStatusRequest `json:"request"`
+	Request         ticketStatusRequest `json:"request"`
 }
