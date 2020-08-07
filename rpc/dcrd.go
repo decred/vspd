@@ -102,6 +102,8 @@ func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*
 	return &DcrdRPC{c, ctx}, nil
 }
 
+// GetRawTransaction uses getrawtransaction RPC to retrieve details about the
+// transaction with the provided hash.
 func (c *DcrdRPC) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, error) {
 	verbose := 1
 	var resp dcrdtypes.TxRawResult
@@ -112,6 +114,8 @@ func (c *DcrdRPC) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, erro
 	return &resp, nil
 }
 
+// SendRawTransaction uses sendrawtransaction RPC to broadcast a transaction to
+// the network. It ignores errors caused by duplicate transactions.
 func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 	allowHighFees := false
 	err := c.Call(c.ctx, "sendrawtransaction", nil, txHex, allowHighFees)
@@ -149,10 +153,13 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 	return nil
 }
 
+// NotifyBlocks uses notifyblocks RPC to request new block notifications from dcrd.
 func (c *DcrdRPC) NotifyBlocks() error {
 	return c.Call(c.ctx, "notifyblocks", nil)
 }
 
+// GetBestBlockHeader uses getbestblockhash RPC, followed by getblockheader RPC,
+// to retrieve the header of the best block known to the dcrd instance.
 func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
 	var bestBlockHash string
 	err := c.Call(c.ctx, "getbestblockhash", &bestBlockHash)
@@ -169,6 +176,8 @@ func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, 
 	return &blockHeader, nil
 }
 
+// ExistsLiveTicket uses existslivetickets RPC to check if the provided ticket
+// hash is a live ticket known to the dcrd instance.
 func (c *DcrdRPC) ExistsLiveTicket(ticketHash string) (bool, error) {
 	var exists string
 	err := c.Call(c.ctx, "existslivetickets", &exists, []string{ticketHash})
