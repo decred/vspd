@@ -193,6 +193,7 @@ func (vdb *VspDatabase) Close() {
 	}
 }
 
+// KeyPair retrieves the keypair used to sign API responses from the database.
 func (vdb *VspDatabase) KeyPair() (ed25519.PrivateKey, ed25519.PublicKey, error) {
 	var seed []byte
 	err := vdb.db.View(func(tx *bolt.Tx) error {
@@ -227,6 +228,8 @@ func (vdb *VspDatabase) KeyPair() (ed25519.PrivateKey, ed25519.PublicKey, error)
 	return signKey, pubKey, err
 }
 
+// GetFeeXPub retrieves the extended pubkey used for generating fee addresses
+// from the database.
 func (vdb *VspDatabase) GetFeeXPub() (string, error) {
 	var feeXPub string
 	err := vdb.db.View(func(tx *bolt.Tx) error {
@@ -245,6 +248,8 @@ func (vdb *VspDatabase) GetFeeXPub() (string, error) {
 	return feeXPub, err
 }
 
+// GetCookieSecret retrieves the generated cookie store secret key from the
+// database.
 func (vdb *VspDatabase) GetCookieSecret() ([]byte, error) {
 	var cookieSecret []byte
 	err := vdb.db.View(func(tx *bolt.Tx) error {

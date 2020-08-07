@@ -135,6 +135,8 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 	return walletClients, failedConnections
 }
 
+// WalletInfo uses walletinfo RPC to retrieve information about how the
+// dcrwallet instance is configured.
 func (c *WalletRPC) WalletInfo() (*wallettypes.WalletInfoResult, error) {
 	var walletInfo wallettypes.WalletInfoResult
 	err := c.Call(c.ctx, "walletinfo", &walletInfo)
@@ -144,6 +146,8 @@ func (c *WalletRPC) WalletInfo() (*wallettypes.WalletInfoResult, error) {
 	return &walletInfo, nil
 }
 
+// AddTicketForVoting uses importprivkey RPC, followed by addtransaction RPC, to
+// add a new ticket to a voting wallet.
 func (c *WalletRPC) AddTicketForVoting(votingWIF, blockHash, txHex string) error {
 	label := "imported"
 	rescan := false
@@ -161,10 +165,14 @@ func (c *WalletRPC) AddTicketForVoting(votingWIF, blockHash, txHex string) error
 	return nil
 }
 
+// SetVoteChoice uses setvotechoice RPC to set the vote choice on the given
+// agenda, for the given ticket.
 func (c *WalletRPC) SetVoteChoice(agenda, choice, ticketHash string) error {
 	return c.Call(c.ctx, "setvotechoice", nil, agenda, choice, ticketHash)
 }
 
+// GetBestBlockHeight uses getbestblock RPC to query the height of the best
+// block known by the dcrwallet instance.
 func (c *WalletRPC) GetBestBlockHeight() (int64, error) {
 	var block dcrdtypes.GetBestBlockResult
 	err := c.Call(c.ctx, "getbestblock", &block)
@@ -174,6 +182,8 @@ func (c *WalletRPC) GetBestBlockHeight() (int64, error) {
 	return block.Height, nil
 }
 
+// TicketInfo uses ticketinfo RPC to retrieve a detailed list of all tickets
+// known by this dcrwallet instance.
 func (c *WalletRPC) TicketInfo() (map[string]*wallettypes.TicketInfoResult, error) {
 	var result []*wallettypes.TicketInfoResult
 	err := c.Call(c.ctx, "ticketinfo", &result)
@@ -191,6 +201,8 @@ func (c *WalletRPC) TicketInfo() (map[string]*wallettypes.TicketInfoResult, erro
 	return tickets, err
 }
 
+// RescanFrom uses rescanwallet RPC to trigger the wallet to perform a rescan
+// from the specified block height.
 func (c *WalletRPC) RescanFrom(fromHeight int64) error {
 	return c.Call(c.ctx, "rescanwallet", nil, fromHeight)
 }
