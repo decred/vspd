@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -42,11 +43,12 @@ var (
 	lastAddressIndexK = []byte("lastaddressindex")
 )
 
-// backupMtx protects writeBackup, to ensure only one backup file is written at
-// a time.
+// backupMtx should be held when writing to the database backup file
 var backupMtx sync.Mutex
 
-func writeBackup(db *bolt.DB) error {
+// writeHotBackupFile writes a backup of the database file while the database
+// is still open.
+func writeHotBackupFile(db *bolt.DB) error {
 	backupMtx.Lock()
 	defer backupMtx.Unlock()
 
@@ -71,6 +73,11 @@ func writeBackup(db *bolt.DB) error {
 	return err
 }
 
+// CreateNew intializes a new bbolt database with all of the necessary vspd
+// buckets, and inserts:
+// - the provided extended pubkey (to be used for deriving fee addresses).
+// - an ed25519 keypair to sign API responses.
+// - a secret key to use for initializing a HTTP cookie store.
 func CreateNew(dbFile, feeXPub string) error {
 	log.Infof("Initializing new database at %s", dbFile)
 
@@ -146,9 +153,17 @@ func CreateNew(dbFile, feeXPub string) error {
 	return nil
 }
 
-// Open initializes and returns an open database. If no database file is found
-// at the provided path, a new one will be created.
+// Open initializes and returns an open database. An error is returned if no
+// database file is found at the provided path.
 func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backupInterval time.Duration) (*VspDatabase, error) {
+
+	// Error if db file does not exist. This is needed because bolt.Open will
+	// silently create a new empty database if the file does not exist. A new
+	// vspd database should be created with the CreateNew() function.
+	_, err := os.Stat(dbFile)
+	if os.IsNotExist(err) {
+		return nil, err
+	}
 
 	db, err := bolt.Open(dbFile, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
@@ -164,7 +179,7 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 		for {
 			select {
 			case <-ticker.C:
-				err := writeBackup(db)
+				err := writeHotBackupFile(db)
 				if err != nil {
 					log.Errorf("Failed to write database backup: %v", err)
 				}
@@ -179,18 +194,62 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 	return &VspDatabase{db: db}, nil
 }
 
+// Close will close the database and then make a copy of the database to the
+// backup location.
 func (vdb *VspDatabase) Close() {
-	err := writeBackup(vdb.db)
-	if err != nil {
-		log.Errorf("Failed to write database backup: %v", err)
-	}
 
-	err = vdb.db.Close()
+	// Make a copy of the db path here because once the db is closed, db.Path
+	// returns empty string.
+	dbPath := vdb.db.Path()
+
+	// Close will wait until all on-going transactions are completed before
+	// closing the db and writing the file to disk.
+	err := vdb.db.Close()
 	if err != nil {
 		log.Errorf("Error closing database: %v", err)
-	} else {
-		log.Debug("Database closed")
+		// Return here because if there is an issue with the database, we
+		// probably don't want to overwrite the backup file and potentially
+		// break that too.
+		return
 	}
+
+	log.Debug("Database closed")
+
+	// Ensure the database backup file is up-to-date.
+	backupPath := dbPath + "-backup"
+	tempPath := backupPath + "~"
+
+	backupMtx.Lock()
+	defer backupMtx.Unlock()
+
+	from, err := os.Open(dbPath)
+	if err != nil {
+		log.Errorf("Failed to write a database backup (os.Open): %v", err)
+		return
+	}
+	defer from.Close()
+
+	to, err := os.OpenFile(tempPath, os.O_RDWR|os.O_CREATE, 0666)
+	if err != nil {
+		log.Errorf("Failed to write a database backup (os.OpenFile): %v", err)
+		return
+	}
+	defer to.Close()
+
+	_, err = io.Copy(to, from)
+	if err != nil {
+		log.Errorf("Failed to write a database backup (io.Copy): %v", err)
+		return
+	}
+
+	// Rename temporary file to actual backup file.
+	err = os.Rename(tempPath, backupPath)
+	if err != nil {
+		log.Errorf("Failed to write a database backup (os.Rename): %v", err)
+		return
+	}
+
+	log.Tracef("Database backup written to %s", backupPath)
 }
 
 // KeyPair retrieves the keypair used to sign API responses from the database.
