@@ -73,14 +73,14 @@ func feeAddress(c *gin.Context) {
 		return
 	}
 
-	var feeAddressRequest FeeAddressRequest
-	if err := c.ShouldBindJSON(&feeAddressRequest); err != nil {
+	var request feeAddressRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
 
-	ticketHash := feeAddressRequest.TicketHash
+	ticketHash := request.TicketHash
 
 	// Respond early if we already have the fee tx for this ticket.
 	if ticket.FeeTxStatus == database.FeeReceieved ||
@@ -141,7 +141,7 @@ func feeAddress(c *gin.Context) {
 		}
 		sendJSONResponse(feeAddressResponse{
 			Timestamp:  now.Unix(),
-			Request:    feeAddressRequest,
+			Request:    request,
 			FeeAddress: ticket.FeeAddress,
 			FeeAmount:  ticket.FeeAmount,
 			Expiration: ticket.FeeExpiration,
@@ -194,7 +194,7 @@ func feeAddress(c *gin.Context) {
 
 	sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),
-		Request:    feeAddressRequest,
+		Request:    request,
 		FeeAddress: newAddress,
 		FeeAmount:  int64(fee),
 		Expiration: expire,

@@ -21,8 +21,8 @@ func ticketStatus(c *gin.Context) {
 		return
 	}
 
-	var ticketStatusRequest TicketStatusRequest
-	if err := c.ShouldBindJSON(&ticketStatusRequest); err != nil {
+	var request ticketStatusRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
@@ -30,7 +30,7 @@ func ticketStatus(c *gin.Context) {
 
 	sendJSONResponse(ticketStatusResponse{
 		Timestamp:       time.Now().Unix(),
-		Request:         ticketStatusRequest,
+		Request:         request,
 		TicketConfirmed: ticket.Confirmed,
 		FeeTxStatus:     string(ticket.FeeTxStatus),
 		FeeTxHash:       ticket.FeeTxHash,

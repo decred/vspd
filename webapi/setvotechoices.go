@@ -30,14 +30,14 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
-	var setVoteChoicesRequest SetVoteChoicesRequest
-	if err := c.ShouldBindJSON(&setVoteChoicesRequest); err != nil {
+	var request setVoteChoicesRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
 
-	voteChoices := setVoteChoicesRequest.VoteChoices
+	voteChoices := request.VoteChoices
 	err := isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
 	if err != nil {
 		log.Warnf("%s: Invalid vote choices (clientIP=%s, ticketHash=%s): %v",
@@ -81,6 +81,6 @@ func setVoteChoices(c *gin.Context) {
 
 	sendJSONResponse(setVoteChoicesResponse{
 		Timestamp: time.Now().Unix(),
-		Request:   setVoteChoicesRequest,
+		Request:   request,
 	}, c)
 }
