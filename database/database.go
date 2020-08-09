@@ -43,6 +43,11 @@ var (
 	lastAddressIndexK = []byte("lastaddressindex")
 )
 
+const (
+	// backupFileMode is the file mode for database backup files written by vspd.
+	backupFileMode = 0600
+)
+
 // backupMtx should be held when writing to the database backup file
 var backupMtx sync.Mutex
 
@@ -57,7 +62,7 @@ func writeHotBackupFile(db *bolt.DB) error {
 
 	// Write backup to temporary file.
 	err := db.View(func(tx *bolt.Tx) error {
-		return tx.CopyFile(tempPath, 0600)
+		return tx.CopyFile(tempPath, backupFileMode)
 	})
 	if err != nil {
 		return fmt.Errorf("tx.CopyFile: %v", err)
@@ -229,7 +234,7 @@ func (vdb *VspDatabase) Close() {
 	}
 	defer from.Close()
 
-	to, err := os.OpenFile(tempPath, os.O_RDWR|os.O_CREATE, 0666)
+	to, err := os.OpenFile(tempPath, os.O_RDWR|os.O_CREATE, backupFileMode)
 	if err != nil {
 		log.Errorf("Failed to write a database backup (os.OpenFile): %v", err)
 		return
