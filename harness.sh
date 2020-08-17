@@ -1,12 +1,19 @@
 #!/bin/bash
-
-# To use this test harness simply run `./harness.sh` from the repo root.
 #
-# This harness makes a few assumptions about the system it is running on:
+# Copyright (c) 2020 The Decred developers
+# Use of this source code is governed by an ISC
+# license that can be found in the LICENSE file.
+#
+# Tmux script that sets up a testnet vspd deployment with multiple voting wallets.
+#
+# To use the script simply run `./harness.sh` from the repo root.
+#
+# The script makes a few assumptions about the system it is running on:
 # - tmux is installed
 # - dcrd, dcrwallet and vspd are available on $PATH
 # - Decred testnet chain is already downloaded and sync'd
 # - dcrd transaction index is already built
+# - /tmp directory exists
 # - The following files exist:
 #   - ${HOME}/.dcrd/rpc.cert
 #   - ${HOME}/.dcrd/rpc.key
@@ -15,8 +22,8 @@
 
 set -e
 
-TMUX_SESSION="harness"
-HARNESS_ROOT=~/harness
+TMUX_SESSION="vspd-harness"
+HARNESS_ROOT=/tmp/vspd-harness
 RPC_USER="user"
 RPC_PASS="pass"
 NUMBER_OF_WALLETS=3
@@ -109,10 +116,15 @@ EOF
 
 echo "Starting dcrwallet-${i}"
 tmux new-window -t $TMUX_SESSION -n "dcrwallet-${i}"
-tmux send-keys "dcrwallet -C ${HARNESS_ROOT}/dcrwallet-${i}/dcrwallet.conf --create" C-m
-sleep 1 # wait for dcrwallet process to start before sending input
-tmux send-keys "${WALLET_PASS}" C-m "${WALLET_PASS}" C-m "n" C-m "n" C-m "ok" C-m
-sleep 2 # wait for wallet to be created
+# Create wallet.
+tmux send-keys "dcrwallet -C ${HARNESS_ROOT}/dcrwallet-${i}/dcrwallet.conf --create <<EOF
+y
+n
+n
+ok
+EOF" C-m
+sleep 1
+# Start wallet.
 tmux send-keys "dcrwallet -C ${HARNESS_ROOT}/dcrwallet-${i}/dcrwallet.conf " C-m
 
 done
