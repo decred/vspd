@@ -19,6 +19,7 @@ const (
 	errInvalidPrivKey
 	errFeeNotReceived
 	errInvalidTicket
+	errCannotBroadcastTicket
 )
 
 // httpStatus maps application error codes to HTTP status codes.
@@ -52,6 +53,8 @@ func (e apiError) httpStatus() int {
 		return http.StatusBadRequest
 	case errInvalidTicket:
 		return http.StatusBadRequest
+	case errCannotBroadcastTicket:
+		return http.StatusInternalServerError
 	default:
 		return http.StatusInternalServerError
 	}
@@ -88,6 +91,8 @@ func (e apiError) defaultMessage() string {
 		return "no fee tx received for ticket"
 	case errInvalidTicket:
 		return "not a valid ticket tx"
+	case errCannotBroadcastTicket:
+		return "ticket transaction could not be broadcast"
 	default:
 		return "unknown error"
 	}
