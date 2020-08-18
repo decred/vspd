@@ -167,7 +167,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	}
 
 	router := gin.New()
-	router.LoadHTMLGlob("webapi/templates/*")
+	router.LoadHTMLGlob("webapi/templates/*.html")
 
 	// Recovery middleware handles any go panics generated while processing web
 	// requests. Ensures a 500 response is sent to the client rather than
