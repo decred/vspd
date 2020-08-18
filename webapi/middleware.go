@@ -180,7 +180,7 @@ func broadcastTicket() gin.HandlerFunc {
 			if err != nil {
 				log.Errorf("%s: dcrd.SendRawTransaction for ticket failed (ticketHash=%s): %v",
 					funcName, request.TicketHash, err)
-				sendError(errInternalError, c)
+				sendError(errCannotBroadcastTicket, c)
 				return
 			}
 		} else {
