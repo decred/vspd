@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	testDb   = "test.db"
-	backupDb = "test.db-backup"
-	db       *VspDatabase
+	testDb               = "test.db"
+	backupDb             = "test.db-backup"
+	db                   *VspDatabase
+	maxVoteChangeRecords = 3
 )
 
 // TestDatabase runs all database tests.
@@ -26,13 +27,14 @@ func TestDatabase(t *testing.T) {
 
 	// All sub-tests to run.
 	tests := map[string]func(*testing.T){
-		"testInsertNewTicket":  testInsertNewTicket,
-		"testGetTicketByHash":  testGetTicketByHash,
-		"testUpdateTicket":     testUpdateTicket,
-		"testTicketFeeExpired": testTicketFeeExpired,
-		"testFilterTickets":    testFilterTickets,
-		"testAddressIndex":     testAddressIndex,
-		"testDeleteTicket":     testDeleteTicket,
+		"testInsertNewTicket":   testInsertNewTicket,
+		"testGetTicketByHash":   testGetTicketByHash,
+		"testUpdateTicket":      testUpdateTicket,
+		"testTicketFeeExpired":  testTicketFeeExpired,
+		"testFilterTickets":     testFilterTickets,
+		"testAddressIndex":      testAddressIndex,
+		"testDeleteTicket":      testDeleteTicket,
+		"testVoteChangeRecords": testVoteChangeRecords,
 	}
 
 	for testName, test := range tests {
@@ -44,7 +46,7 @@ func TestDatabase(t *testing.T) {
 		if err != nil {
 			t.Fatalf("error creating test database: %v", err)
 		}
-		db, err = Open(ctx, &wg, testDb, time.Hour)
+		db, err = Open(ctx, &wg, testDb, time.Hour, maxVoteChangeRecords)
 		if err != nil {
 			t.Fatalf("error opening test database: %v", err)
 		}

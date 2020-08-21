@@ -5,11 +5,13 @@
 package webapi
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 // setVoteChoices is the handler for "POST /api/v3/setvotechoices".
@@ -20,6 +22,7 @@ func setVoteChoices(c *gin.Context) {
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
 	walletClients := c.MustGet("WalletClients").([]*rpc.WalletRPC)
+	reqBytes := c.MustGet("RequestBytes").([]byte)
 
 	// If we cannot set the vote choices on at least one voting wallet right
 	// now, don't update the database, just return an error.
@@ -41,8 +44,17 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
+	// Only allow vote choices to be updated for live/immature tickets.
+	if ticket.Outcome != "" {
+		log.Warnf("%s: Ticket not eligible to vote (clientIP=%s, ticketHash=%s)",
+			funcName, c.ClientIP(), ticket.Hash)
+		sendErrorWithMsg(fmt.Sprintf("ticket not eligible to vote (status=%s)", ticket.Outcome),
+			errTicketCannotVote, c)
+		return
+	}
+
 	var request setVoteChoicesRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
@@ -88,10 +100,22 @@ func setVoteChoices(c *gin.Context) {
 
 	// TODO: DB - error if given timestamp is older than any previous requests
 
-	// TODO: DB - store setvotechoices receipt in log
-
-	sendJSONResponse(setVoteChoicesResponse{
+	// Send success response to client.
+	resp, respSig := sendJSONResponse(setVoteChoicesResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   request,
 	}, c)
+
+	// Store a record of the vote choice change.
+	err = db.SaveVoteChange(
+		ticket.Hash,
+		database.VoteChangeRecord{
+			Request:           string(reqBytes),
+			RequestSignature:  c.GetHeader("VSP-Client-Signature"),
+			Response:          resp,
+			ResponseSignature: respSig,
+		})
+	if err != nil {
+		log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
+	}
 }

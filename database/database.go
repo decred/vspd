@@ -23,7 +23,8 @@ import (
 // VspDatabase wraps an instance of bolt.DB and provides VSP specific
 // convenience functions.
 type VspDatabase struct {
-	db *bolt.DB
+	db                   *bolt.DB
+	maxVoteChangeRecords int
 
 	ticketsMtx sync.RWMutex
 }
@@ -35,6 +36,8 @@ var (
 	vspBktK = []byte("vspbkt")
 	// ticketbkt stores all tickets known by this VSP.
 	ticketBktK = []byte("ticketbkt")
+	// votechangebkt stores records of web requests which update vote choices.
+	voteChangeBktK = []byte("votechangebkt")
 	// version is the current database version.
 	versionK = []byte("version")
 	// feeXPub is the extended public key used for collecting VSP fees.
@@ -150,6 +153,12 @@ func CreateNew(dbFile, feeXPub string) error {
 			return fmt.Errorf("failed to create %s bucket: %v", string(ticketBktK), err)
 		}
 
+		// Create vote change bucket.
+		_, err = vspBkt.CreateBucket(voteChangeBktK)
+		if err != nil {
+			return fmt.Errorf("failed to create %s bucket: %v", string(voteChangeBktK), err)
+		}
+
 		return nil
 	})
 
@@ -164,7 +173,7 @@ func CreateNew(dbFile, feeXPub string) error {
 
 // Open initializes and returns an open database. An error is returned if no
 // database file is found at the provided path.
-func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backupInterval time.Duration) (*VspDatabase, error) {
+func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backupInterval time.Duration, maxVoteChangeRecords int) (*VspDatabase, error) {
 
 	// Error if db file does not exist. This is needed because bolt.Open will
 	// silently create a new empty database if the file does not exist. A new
@@ -200,7 +209,7 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 		}
 	}()
 
-	return &VspDatabase{db: db}, nil
+	return &VspDatabase{db: db, maxVoteChangeRecords: maxVoteChangeRecords}, nil
 }
 
 // Close will close the database and then make a copy of the database to the
