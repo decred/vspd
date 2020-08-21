@@ -24,6 +24,7 @@ const (
 	errFeeNotReceived
 	errInvalidTicket
 	errCannotBroadcastTicket
+	errCannotBroadcastFee
 )
 
 // httpStatus maps application error codes to HTTP status codes.
@@ -58,6 +59,8 @@ func (e apiError) httpStatus() int {
 	case errInvalidTicket:
 		return http.StatusBadRequest
 	case errCannotBroadcastTicket:
+		return http.StatusInternalServerError
+	case errCannotBroadcastFee:
 		return http.StatusInternalServerError
 	default:
 		return http.StatusInternalServerError
@@ -97,6 +100,8 @@ func (e apiError) defaultMessage() string {
 		return "not a valid ticket tx"
 	case errCannotBroadcastTicket:
 		return "ticket transaction could not be broadcast"
+	case errCannotBroadcastFee:
+		return "fee transaction could not be broadcast"
 	default:
 		return "unknown error"
 	}
