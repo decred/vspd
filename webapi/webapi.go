@@ -7,7 +7,7 @@ package webapi
 import (
 	"context"
 	"crypto/ed25519"
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -236,7 +236,7 @@ func sendJSONResponse(resp interface{}, c *gin.Context) {
 	}
 
 	sig := ed25519.Sign(signPrivKey, dec)
-	c.Writer.Header().Set("VSP-Server-Signature", hex.EncodeToString(sig))
+	c.Writer.Header().Set("VSP-Server-Signature", base64.StdEncoding.EncodeToString(sig))
 
 	c.AbortWithStatusJSON(http.StatusOK, resp)
 }
@@ -264,7 +264,7 @@ func sendErrorWithMsg(msg string, e apiError, c *gin.Context) {
 		log.Warnf("Sending error response without signature: %v", err)
 	} else {
 		sig := ed25519.Sign(signPrivKey, dec)
-		c.Writer.Header().Set("VSP-Server-Signature", hex.EncodeToString(sig))
+		c.Writer.Header().Set("VSP-Server-Signature", base64.StdEncoding.EncodeToString(sig))
 	}
 
 	c.AbortWithStatusJSON(status, resp)
