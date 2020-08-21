@@ -132,6 +132,7 @@ td.status-bad{
     text-align: right;
 }
 .ticket-table td {
+    font-size: 14px;
     text-align: left;
 }
 

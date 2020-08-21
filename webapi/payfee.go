@@ -14,6 +14,7 @@ import (
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 // payFee is the handler for "POST /api/v3/payfee".
@@ -24,6 +25,7 @@ func payFee(c *gin.Context) {
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
 	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
+	reqBytes := c.MustGet("RequestBytes").([]byte)
 
 	if cfg.VspClosed {
 		sendError(errVspClosed, c)
@@ -37,7 +39,7 @@ func payFee(c *gin.Context) {
 	}
 
 	var request payFeeRequest
-	if err := c.ShouldBindJSON(&request); err != nil {
+	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
@@ -257,8 +259,22 @@ findAddress:
 			funcName, ticket.Hash, ticket.FeeTxHash)
 	}
 
-	sendJSONResponse(payFeeResponse{
+	// Send success response to client.
+	resp, respSig := sendJSONResponse(payFeeResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   request,
 	}, c)
+
+	// Store a record of the vote choice change.
+	err = db.SaveVoteChange(
+		ticket.Hash,
+		database.VoteChangeRecord{
+			Request:           string(reqBytes),
+			RequestSignature:  c.GetHeader("VSP-Client-Signature"),
+			Response:          resp,
+			ResponseSignature: respSig,
+		})
+	if err != nil {
+		log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
+	}
 }

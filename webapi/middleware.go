@@ -203,16 +203,17 @@ func vspAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		const funcName = "vspAuth"
 
-		// Read request bytes and then replace the request reader for
-		// downstream handlers to use.
+		// Read request bytes.
 		reqBytes, err := ioutil.ReadAll(c.Request.Body)
 		if err != nil {
 			log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg(err.Error(), errBadRequest, c)
 			return
 		}
-		c.Request.Body.Close()
-		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
+
+		// Add request bytes to request context for downstream handlers to reuse.
+		// Necessary because the request body reader can only be used once.
+		c.Set("RequestBytes", reqBytes)
 
 		// Parse request and ensure there is a ticket hash included.
 		var request ticketHashRequest

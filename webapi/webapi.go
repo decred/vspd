@@ -23,14 +23,15 @@ import (
 )
 
 type Config struct {
-	VSPFee         float64
-	NetParams      *chaincfg.Params
-	FeeAccountName string
-	SupportEmail   string
-	VspClosed      bool
-	AdminPass      string
-	Debug          bool
-	Designation    string
+	VSPFee               float64
+	NetParams            *chaincfg.Params
+	FeeAccountName       string
+	SupportEmail         string
+	VspClosed            bool
+	AdminPass            string
+	Debug                bool
+	Designation          string
+	MaxVoteChangeRecords int
 }
 
 const (
@@ -227,28 +228,34 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	return router
 }
 
-func sendJSONResponse(resp interface{}, c *gin.Context) {
+// sendJSONResponse serializes the provided response, signs it, and sends the
+// response to the client with a 200 OK status. Returns the seralized response
+// and the signature.
+func sendJSONResponse(resp interface{}, c *gin.Context) (string, string) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
 		log.Errorf("JSON marshal error: %v", err)
 		sendError(errInternalError, c)
-		return
+		return "", ""
 	}
 
 	sig := ed25519.Sign(signPrivKey, dec)
-	c.Writer.Header().Set("VSP-Server-Signature", base64.StdEncoding.EncodeToString(sig))
+	sigStr := base64.StdEncoding.EncodeToString(sig)
+	c.Writer.Header().Set("VSP-Server-Signature", sigStr)
 
 	c.AbortWithStatusJSON(http.StatusOK, resp)
+
+	return string(dec), sigStr
 }
 
-// sendError returns an error response to the client using the default error
+// sendError sends an error response to the client using the default error
 // message.
 func sendError(e apiError, c *gin.Context) {
 	msg := e.defaultMessage()
 	sendErrorWithMsg(msg, e, c)
 }
 
-// sendErrorWithMsg returns an error response to the client using the provided
+// sendErrorWithMsg sends an error response to the client using the provided
 // error message.
 func sendErrorWithMsg(msg string, e apiError, c *gin.Context) {
 	status := e.httpStatus()

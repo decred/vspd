@@ -19,6 +19,12 @@ import (
 	"github.com/decred/vspd/webapi"
 )
 
+// maxVoteChangeRecords defines how many vote change records will be stored for
+// each ticket. The limit is in place to mitigate DoS attacks on server storage
+// space. When storing a new record breaches this limit, the oldest record in
+// the database is deleted.
+const maxVoteChangeRecords = 10
+
 func main() {
 	// Create a context that is cancelled when a shutdown request is received
 	// through an interrupt signal.
@@ -59,7 +65,7 @@ func run(ctx context.Context) error {
 	defer log.Info("Shutdown complete")
 
 	// Open database.
-	db, err := database.Open(ctx, &shutdownWg, cfg.dbPath, cfg.BackupInterval)
+	db, err := database.Open(ctx, &shutdownWg, cfg.dbPath, cfg.BackupInterval, maxVoteChangeRecords)
 	if err != nil {
 		log.Errorf("Database error: %v", err)
 		requestShutdown()
@@ -79,13 +85,14 @@ func run(ctx context.Context) error {
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
-		VSPFee:       cfg.VSPFee,
-		NetParams:    cfg.netParams.Params,
-		SupportEmail: cfg.SupportEmail,
-		VspClosed:    cfg.VspClosed,
-		AdminPass:    cfg.AdminPass,
-		Debug:        cfg.WebServerDebug,
-		Designation:  cfg.Designation,
+		VSPFee:               cfg.VSPFee,
+		NetParams:            cfg.netParams.Params,
+		SupportEmail:         cfg.SupportEmail,
+		VspClosed:            cfg.VspClosed,
+		AdminPass:            cfg.AdminPass,
+		Debug:                cfg.WebServerDebug,
+		Designation:          cfg.Designation,
+		MaxVoteChangeRecords: maxVoteChangeRecords,
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
 		dcrd, wallets, apiCfg)

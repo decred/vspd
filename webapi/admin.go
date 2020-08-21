@@ -100,16 +100,25 @@ func ticketSearch(c *gin.Context) {
 
 	ticket, found, err := db.GetTicketByHash(hash)
 	if err != nil {
-		log.Errorf("db.GetTicketByHash error: %v", err)
+		log.Errorf("db.GetTicketByHash error (ticketHash=%s): %v", hash, err)
 		c.String(http.StatusInternalServerError, "Error getting ticket from db")
+		return
+	}
+
+	voteChanges, err := db.GetVoteChanges(hash)
+	if err != nil {
+		log.Errorf("db.GetVoteChanges error (ticketHash=%s): %v", hash, err)
+		c.String(http.StatusInternalServerError, "Error getting vote changes from db")
 		return
 	}
 
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"SearchResult": gin.H{
-			"Hash":   hash,
-			"Found":  found,
-			"Ticket": ticket,
+			"Hash":           hash,
+			"Found":          found,
+			"Ticket":         ticket,
+			"VoteChanges":    voteChanges,
+			"MaxVoteChanges": cfg.MaxVoteChangeRecords,
 		},
 		"VspStats":     getVSPStats(),
 		"WalletStatus": walletStatus(c),

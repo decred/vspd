@@ -139,6 +139,7 @@ func (vdb *VspDatabase) DeleteTicket(ticket Ticket) error {
 		return nil
 	})
 }
+
 func (vdb *VspDatabase) UpdateTicket(ticket Ticket) error {
 	defer vdb.ticketsMtx.Unlock()
 	vdb.ticketsMtx.Lock()
