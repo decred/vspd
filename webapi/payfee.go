@@ -235,7 +235,7 @@ findAddress:
 					funcName, ticket.Hash, err)
 			}
 
-			sendErrorWithMsg("could not broadcast fee transaction", errInvalidFeeTx, c)
+			sendErrorWithMsg("could not broadcast fee transaction", errCannotBroadcastFee, c)
 			return
 		}
 
