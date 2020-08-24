@@ -8,6 +8,10 @@ body {
     flex-direction: column;
 }
 
+.navbar a {
+    text-decoration: none;
+}
+
 .page-content {
     flex: 1 0 auto;
 }
