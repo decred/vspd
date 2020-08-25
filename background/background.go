@@ -298,6 +298,7 @@ func connectNotifier(dcrdWithNotifs rpc.DcrdConnect) error {
 	// notifier is closed.
 	select {
 	case <-ctx.Done():
+		dcrdWithNotifs.Close()
 		return nil
 	case <-notifierClosed:
 		log.Warnf("dcrd notifier closed")
