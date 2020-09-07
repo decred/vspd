@@ -24,10 +24,17 @@ type VoteChangeRecord struct {
 
 // SaveVoteChange will insert the provided vote change record into the database,
 // and if this breaches the maximum amount of allowed records, delete the oldest
-// one which is currently stored.
+// one which is currently stored. Records are stored using a serially increasing
+// integer as the key.
 func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecord) error {
 
 	return vdb.db.Update(func(tx *bolt.Tx) error {
+		// Serialize record for storage in the database.
+		recordBytes, err := json.Marshal(record)
+		if err != nil {
+			return fmt.Errorf("could not marshal vote change record: %v", err)
+		}
+
 		// Create or get a bucket for this ticket.
 		bkt, err := tx.Bucket(vspBktK).Bucket(voteChangeBktK).
 			CreateBucketIfNotExists([]byte(ticketHash))
@@ -35,14 +42,6 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 			return fmt.Errorf("failed to create vote change bucket (ticketHash=%s): %v",
 				ticketHash, err)
 		}
-
-		// Serialize record for storage in the database.
-		recordBytes, err := json.Marshal(record)
-		if err != nil {
-			return fmt.Errorf("could not marshal vote change record: %v", err)
-		}
-
-		// Records are stored using a serially increasing integer as the key.
 
 		// Loop through the bucket to count the records, as well as finding the
 		// most recent and the oldest record.
