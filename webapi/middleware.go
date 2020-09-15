@@ -116,7 +116,7 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 // If no info can be found, the ticket hex will be broadcast.
 func broadcastTicket() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		funcName := "broadcastTicket"
+		const funcName = "broadcastTicket"
 
 		// Read request bytes and then replace the request reader for
 		// downstream handlers to use.
@@ -201,7 +201,7 @@ func broadcastTicket() gin.HandlerFunc {
 // use.
 func vspAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		funcName := "vspAuth"
+		const funcName = "vspAuth"
 
 		// Read request bytes and then replace the request reader for
 		// downstream handlers to use.

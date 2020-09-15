@@ -18,7 +18,7 @@ import (
 
 // payFee is the handler for "POST /api/v3/payfee".
 func payFee(c *gin.Context) {
-	funcName := "payFee"
+	const funcName = "payFee"
 
 	// Get values which have been added to context by middleware.
 	ticket := c.MustGet("Ticket").(database.Ticket)

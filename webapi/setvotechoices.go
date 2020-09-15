@@ -14,7 +14,7 @@ import (
 
 // setVoteChoices is the handler for "POST /api/v3/setvotechoices".
 func setVoteChoices(c *gin.Context) {
-	funcName := "setVoteChoices"
+	const funcName = "setVoteChoices"
 
 	// Get values which have been added to context by middleware.
 	ticket := c.MustGet("Ticket").(database.Ticket)
