@@ -13,7 +13,7 @@ import (
 
 // ticketStatus is the handler for "POST /api/v3/ticketstatus".
 func ticketStatus(c *gin.Context) {
-	funcName := "ticketStatus"
+	const funcName = "ticketStatus"
 
 	// Get values which have been added to context by middleware.
 	ticket := c.MustGet("Ticket").(database.Ticket)

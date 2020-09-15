@@ -64,7 +64,7 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 // blockconnected notification is received from dcrd.
 func blockConnected() {
 
-	funcName := "blockConnected"
+	const funcName = "blockConnected"
 
 	shutdownWg.Add(1)
 	defer shutdownWg.Done()
@@ -363,7 +363,7 @@ func Start(c context.Context, wg *sync.WaitGroup, vdb *database.VspDatabase, drp
 // choices.
 func checkWalletConsistency() {
 
-	funcName := "checkWalletConsistency"
+	const funcName = "checkWalletConsistency"
 
 	log.Info("Checking voting wallet consistency")
 

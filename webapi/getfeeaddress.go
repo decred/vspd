@@ -64,7 +64,7 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 // feeAddress is the handler for "POST /api/v3/feeaddress".
 func feeAddress(c *gin.Context) {
 
-	funcName := "feeAddress"
+	const funcName = "feeAddress"
 
 	// Get values which have been added to context by middleware.
 	ticket := c.MustGet("Ticket").(database.Ticket)
