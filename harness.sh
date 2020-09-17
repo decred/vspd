@@ -110,6 +110,7 @@ pass=${WALLET_PASS}
 grpclisten=127.0.0.1:2010${i}
 rpclisten=${WALLET_RPC_LISTEN}
 enablevoting=true
+manualtickets=true
 testnet=true
 debuglevel=info
 EOF

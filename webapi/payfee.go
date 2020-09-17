@@ -17,6 +17,11 @@ import (
 	"github.com/gin-gonic/gin/binding"
 )
 
+const (
+	// Assume the treasury is enabled
+	isTreasuryEnabled = true
+)
+
 // payFee is the handler for "POST /api/v3/payfee".
 func payFee(c *gin.Context) {
 	const funcName = "payFee"
@@ -114,7 +119,7 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	err = blockchain.CheckTransactionSanity(feeTx, cfg.NetParams)
+	err = blockchain.CheckTransactionSanity(feeTx, cfg.NetParams, isTreasuryEnabled)
 	if err != nil {
 		log.Warnf("%s: Fee tx failed sanity check (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
@@ -136,7 +141,7 @@ findAddress:
 			return
 		}
 		_, addresses, _, err := txscript.ExtractPkScriptAddrs(scriptVersion,
-			txOut.PkScript, cfg.NetParams)
+			txOut.PkScript, cfg.NetParams, isTreasuryEnabled)
 		if err != nil {
 			log.Errorf("%s: Extract PK error (clientIP=%s, ticketHash=%s): %v",
 				funcName, c.ClientIP(), ticket.Hash, err)
@@ -177,7 +182,7 @@ findAddress:
 	}
 
 	// Get ticket voting address.
-	_, votingAddr, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, ticketTx.TxOut[0].PkScript, cfg.NetParams)
+	_, votingAddr, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, ticketTx.TxOut[0].PkScript, cfg.NetParams, isTreasuryEnabled)
 	if err != nil {
 		log.Errorf("%s: ExtractPK error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		sendError(errInternalError, c)
