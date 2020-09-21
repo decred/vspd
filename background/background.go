@@ -279,7 +279,7 @@ func (n *NotificationHandler) Close() error {
 func connectNotifier(shutdownCtx context.Context, dcrdWithNotifs rpc.DcrdConnect) error {
 	notifierClosed = make(chan struct{})
 
-	dcrdClient, err := dcrdWithNotifs.Client(context.Background(), netParams)
+	dcrdClient, err := dcrdWithNotifs.Client(shutdownCtx, netParams)
 	if err != nil {
 		return err
 	}
@@ -295,6 +295,9 @@ func connectNotifier(shutdownCtx context.Context, dcrdWithNotifs rpc.DcrdConnect
 	// notifier is closed.
 	select {
 	case <-shutdownCtx.Done():
+		// A shutdown signal has been received - close the client with the
+		// notification handler to prevent further notifications from being
+		// received.
 		dcrdWithNotifs.Close()
 		return nil
 	case <-notifierClosed:
