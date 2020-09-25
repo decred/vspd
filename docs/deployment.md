@@ -29,8 +29,12 @@ locations.
 Each voting server should be running an instance of dcrd and dcrwallet. The
 wallet on these servers should be completely empty and not used for any other
 purpose. dcrwallet should be permenantly unlocked and have voting enabled
-(`--enablevoting`). vspd on the front-end server must be able to reach each
-instance of dcrwallet over RPC.
+(`--enablevoting`). dcrwallet is also required to have the manual tickets
+option (`--manualtickets`) enabled which disables dcrwallet adding tickets
+arriving over the network.  Without this option set, a user could reuse
+voting addresses the VSP's voting wallets already have private keys for,
+resulting in the VSP voting tickets without a fee paid. vspd on the
+front-end server must be able to reach each instance of dcrwallet over RPC.
 
 ## Front-end Server
 

@@ -121,6 +121,12 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 			continue
 		}
 
+		if !walletInfo.ManualTickets {
+			// All wallet should not be adding tickets found via the network.  This
+			// misconfiguration should not have a negative impact on users, so just
+			// log an error here.  Don't count this as a failed connection.
+			log.Errorf("wallet does not have manual tickets enabled (wallet=%s)", c.String())
+		}
 		if !walletInfo.Voting {
 			// All wallet RPCs can still be used if voting is disabled, so just
 			// log an error here. Don't count this as a failed connection.
