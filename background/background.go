@@ -154,6 +154,7 @@ func blockConnected() {
 	walletClients, failedConnections := walletRPC.Clients(ctx, netParams)
 	if len(walletClients) == 0 {
 		log.Errorf("%s: Could not connect to any wallets", funcName)
+		return
 	}
 	if len(failedConnections) > 0 {
 		log.Errorf("%s: Failed to connect to %d wallet(s), proceeding with only %d",
