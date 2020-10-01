@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -209,9 +210,19 @@ func blockConnected() {
 				for agenda, choice := range ticket.VoteChoices {
 					err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 					if err != nil {
-						log.Errorf("%s: dcrwallet.SetVoteChoice error (wallet=%s, ticketHash=%s): %v",
-							funcName, walletClient.String(), ticket.Hash, err)
-						continue
+						if strings.Contains(err.Error(), "no agenda with ID") {
+							log.Warnf("%s: Removing invalid agenda from ticket vote choices (ticketHash=%s, agenda=%s)",
+								funcName, ticket.Hash, agenda)
+							delete(ticket.VoteChoices, agenda)
+							err = db.UpdateTicket(ticket)
+							if err != nil {
+								log.Errorf("%s: db.UpdateTicket error, failed to remove invalid agenda (ticketHash=%s): %v",
+									funcName, ticket.Hash, err)
+							}
+						} else {
+							log.Errorf("%s: dcrwallet.SetVoteChoice error (wallet=%s, ticketHash=%s): %v",
+								funcName, walletClient.String(), ticket.Hash, err)
+						}
 					}
 				}
 				log.Infof("%s: Ticket added to voting wallet (wallet=%s, ticketHash=%s)",
@@ -507,13 +518,22 @@ func checkWalletConsistency() {
 				// choice.
 				err = walletClient.SetVoteChoice(dbAgenda, dbChoice, dbTicket.Hash)
 				if err != nil {
-					log.Errorf("%s: dcrwallet.SetVoteChoice error (wallet=%s, ticketHash=%s): %v",
-						funcName, walletClient.String(), dbTicket.Hash, err)
-					continue
+					if strings.Contains(err.Error(), "no agenda with ID") {
+						log.Warnf("%s: Removing invalid agenda from ticket vote choices (ticketHash=%s, agenda=%s)",
+							funcName, dbTicket.Hash, dbAgenda)
+						delete(dbTicket.VoteChoices, dbAgenda)
+						err = db.UpdateTicket(dbTicket)
+						if err != nil {
+							log.Errorf("%s: db.UpdateTicket error, failed to remove invalid agenda (ticketHash=%s): %v",
+								funcName, dbTicket.Hash, err)
+						}
+					} else {
+						log.Errorf("%s: dcrwallet.SetVoteChoice error (wallet=%s, ticketHash=%s): %v",
+							funcName, walletClient.String(), dbTicket.Hash, err)
+					}
 				}
 			}
 		}
-
 	}
 }
 
