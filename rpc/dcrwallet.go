@@ -194,9 +194,9 @@ func (c *WalletRPC) GetBestBlockHeight() (int64, error) {
 
 // TicketInfo uses ticketinfo RPC to retrieve a detailed list of all tickets
 // known by this dcrwallet instance.
-func (c *WalletRPC) TicketInfo() (map[string]*wallettypes.TicketInfoResult, error) {
+func (c *WalletRPC) TicketInfo(startHeight int64) (map[string]*wallettypes.TicketInfoResult, error) {
 	var result []*wallettypes.TicketInfoResult
-	err := c.Call(c.ctx, "ticketinfo", &result)
+	err := c.Call(c.ctx, "ticketinfo", &result, startHeight)
 	if err != nil {
 		return nil, err
 	}

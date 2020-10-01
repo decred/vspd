@@ -234,7 +234,10 @@ func blockConnected() {
 			continue
 		}
 
-		ticketInfo, err := walletClient.TicketInfo()
+		// Find the oldest block height from confirmed tickets.
+		oldestHeight := findOldestHeight(dbTickets)
+
+		ticketInfo, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
 			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
 				funcName, walletClient.String(), err)
@@ -402,10 +405,13 @@ func checkWalletConsistency() {
 		return
 	}
 
+	// Find the oldest block height from confirmed tickets.
+	oldestHeight := findOldestHeight(votableTickets)
+
 	// Iterate over each wallet and add any missing tickets.
 	for _, walletClient := range walletClients {
 		// Get all tickets the wallet is aware of.
-		walletTickets, err := walletClient.TicketInfo()
+		walletTickets, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
 			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
 				funcName, walletClient.String(), err)
@@ -463,7 +469,7 @@ func checkWalletConsistency() {
 
 	for _, walletClient := range walletClients {
 		// Get all tickets the wallet is aware of.
-		walletTickets, err := walletClient.TicketInfo()
+		walletTickets, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
 			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
 				funcName, walletClient.String(), err)
@@ -509,4 +515,18 @@ func checkWalletConsistency() {
 		}
 
 	}
+}
+
+func findOldestHeight(tickets []database.Ticket) int64 {
+	var oldestHeight int64
+	for _, ticket := range tickets {
+		// skip unconfirmed tickets
+		if ticket.PurchaseHeight == 0 {
+			continue
+		}
+		if oldestHeight == 0 || oldestHeight > ticket.PurchaseHeight {
+			oldestHeight = ticket.PurchaseHeight
+		}
+	}
+	return oldestHeight
 }
