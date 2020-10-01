@@ -181,15 +181,15 @@ func (c *WalletRPC) SetVoteChoice(agenda, choice, ticketHash string) error {
 	return c.Call(c.ctx, "setvotechoice", nil, agenda, choice, ticketHash)
 }
 
-// GetBestBlockHeight uses getbestblock RPC to query the height of the best
+// GetBestBlockHeight uses getblockcount RPC to query the height of the best
 // block known by the dcrwallet instance.
 func (c *WalletRPC) GetBestBlockHeight() (int64, error) {
-	var block dcrdtypes.GetBestBlockResult
-	err := c.Call(c.ctx, "getbestblock", &block)
+	var height int64
+	err := c.Call(c.ctx, "getblockcount", &height)
 	if err != nil {
 		return 0, err
 	}
-	return block.Height, nil
+	return height, nil
 }
 
 // TicketInfo uses ticketinfo RPC to retrieve a detailed list of all tickets
