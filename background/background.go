@@ -106,6 +106,7 @@ func blockConnected() {
 		}
 
 		if tktTx.Confirmations >= requiredConfs {
+			ticket.PurchaseHeight = tktTx.BlockHeight
 			ticket.Confirmed = true
 			err = db.UpdateTicket(ticket)
 			if err != nil {

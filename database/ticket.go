@@ -43,6 +43,7 @@ const (
 // deliberately kept short because they are duplicated many times in the db.
 type Ticket struct {
 	Hash              string `json:"hsh"`
+	PurchaseHeight    int64  `json:"phgt"`
 	CommitmentAddress string `json:"cmtaddr"`
 	FeeAddressIndex   uint32 `json:"faddridx"`
 	FeeAddress        string `json:"faddr"`
