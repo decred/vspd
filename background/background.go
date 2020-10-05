@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -106,6 +107,7 @@ func blockConnected() {
 		}
 
 		if tktTx.Confirmations >= requiredConfs {
+			ticket.PurchaseHeight = tktTx.BlockHeight
 			ticket.Confirmed = true
 			err = db.UpdateTicket(ticket)
 			if err != nil {
@@ -208,9 +210,19 @@ func blockConnected() {
 				for agenda, choice := range ticket.VoteChoices {
 					err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 					if err != nil {
-						log.Errorf("%s: dcrwallet.SetVoteChoice error (wallet=%s, ticketHash=%s): %v",
-							funcName, walletClient.String(), ticket.Hash, err)
-						continue
+						if strings.Contains(err.Error(), "no agenda with ID") {
+							log.Warnf("%s: Removing invalid agenda from ticket vote choices (ticketHash=%s, agenda=%s)",
+								funcName, ticket.Hash, agenda)
+							delete(ticket.VoteChoices, agenda)
+							err = db.UpdateTicket(ticket)
+							if err != nil {
+								log.Errorf("%s: db.UpdateTicket error, failed to remove invalid agenda (ticketHash=%s): %v",
+									funcName, ticket.Hash, err)
+							}
+						} else {
+							log.Errorf("%s: dcrwallet.SetVoteChoice error (wallet=%s, ticketHash=%s): %v",
+								funcName, walletClient.String(), ticket.Hash, err)
+						}
 					}
 				}
 				log.Infof("%s: Ticket added to voting wallet (wallet=%s, ticketHash=%s)",
@@ -233,7 +245,10 @@ func blockConnected() {
 			continue
 		}
 
-		ticketInfo, err := walletClient.TicketInfo()
+		// Find the oldest block height from confirmed tickets.
+		oldestHeight := findOldestHeight(dbTickets)
+
+		ticketInfo, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
 			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
 				funcName, walletClient.String(), err)
@@ -401,10 +416,13 @@ func checkWalletConsistency() {
 		return
 	}
 
+	// Find the oldest block height from confirmed tickets.
+	oldestHeight := findOldestHeight(votableTickets)
+
 	// Iterate over each wallet and add any missing tickets.
 	for _, walletClient := range walletClients {
 		// Get all tickets the wallet is aware of.
-		walletTickets, err := walletClient.TicketInfo()
+		walletTickets, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
 			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
 				funcName, walletClient.String(), err)
@@ -462,7 +480,7 @@ func checkWalletConsistency() {
 
 	for _, walletClient := range walletClients {
 		// Get all tickets the wallet is aware of.
-		walletTickets, err := walletClient.TicketInfo()
+		walletTickets, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
 			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
 				funcName, walletClient.String(), err)
@@ -500,12 +518,35 @@ func checkWalletConsistency() {
 				// choice.
 				err = walletClient.SetVoteChoice(dbAgenda, dbChoice, dbTicket.Hash)
 				if err != nil {
-					log.Errorf("%s: dcrwallet.SetVoteChoice error (wallet=%s, ticketHash=%s): %v",
-						funcName, walletClient.String(), dbTicket.Hash, err)
-					continue
+					if strings.Contains(err.Error(), "no agenda with ID") {
+						log.Warnf("%s: Removing invalid agenda from ticket vote choices (ticketHash=%s, agenda=%s)",
+							funcName, dbTicket.Hash, dbAgenda)
+						delete(dbTicket.VoteChoices, dbAgenda)
+						err = db.UpdateTicket(dbTicket)
+						if err != nil {
+							log.Errorf("%s: db.UpdateTicket error, failed to remove invalid agenda (ticketHash=%s): %v",
+								funcName, dbTicket.Hash, err)
+						}
+					} else {
+						log.Errorf("%s: dcrwallet.SetVoteChoice error (wallet=%s, ticketHash=%s): %v",
+							funcName, walletClient.String(), dbTicket.Hash, err)
+					}
 				}
 			}
 		}
-
 	}
+}
+
+func findOldestHeight(tickets []database.Ticket) int64 {
+	var oldestHeight int64
+	for _, ticket := range tickets {
+		// skip unconfirmed tickets
+		if ticket.PurchaseHeight == 0 {
+			continue
+		}
+		if oldestHeight == 0 || oldestHeight > ticket.PurchaseHeight {
+			oldestHeight = ticket.PurchaseHeight
+		}
+	}
+	return oldestHeight
 }
