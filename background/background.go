@@ -245,6 +245,11 @@ func blockConnected() {
 			continue
 		}
 
+		// If the database has no votable tickets, there is nothing more to do
+		if len(dbTickets) == 0 {
+			break
+		}
+
 		// Find the oldest block height from confirmed tickets.
 		oldestHeight := findOldestHeight(dbTickets)
 
@@ -413,6 +418,11 @@ func checkWalletConsistency() {
 	votableTickets, err := db.GetVotableTickets()
 	if err != nil {
 		log.Errorf("%s: db.GetVotableTickets failed: %v", funcName, err)
+		return
+	}
+
+	// If the database has no votable tickets, there is nothing more to do
+	if len(votableTickets) == 0 {
 		return
 	}
 
