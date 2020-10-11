@@ -9,6 +9,7 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -62,34 +63,34 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	// Get keys for signing API responses from the database.
 	signPrivKey, signPubKey, err = vdb.KeyPair()
 	if err != nil {
-		return fmt.Errorf("db.Keypair error: %v", err)
+		return fmt.Errorf("db.Keypair error: %w", err)
 	}
 
 	// Populate cached VSP stats before starting webserver.
 	err = updateVSPStats(vdb, config)
 	if err != nil {
-		return fmt.Errorf("could not initialize VSP stats cache: %v", err)
+		return fmt.Errorf("could not initialize VSP stats cache: %w", err)
 	}
 
 	// Get the last used address index and the feeXpub from the database, and
 	// use them to initialize the address generator.
 	idx, err := vdb.GetLastAddressIndex()
 	if err != nil {
-		return fmt.Errorf("db.GetLastAddressIndex error: %v", err)
+		return fmt.Errorf("db.GetLastAddressIndex error: %w", err)
 	}
 	feeXPub, err := vdb.GetFeeXPub()
 	if err != nil {
-		return fmt.Errorf("db.GetFeeXPub error: %v", err)
+		return fmt.Errorf("db.GetFeeXPub error: %w", err)
 	}
 	addrGen, err = newAddressGenerator(feeXPub, config.NetParams, idx)
 	if err != nil {
-		return fmt.Errorf("failed to initialize fee address generator: %v", err)
+		return fmt.Errorf("failed to initialize fee address generator: %w", err)
 	}
 
 	// Get the secret key used to initialize the cookie store.
 	cookieSecret, err := vdb.GetCookieSecret()
 	if err != nil {
-		return fmt.Errorf("db.GetCookieSecret error: %v", err)
+		return fmt.Errorf("db.GetCookieSecret error: %w", err)
 	}
 
 	// Create TCP listener.
@@ -130,7 +131,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 		// If the server dies for any reason other than ErrServerClosed (from
 		// graceful server.Shutdown), log the error and request vspd be
 		// shutdown.
-		if err != nil && err != http.ErrServerClosed {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Errorf("Unexpected webserver error: %v", err)
 			requestShutdownChan <- struct{}{}
 		}

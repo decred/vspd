@@ -32,14 +32,14 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 		// Serialize record for storage in the database.
 		recordBytes, err := json.Marshal(record)
 		if err != nil {
-			return fmt.Errorf("could not marshal vote change record: %v", err)
+			return fmt.Errorf("could not marshal vote change record: %w", err)
 		}
 
 		// Create or get a bucket for this ticket.
 		bkt, err := tx.Bucket(vspBktK).Bucket(voteChangeBktK).
 			CreateBucketIfNotExists([]byte(ticketHash))
 		if err != nil {
-			return fmt.Errorf("failed to create vote change bucket (ticketHash=%s): %v",
+			return fmt.Errorf("failed to create vote change bucket (ticketHash=%s): %w",
 				ticketHash, err)
 		}
 
@@ -60,7 +60,7 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("error iterating over vote change bucket: %v", err)
+			return fmt.Errorf("error iterating over vote change bucket: %w", err)
 		}
 
 		// If bucket is at (or over) the limit of max allowed records, remove
@@ -70,7 +70,7 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 			binary.LittleEndian.PutUint32(keyBytes, lowest)
 			err = bkt.Delete(keyBytes)
 			if err != nil {
-				return fmt.Errorf("failed to delete old vote change record: %v", err)
+				return fmt.Errorf("failed to delete old vote change record: %w", err)
 			}
 		}
 
@@ -87,7 +87,7 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 		// Insert record.
 		err = bkt.Put(keyBytes, recordBytes)
 		if err != nil {
-			return fmt.Errorf("could not store vote change record: %v", err)
+			return fmt.Errorf("could not store vote change record: %w", err)
 		}
 
 		return nil
@@ -112,7 +112,7 @@ func (vdb *VspDatabase) GetVoteChanges(ticketHash string) (map[uint32]VoteChange
 			var record VoteChangeRecord
 			err := json.Unmarshal(v, &record)
 			if err != nil {
-				return fmt.Errorf("could not unmarshal vote change record: %v", err)
+				return fmt.Errorf("could not unmarshal vote change record: %w", err)
 			}
 
 			records[binary.LittleEndian.Uint32(k)] = record
@@ -120,7 +120,7 @@ func (vdb *VspDatabase) GetVoteChanges(ticketHash string) (map[uint32]VoteChange
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("error iterating over vote change bucket: %v", err)
+			return fmt.Errorf("error iterating over vote change bucket: %w", err)
 		}
 
 		return nil

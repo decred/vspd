@@ -183,12 +183,12 @@ func loadConfig() (*config, error) {
 	preParser := flags.NewParser(&preCfg, flags.HelpFlag)
 	_, err := preParser.Parse()
 	if err != nil {
-		if e, ok := err.(*flags.Error); ok && e.Type != flags.ErrHelp {
-			return nil, err
-		} else if ok && e.Type == flags.ErrHelp {
+		var e *flags.Error
+		if errors.As(err, &e) && e.Type == flags.ErrHelp {
 			fmt.Fprintln(os.Stdout, err)
 			os.Exit(0)
 		}
+		return nil, err
 	}
 
 	appName := filepath.Base(os.Args[0])
@@ -214,7 +214,7 @@ func loadConfig() (*config, error) {
 	// Create the home directory if it doesn't already exist.
 	err = os.MkdirAll(cfg.HomeDir, 0700)
 	if err != nil {
-		err := fmt.Errorf("failed to create home directory: %v", err)
+		err := fmt.Errorf("failed to create home directory: %w", err)
 		fmt.Fprintln(os.Stderr, err)
 		return nil, err
 	}
@@ -241,13 +241,14 @@ func loadConfig() (*config, error) {
 
 	err = flags.NewIniParser(parser).ParseFile(preCfg.ConfigFile)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing config file: %v", err)
+		return nil, fmt.Errorf("error parsing config file: %w", err)
 	}
 
 	// Parse command line options again to ensure they take precedence.
 	_, err = parser.Parse()
 	if err != nil {
-		if e, ok := err.(*flags.Error); !ok || e.Type != flags.ErrHelp {
+		var e *flags.Error
+		if !errors.As(err, &e) || e.Type != flags.ErrHelp {
 			fmt.Fprintln(os.Stderr, usageMessage)
 		}
 		return nil, err
@@ -304,7 +305,7 @@ func loadConfig() (*config, error) {
 	cfg.DcrdCert = cleanAndExpandPath(cfg.DcrdCert)
 	cfg.dcrdCert, err = ioutil.ReadFile(cfg.DcrdCert)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read dcrd cert file: %v", err)
+		return nil, fmt.Errorf("failed to read dcrd cert file: %w", err)
 	}
 
 	// Ensure the dcrwallet RPC username is set.
@@ -356,7 +357,7 @@ func loadConfig() (*config, error) {
 		certs[i] = cleanAndExpandPath(certs[i])
 		cfg.walletCerts[i], err = ioutil.ReadFile(certs[i])
 		if err != nil {
-			return nil, fmt.Errorf("failed to read dcrwallet cert file: %v", err)
+			return nil, fmt.Errorf("failed to read dcrwallet cert file: %w", err)
 		}
 	}
 
@@ -376,7 +377,7 @@ func loadConfig() (*config, error) {
 	dataDir := filepath.Join(cfg.HomeDir, "data", cfg.netParams.Name)
 	err = os.MkdirAll(dataDir, 0700)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create data directory: %v", err)
+		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
 	// Initialize loggers and log rotation.
@@ -398,13 +399,13 @@ func loadConfig() (*config, error) {
 		// Ensure provided value is a valid key for the selected network.
 		_, err = hdkeychain.NewKeyFromString(cfg.FeeXPub, cfg.netParams.Params)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse feexpub: %v", err)
+			return nil, fmt.Errorf("failed to parse feexpub: %w", err)
 		}
 
 		// Create new database.
 		err = database.CreateNew(cfg.dbPath, cfg.FeeXPub)
 		if err != nil {
-			return nil, fmt.Errorf("error creating db file %s: %v", cfg.dbPath, err)
+			return nil, fmt.Errorf("error creating db file %s: %w", cfg.dbPath, err)
 		}
 
 		// Exit with success
