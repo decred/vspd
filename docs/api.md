@@ -4,7 +4,7 @@
 
 - Success responses use HTTP status 200 and a JSON encoded body.
 
-- Error responses use HTTP status 500 to indicate a server error or 400 to
+- Error responses use HTTP status 500 to indicate a server error or 4XX to
   indiciate a client error, and will include a JSON body describing the error.
   For example:
 

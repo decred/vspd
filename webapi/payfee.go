@@ -5,6 +5,7 @@
 package webapi
 
 import (
+	"strings"
 	"time"
 
 	"github.com/decred/dcrd/blockchain/v3"
@@ -246,7 +247,12 @@ findAddress:
 					funcName, ticket.Hash, err)
 			}
 
-			sendErrorWithMsg("could not broadcast fee transaction", errCannotBroadcastFee, c)
+			if strings.Contains(err.Error(),
+				"references outputs of unknown or fully-spent transaction") {
+				sendError(errCannotBroadcastFeeUnknownOutputs, c)
+			} else {
+				sendError(errCannotBroadcastFee, c)
+			}
 			return
 		}
 
