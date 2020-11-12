@@ -101,14 +101,14 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	// Validate VoteChoices.
-	voteChoices := request.VoteChoices
-	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
+	// Validate VoteChoices. Just log a warning if vote choices are not valid
+	// for the current vote version - the ticket should still be registered.
+	validVoteChoices := true
+	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), request.VoteChoices)
 	if err != nil {
+		validVoteChoices = false
 		log.Warnf("%s: Invalid vote choices (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
-		sendErrorWithMsg(err.Error(), errInvalidVoteChoices, c)
-		return
 	}
 
 	// Validate FeeTx.
@@ -219,8 +219,11 @@ findAddress:
 	ticket.VotingWIF = votingWIF.String()
 	ticket.FeeTxHex = request.FeeTx
 	ticket.FeeTxHash = feeTx.TxHash().String()
-	ticket.VoteChoices = voteChoices
 	ticket.FeeTxStatus = database.FeeReceieved
+
+	if validVoteChoices {
+		ticket.VoteChoices = request.VoteChoices
+	}
 
 	err = db.UpdateTicket(ticket)
 	if err != nil {
