@@ -27,6 +27,7 @@ type ticketHashRequest struct {
 type ticketRequest struct {
 	TicketHex  string `json:"tickethex" binding:"required"`
 	TicketHash string `json:"tickethash" binding:"required"`
+	ParentHex  string `json:"parenthex"`
 }
 
 // withSession middleware adds a gorilla session to the request context for
@@ -163,6 +164,45 @@ func broadcastTicket() gin.HandlerFunc {
 
 		dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
 
+		if request.ParentHex != "" {
+			parentTx, err := decodeTransaction(request.ParentHex)
+			if err != nil {
+				log.Errorf("%s: Failed to decode parent hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
+				sendErrorWithMsg("cannot decode parent hex", errBadRequest, c)
+				return
+			}
+			parentHash := parentTx.TxHash()
+
+			_, err = dcrdClient.GetRawTransaction(parentHash.String())
+			if err == nil {
+				// No error means dcrd already knows the parent, we are done here.
+				goto processTicket
+			}
+
+			var found bool
+			for _, txIn := range msgTx.TxIn {
+				if !txIn.PreviousOutPoint.Hash.IsEqual(&parentHash) {
+					continue
+				}
+				found = true
+				break
+			}
+			if !found {
+				log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
+				sendErrorWithMsg("invalid ticket parent", errBadRequest, c)
+				return
+			}
+			log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
+			err = dcrdClient.SendRawTransaction(request.ParentHex)
+			if err != nil {
+				log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
+					funcName, request.TicketHash, err)
+				sendError(errCannotBroadcastTicket, c)
+				return
+			}
+		}
+
+	processTicket:
 		// Use GetRawTransaction to check if local dcrd already knows this
 		// ticket.
 		_, err = dcrdClient.GetRawTransaction(request.TicketHash)

@@ -79,7 +79,8 @@ for the specified ticket.
     {
         "timestamp":1590509066,
         "tickethash":"1b9f5dc3b4872c47f66b148b0633647458123d72a0f0623a90890cc51a668737",
-        "tickethex":"0100000001a8...bfa6e4bf9c5ec1"
+        "tickethex":"0100000001a8...bfa6e4bf9c5ec1",
+        "parenthex":"0100000022a7...580771a3064710"
     }
 
     ```
