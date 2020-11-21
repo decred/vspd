@@ -201,6 +201,9 @@ func (c *WalletRPC) TicketInfo(startHeight int64) (map[string]*wallettypes.Ticke
 		return nil, err
 	}
 
+	log.Debugf("TicketInfo RPC returned %d tickets (wallet=%s, startHeight=%d)",
+		len(result), c.String(), startHeight)
+
 	// For easier access later on, store the tickets in a map using their hash
 	// as the key.
 	tickets := make(map[string]*wallettypes.TicketInfoResult, len(result))
