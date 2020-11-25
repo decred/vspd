@@ -503,7 +503,7 @@ func checkWalletConsistency() {
 			walletTicket, exists := walletTickets[dbTicket.Hash]
 			if !exists {
 				log.Warnf("%s: Ticket missing from voting wallet (wallet=%s, ticketHash=%s)",
-					funcName, walletClient.String, dbTicket.Hash)
+					funcName, walletClient.String(), dbTicket.Hash)
 				continue
 			}
 
