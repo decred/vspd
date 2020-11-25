@@ -57,7 +57,7 @@ func (m *addressGenerator) NextAddress() (string, uint32, error) {
 		m.lastUsedIndex++
 		key, err = m.external.Child(m.lastUsedIndex)
 		if err != nil {
-			if err == hdkeychain.ErrInvalidChild {
+			if errors.Is(err, hdkeychain.ErrInvalidChild) {
 				invalidChildren++
 				log.Warnf("Generating address for index %d failed: %v", m.lastUsedIndex, err)
 				// If this happens 3 times, something is seriously wrong, so

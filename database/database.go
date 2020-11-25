@@ -72,13 +72,13 @@ func writeHotBackupFile(db *bolt.DB) error {
 		return tx.CopyFile(tempPath, backupFileMode)
 	})
 	if err != nil {
-		return fmt.Errorf("tx.CopyFile: %v", err)
+		return fmt.Errorf("tx.CopyFile: %w", err)
 	}
 
 	// Rename temporary file to actual backup file.
 	err = os.Rename(tempPath, backupPath)
 	if err != nil {
-		return fmt.Errorf("os.Rename: %v", err)
+		return fmt.Errorf("os.Rename: %w", err)
 	}
 
 	log.Tracef("Database backup written to %s", backupPath)
@@ -95,7 +95,7 @@ func CreateNew(dbFile, feeXPub string) error {
 
 	db, err := bolt.Open(dbFile, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
-		return fmt.Errorf("unable to open db file: %v", err)
+		return fmt.Errorf("unable to open db file: %w", err)
 	}
 
 	defer db.Close()
@@ -105,7 +105,7 @@ func CreateNew(dbFile, feeXPub string) error {
 		// Create parent bucket.
 		vspBkt, err := tx.CreateBucket(vspBktK)
 		if err != nil {
-			return fmt.Errorf("failed to create %s bucket: %v", string(vspBktK), err)
+			return fmt.Errorf("failed to create %s bucket: %w", string(vspBktK), err)
 		}
 
 		// Initialize with database version 1.
@@ -121,7 +121,7 @@ func CreateNew(dbFile, feeXPub string) error {
 		// Generate ed25519 key
 		_, signKey, err := ed25519.GenerateKey(rand.Reader)
 		if err != nil {
-			return fmt.Errorf("failed to generate signing key: %v", err)
+			return fmt.Errorf("failed to generate signing key: %w", err)
 		}
 		err = vspBkt.Put(privateKeyK, signKey.Seed())
 		if err != nil {
@@ -150,13 +150,13 @@ func CreateNew(dbFile, feeXPub string) error {
 		// Create ticket bucket.
 		_, err = vspBkt.CreateBucket(ticketBktK)
 		if err != nil {
-			return fmt.Errorf("failed to create %s bucket: %v", string(ticketBktK), err)
+			return fmt.Errorf("failed to create %s bucket: %w", string(ticketBktK), err)
 		}
 
 		// Create vote change bucket.
 		_, err = vspBkt.CreateBucket(voteChangeBktK)
 		if err != nil {
-			return fmt.Errorf("failed to create %s bucket: %v", string(voteChangeBktK), err)
+			return fmt.Errorf("failed to create %s bucket: %w", string(voteChangeBktK), err)
 		}
 
 		return nil
@@ -185,7 +185,7 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 
 	db, err := bolt.Open(dbFile, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
-		return nil, fmt.Errorf("unable to open db file: %v", err)
+		return nil, fmt.Errorf("unable to open db file: %w", err)
 	}
 
 	log.Debugf("Opened database file %s", dbFile)

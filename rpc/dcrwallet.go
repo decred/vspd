@@ -164,12 +164,12 @@ func (c *WalletRPC) AddTicketForVoting(votingWIF, blockHash, txHex string) error
 	scanFrom := 0
 	err := c.Call(c.ctx, "importprivkey", nil, votingWIF, label, rescan, scanFrom)
 	if err != nil {
-		return fmt.Errorf("importprivkey failed: %v", err)
+		return fmt.Errorf("importprivkey failed: %w", err)
 	}
 
 	err = c.Call(c.ctx, "addtransaction", nil, blockHash, txHex)
 	if err != nil {
-		return fmt.Errorf("addtransaction failed: %v", err)
+		return fmt.Errorf("addtransaction failed: %w", err)
 	}
 
 	return nil

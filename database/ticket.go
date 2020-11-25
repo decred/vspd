@@ -99,7 +99,7 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 			var t Ticket
 			err := json.Unmarshal(v, &t)
 			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %v", err)
+				return fmt.Errorf("could not unmarshal ticket: %w", err)
 			}
 
 			if t.FeeAddress == ticket.FeeAddress {
@@ -118,7 +118,7 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 
 		ticketBytes, err := json.Marshal(ticket)
 		if err != nil {
-			return fmt.Errorf("could not marshal ticket: %v", err)
+			return fmt.Errorf("could not marshal ticket: %w", err)
 		}
 
 		return ticketBkt.Put(hashBytes, ticketBytes)
@@ -134,7 +134,7 @@ func (vdb *VspDatabase) DeleteTicket(ticket Ticket) error {
 
 		err := ticketBkt.Delete([]byte(ticket.Hash))
 		if err != nil {
-			return fmt.Errorf("could not delete ticket: %v", err)
+			return fmt.Errorf("could not delete ticket: %w", err)
 		}
 
 		return nil
@@ -156,7 +156,7 @@ func (vdb *VspDatabase) UpdateTicket(ticket Ticket) error {
 
 		ticketBytes, err := json.Marshal(ticket)
 		if err != nil {
-			return fmt.Errorf("could not marshal ticket: %v", err)
+			return fmt.Errorf("could not marshal ticket: %w", err)
 		}
 
 		return ticketBkt.Put(hashBytes, ticketBytes)
@@ -179,7 +179,7 @@ func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, bool, error)
 
 		err := json.Unmarshal(ticketBytes, &ticket)
 		if err != nil {
-			return fmt.Errorf("could not unmarshal ticket: %v", err)
+			return fmt.Errorf("could not unmarshal ticket: %w", err)
 		}
 
 		found = true
@@ -202,7 +202,7 @@ func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 			var ticket Ticket
 			err := json.Unmarshal(v, &ticket)
 			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %v", err)
+				return fmt.Errorf("could not unmarshal ticket: %w", err)
 			}
 
 			if ticket.FeeTxStatus == FeeConfirmed {
@@ -276,7 +276,7 @@ func (vdb *VspDatabase) filterTickets(filter func(Ticket) bool) ([]Ticket, error
 			var ticket Ticket
 			err := json.Unmarshal(v, &ticket)
 			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %v", err)
+				return fmt.Errorf("could not unmarshal ticket: %w", err)
 			}
 
 			if filter(ticket) {
