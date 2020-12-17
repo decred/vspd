@@ -23,12 +23,12 @@ it to derive a new addresses for receiving fee payments.
 ## Voting Servers
 
 A vspd deployment should have a minimum of three remote voting wallets. The
-servers hosting these wallets should ideally be in geographically seperate
+servers hosting these wallets should ideally be in geographically separate
 locations.
 
 Each voting server should be running an instance of dcrd and dcrwallet. The
 wallet on these servers should be completely empty and not used for any other
-purpose. dcrwallet should be permenantly unlocked and have voting enabled
+purpose. dcrwallet should be permanently unlocked and have voting enabled
 (`--enablevoting`). dcrwallet is also required to have the manual tickets
 option (`--manualtickets`) enabled which disables dcrwallet adding tickets
 arriving over the network.  Without this option set, a user could reuse
