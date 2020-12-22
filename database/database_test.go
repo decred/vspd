@@ -6,6 +6,7 @@ package database
 
 import (
 	"context"
+	"crypto/ed25519"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -16,11 +17,15 @@ import (
 	"time"
 )
 
-var (
+const (
 	testDb               = "test.db"
 	backupDb             = "test.db-backup"
-	db                   *VspDatabase
+	feeXPub              = "feexpub"
 	maxVoteChangeRecords = 3
+)
+
+var (
+	db *VspDatabase
 )
 
 // TestDatabase runs all database tests.
@@ -31,6 +36,7 @@ func TestDatabase(t *testing.T) {
 
 	// All sub-tests to run.
 	tests := map[string]func(*testing.T){
+		"testCreateNew":         testCreateNew,
 		"testInsertNewTicket":   testInsertNewTicket,
 		"testGetTicketByHash":   testGetTicketByHash,
 		"testUpdateTicket":      testUpdateTicket,
@@ -47,7 +53,7 @@ func TestDatabase(t *testing.T) {
 		var err error
 		var wg sync.WaitGroup
 		ctx, cancel := context.WithCancel(context.TODO())
-		err = CreateNew(testDb, "feexpub")
+		err = CreateNew(testDb, feeXPub)
 		if err != nil {
 			t.Fatalf("error creating test database: %v", err)
 		}
@@ -65,6 +71,41 @@ func TestDatabase(t *testing.T) {
 
 		os.Remove(testDb)
 		os.Remove(backupDb)
+	}
+}
+
+func testCreateNew(t *testing.T) {
+	// A newly created DB should contain a signing keypair.
+	priv, pub, err := db.KeyPair()
+	if err != nil {
+		t.Fatalf("error getting keypair: %v", err)
+	}
+
+	// Ensure keypair can be used for signing/verifying messages.
+	msg := []byte("msg")
+	sig := ed25519.Sign(priv, msg)
+	if !ed25519.Verify(pub, msg, sig) {
+		t.Fatalf("keypair from database could not be used to sign/verify a message")
+	}
+
+	// A newly created DB should have a cookie secret.
+	secret, err := db.GetCookieSecret()
+	if err != nil {
+		t.Fatalf("error getting cookie secret: %v", err)
+	}
+
+	if len(secret) != 32 {
+		t.Fatalf("expected a 32 byte cookie secret, got %d bytes", len(secret))
+	}
+
+	// A newly created DB should store the fee xpub it was initialized with.
+	retrievedXPub, err := db.GetFeeXPub()
+	if err != nil {
+		t.Fatalf("error getting fee xpub: %v", err)
+	}
+
+	if retrievedXPub != feeXPub {
+		t.Fatalf("expected fee xpub %v, got %v", feeXPub, retrievedXPub)
 	}
 }
 
