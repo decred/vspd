@@ -42,6 +42,7 @@ func TestDatabase(t *testing.T) {
 		"testUpdateTicket":      testUpdateTicket,
 		"testTicketFeeExpired":  testTicketFeeExpired,
 		"testFilterTickets":     testFilterTickets,
+		"testCountTickets":      testCountTickets,
 		"testAddressIndex":      testAddressIndex,
 		"testDeleteTicket":      testDeleteTicket,
 		"testVoteChangeRecords": testVoteChangeRecords,
@@ -159,5 +160,3 @@ func testHTTPBackup(t *testing.T) {
 			cLength, len(body))
 	}
 }
-
-// TODO: Add tests for CountTickets.
