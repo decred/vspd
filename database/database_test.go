@@ -6,7 +6,11 @@ package database
 
 import (
 	"context"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -35,6 +39,7 @@ func TestDatabase(t *testing.T) {
 		"testAddressIndex":      testAddressIndex,
 		"testDeleteTicket":      testDeleteTicket,
 		"testVoteChangeRecords": testVoteChangeRecords,
+		"testHTTPBackup":        testHTTPBackup,
 	}
 
 	for testName, test := range tests {
@@ -60,6 +65,57 @@ func TestDatabase(t *testing.T) {
 
 		os.Remove(testDb)
 		os.Remove(backupDb)
+	}
+}
+
+func testHTTPBackup(t *testing.T) {
+	// Capture the HTTP response written by the backup func.
+	rr := httptest.NewRecorder()
+	err := db.BackupDB(rr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Check the HTTP status is OK.
+	if status := rr.Code; status != http.StatusOK {
+		t.Fatalf("wrong HTTP status code: expected %v, got %v",
+			http.StatusOK, status)
+	}
+
+	// Check HTTP headers.
+	header := "Content-Type"
+	expected := "application/octet-stream"
+	if actual := rr.Header().Get(header); actual != expected {
+		t.Errorf("wrong %s header: expected %s, got %s",
+			header, expected, actual)
+	}
+
+	header = "Content-Disposition"
+	expected = `attachment; filename="vspd.db"`
+	if actual := rr.Header().Get(header); actual != expected {
+		t.Errorf("wrong %s header: expected %s, got %s",
+			header, expected, actual)
+	}
+
+	header = "Content-Length"
+	cLength, err := strconv.Atoi(rr.Header().Get(header))
+	if err != nil {
+		t.Fatalf("could not convert %s to integer: %v", header, err)
+	}
+
+	if cLength <= 0 {
+		t.Fatalf("expected a %s greater than zero, got %d", header, cLength)
+	}
+
+	// Check reported length matches actual.
+	body, err := ioutil.ReadAll(rr.Result().Body)
+	if err != nil {
+		t.Fatalf("could not read http response body: %v", err)
+	}
+
+	if len(body) != cLength {
+		t.Fatalf("expected reported content-length to match actual body length. %v != %v",
+			cLength, len(body))
 	}
 }
 
