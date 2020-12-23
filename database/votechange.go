@@ -27,13 +27,7 @@ type VoteChangeRecord struct {
 // one which is currently stored. Records are stored using a serially increasing
 // integer as the key.
 func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecord) error {
-
 	return vdb.db.Update(func(tx *bolt.Tx) error {
-		// Serialize record for storage in the database.
-		recordBytes, err := json.Marshal(record)
-		if err != nil {
-			return fmt.Errorf("could not marshal vote change record: %w", err)
-		}
 
 		// Create or get a bucket for this ticket.
 		bkt, err := tx.Bucket(vspBktK).Bucket(voteChangeBktK).
@@ -85,6 +79,10 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 		binary.LittleEndian.PutUint32(keyBytes, newKey)
 
 		// Insert record.
+		recordBytes, err := json.Marshal(record)
+		if err != nil {
+			return fmt.Errorf("could not marshal vote change record: %w", err)
+		}
 		err = bkt.Put(keyBytes, recordBytes)
 		if err != nil {
 			return fmt.Errorf("could not store vote change record: %w", err)
