@@ -11,6 +11,11 @@ familiarity with Decred software and a level of sysadmin experience.
 Compiled binaries are not provided for vspd - VSP operators are expected to
 build vspd from source.
 
+When deploying vspd to production, always build all binaries from release
+branches.
+Neither vspd nor its dependencies (dcrd/dcrwallet) should be built from master
+when handling mainnet tickets.
+
 ### Fee wallet
 
 A wallet should be created to collect VSP fees. Ideally this would be a cold
