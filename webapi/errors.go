@@ -111,7 +111,7 @@ func (e apiError) defaultMessage() string {
 	case errCannotBroadcastFeeUnknownOutputs:
 		return "fee transaction could not be broadcast due to unknown outputs"
 	case errInvalidTimestamp:
-		return "request timestamp is not newer than all previous requests"
+		return "old or reused timestamp"
 	default:
 		return "unknown error"
 	}
