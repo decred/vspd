@@ -236,3 +236,79 @@ func testFilterTickets(t *testing.T) {
 		t.Fatal("expected to find 0 tickets")
 	}
 }
+
+func testCountTickets(t *testing.T) {
+	count := func(test string, expectedVoting, expectedVoted, expectedRevoked int64) {
+		voting, voted, revoked, err := db.CountTickets()
+		if err != nil {
+			t.Fatalf("error counting tickets: %v", err)
+		}
+
+		if voting != expectedVoting {
+			t.Fatalf("test %s: expected %d voting tickets, got %d",
+				test, expectedVoting, voting)
+		}
+		if voted != expectedVoted {
+			t.Fatalf("test %s: expected %d voted tickets, got %d",
+				test, expectedVoted, voted)
+		}
+		if revoked != expectedRevoked {
+			t.Fatalf("test %s: expected %d revoked tickets, got %d",
+				test, expectedRevoked, revoked)
+		}
+	}
+
+	// Initial counts should all be zero.
+	count("empty db", 0, 0, 0)
+
+	// Insert a ticket with non-confirmed fee into the database.
+	// This should not be counted.
+	ticket := exampleTicket()
+	ticket.FeeTxStatus = FeeReceieved
+	err := db.InsertNewTicket(ticket)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	count("unconfirmed fee", 0, 0, 0)
+
+	// Insert a ticket with confirmed fee into the database.
+	// This should be counted.
+	ticket.Hash = ticket.Hash + "1"
+	ticket.FeeAddress = ticket.FeeAddress + "1"
+	ticket.FeeAddressIndex = ticket.FeeAddressIndex + 1
+	ticket.FeeTxStatus = FeeConfirmed
+	err = db.InsertNewTicket(ticket)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	count("confirmed fee", 1, 0, 0)
+
+	// Insert a voted ticket into the database.
+	// This should be counted.
+	ticket.Hash = ticket.Hash + "1"
+	ticket.FeeAddress = ticket.FeeAddress + "1"
+	ticket.FeeAddressIndex = ticket.FeeAddressIndex + 1
+	ticket.FeeTxStatus = FeeConfirmed
+	ticket.Outcome = Voted
+	err = db.InsertNewTicket(ticket)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	count("voted", 1, 1, 0)
+
+	// Insert a revoked ticket into the database.
+	ticket.Hash = ticket.Hash + "1"
+	ticket.FeeAddress = ticket.FeeAddress + "1"
+	ticket.FeeAddressIndex = ticket.FeeAddressIndex + 1
+	ticket.FeeTxStatus = FeeConfirmed
+	ticket.Outcome = Revoked
+	err = db.InsertNewTicket(ticket)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	count("revoked", 1, 1, 1)
+}
