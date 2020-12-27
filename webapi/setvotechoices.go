@@ -5,6 +5,7 @@
 package webapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -13,6 +14,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
+
+type timestampRequest struct {
+	Timestamp int64 `json:"timestamp" binding:"required"`
+}
 
 // setVoteChoices is the handler for "POST /api/v3/setvotechoices".
 func setVoteChoices(c *gin.Context) {
@@ -60,8 +65,36 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
+	// Return an error if this request has a timestamp older than any previous
+	// vote change requests. This is to prevent requests from being replayed.
+	previousChanges, err := db.GetVoteChanges(ticket.Hash)
+	if err != nil {
+		log.Errorf("%s: db.GetVoteChanges error (ticketHash=%s): %v",
+			funcName, ticket.Hash, err)
+		sendError(errInternalError, c)
+		return
+	}
+
+	for _, change := range previousChanges {
+		var prevReq timestampRequest
+		err := json.Unmarshal([]byte(change.Request), &prevReq)
+		if err != nil {
+			log.Errorf("%s: Could not unmarshal vote change record (ticketHash=%s): %v",
+				funcName, ticket.Hash, err)
+			sendError(errInternalError, c)
+			return
+		}
+
+		if request.Timestamp <= prevReq.Timestamp {
+			log.Warnf("%s: Request uses invalid timestamp (ticketHash=%s): %v",
+				funcName, ticket.Hash, err)
+			sendError(errInvalidTimestamp, c)
+			return
+		}
+	}
+
 	voteChoices := request.VoteChoices
-	err := isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
+	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
 	if err != nil {
 		log.Warnf("%s: Invalid vote choices (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
@@ -97,8 +130,6 @@ func setVoteChoices(c *gin.Context) {
 	}
 
 	log.Debugf("%s: Vote choices updated (ticketHash=%s)", funcName, ticket.Hash)
-
-	// TODO: DB - error if given timestamp is older than any previous requests
 
 	// Send success response to client.
 	resp, respSig := sendJSONResponse(setVoteChoicesResponse{

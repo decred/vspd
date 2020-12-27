@@ -26,6 +26,7 @@ const (
 	errCannotBroadcastTicket
 	errCannotBroadcastFee
 	errCannotBroadcastFeeUnknownOutputs
+	errInvalidTimestamp
 )
 
 // httpStatus maps application error codes to HTTP status codes.
@@ -65,6 +66,8 @@ func (e apiError) httpStatus() int {
 		return http.StatusInternalServerError
 	case errCannotBroadcastFeeUnknownOutputs:
 		return http.StatusPreconditionRequired
+	case errInvalidTimestamp:
+		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
 	}
@@ -107,6 +110,8 @@ func (e apiError) defaultMessage() string {
 		return "fee transaction could not be broadcast"
 	case errCannotBroadcastFeeUnknownOutputs:
 		return "fee transaction could not be broadcast due to unknown outputs"
+	case errInvalidTimestamp:
+		return "old or reused timestamp"
 	default:
 		return "unknown error"
 	}
