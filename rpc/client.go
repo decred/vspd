@@ -87,8 +87,8 @@ func (c *client) Close() {
 // boolean indicates whether this connection is new (true), or if it is an
 // existing connection which is being reused (false).
 func (c *client) dial(ctx context.Context) (Caller, bool, error) {
-	defer c.mu.Unlock()
 	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	if c.client != nil {
 		select {
