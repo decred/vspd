@@ -27,7 +27,7 @@ type ticketHashRequest struct {
 type ticketRequest struct {
 	TicketHex  string `json:"tickethex" binding:"required"`
 	TicketHash string `json:"tickethash" binding:"required"`
-	ParentHex  string `json:"parenthex"`
+	ParentHex  string `json:"parenthex" binding:"required"`
 }
 
 // withSession middleware adds a gorilla session to the request context for
@@ -112,9 +112,11 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 	}
 }
 
-// broadcastTicket will parse ticket hash and ticket hex from the request body,
-// and ensure the local dcrd instance can retrieve information about the ticket.
-// If no info can be found, the ticket hex will be broadcast.
+// broadcastTicket will ensure that the local dcrd instance is aware of the
+// provided ticket.
+// Ticket hash, ticket hex, and parent hex are parsed from the request body and
+// validated. They are broadcast to the network using SendRawTransaction if dcrd
+// is not aware of them.
 func broadcastTicket() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		const funcName = "broadcastTicket"
@@ -130,7 +132,7 @@ func broadcastTicket() gin.HandlerFunc {
 		c.Request.Body.Close()
 		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
 
-		// Parse request and ensure ticket hash and hex are included.
+		// Parse request to ensure ticket hash/hex and parent hex are included.
 		var request ticketRequest
 		if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 			log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
@@ -138,7 +140,7 @@ func broadcastTicket() gin.HandlerFunc {
 			return
 		}
 
-		// Ensure the provided hex is a valid ticket.
+		// Ensure the provided ticket hex is a valid ticket.
 		msgTx, err := decodeTransaction(request.TicketHex)
 		if err != nil {
 			log.Errorf("%s: Failed to decode ticket hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
@@ -162,23 +164,27 @@ func broadcastTicket() gin.HandlerFunc {
 			return
 		}
 
+		// Ensure the provided parent hex is a valid tx.
+		parentTx, err := decodeTransaction(request.ParentHex)
+		if err != nil {
+			log.Errorf("%s: Failed to decode parent hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
+			sendErrorWithMsg("cannot decode parent hex", errBadRequest, c)
+			return
+		}
+		parentHash := parentTx.TxHash()
+
+		// Check if local dcrd already knows the parent tx.
 		dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
+		_, err = dcrdClient.GetRawTransaction(parentHash.String())
+		var e *wsrpc.Error
+		if err == nil {
+			// No error means dcrd already knows the parent tx, nothing to do.
+		} else if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
+			// ErrNoTxInfo means local dcrd is not aware of the parent. We have
+			// the hex, so we can broadcast it here.
 
-		if request.ParentHex != "" {
-			parentTx, err := decodeTransaction(request.ParentHex)
-			if err != nil {
-				log.Errorf("%s: Failed to decode parent hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
-				sendErrorWithMsg("cannot decode parent hex", errBadRequest, c)
-				return
-			}
-			parentHash := parentTx.TxHash()
-
-			_, err = dcrdClient.GetRawTransaction(parentHash.String())
-			if err == nil {
-				// No error means dcrd already knows the parent, we are done here.
-				goto processTicket
-			}
-
+			// Before broadcasting, check that the provided parent hex is
+			// actually the parent of the ticket.
 			var found bool
 			for _, txIn := range msgTx.TxIn {
 				if !txIn.PreviousOutPoint.Hash.IsEqual(&parentHash) {
@@ -187,11 +193,13 @@ func broadcastTicket() gin.HandlerFunc {
 				found = true
 				break
 			}
+
 			if !found {
 				log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
 				sendErrorWithMsg("invalid ticket parent", errBadRequest, c)
 				return
 			}
+
 			log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
 			err = dcrdClient.SendRawTransaction(request.ParentHex)
 			if err != nil {
@@ -200,11 +208,15 @@ func broadcastTicket() gin.HandlerFunc {
 				sendError(errCannotBroadcastTicket, c)
 				return
 			}
+
+		} else {
+			log.Errorf("%s: dcrd.GetRawTransaction for ticket parent failed (ticketHash=%s): %v",
+				funcName, request.TicketHash, err)
+			sendError(errInternalError, c)
+			return
 		}
 
-	processTicket:
-		// Use GetRawTransaction to check if local dcrd already knows this
-		// ticket.
+		// Check if local dcrd already knows the ticket.
 		_, err = dcrdClient.GetRawTransaction(request.TicketHash)
 		if err == nil {
 			// No error means dcrd already knows the ticket, we are done here.
@@ -213,7 +225,6 @@ func broadcastTicket() gin.HandlerFunc {
 
 		// ErrNoTxInfo means local dcrd is not aware of the ticket. We have the
 		// hex, so we can broadcast it here.
-		var e *wsrpc.Error
 		if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
 			log.Debugf("%s: Broadcasting ticket (ticketHash=%s)", funcName, request.TicketHash)
 			err = dcrdClient.SendRawTransaction(request.TicketHex)
