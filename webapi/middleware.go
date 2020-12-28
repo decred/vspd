@@ -20,16 +20,6 @@ import (
 	"github.com/jrick/wsrpc/v2"
 )
 
-type ticketHashRequest struct {
-	TicketHash string `json:"tickethash" binding:"required"`
-}
-
-type ticketRequest struct {
-	TicketHex  string `json:"tickethex" binding:"required"`
-	TicketHash string `json:"tickethash" binding:"required"`
-	ParentHex  string `json:"parenthex" binding:"required"`
-}
-
 // withSession middleware adds a gorilla session to the request context for
 // downstream handlers to make use of. Sessions are used by admin pages to
 // maintain authentication status.
@@ -133,7 +123,11 @@ func broadcastTicket() gin.HandlerFunc {
 		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
 
 		// Parse request to ensure ticket hash/hex and parent hex are included.
-		var request ticketRequest
+		var request struct {
+			TicketHex  string `json:"tickethex" binding:"required"`
+			TicketHash string `json:"tickethash" binding:"required"`
+			ParentHex  string `json:"parenthex" binding:"required"`
+		}
 		if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 			log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg(err.Error(), errBadRequest, c)
@@ -267,7 +261,9 @@ func vspAuth() gin.HandlerFunc {
 		c.Set("RequestBytes", reqBytes)
 
 		// Parse request and ensure there is a ticket hash included.
-		var request ticketHashRequest
+		var request struct {
+			TicketHash string `json:"tickethash" binding:"required"`
+		}
 		if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 			log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg(err.Error(), errBadRequest, c)
