@@ -31,7 +31,7 @@ VSP will add the ticket to a pool of always-online voting wallets.
   backups.
 
 - **Two-way accountability** - All vspd requests and responses are signed by
-  their sender, which enables both the client and the server to hold eachother
+  their sender, which enables both the client and the server to hold each other
   accountable in the case of misbehaviour. For more detail, and examples, read
   [two-way-accountability.md](./docs/two-way-accountability.md).
 
