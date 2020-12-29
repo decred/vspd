@@ -30,11 +30,9 @@ VSP will add the ticket to a pool of always-online voting wallets.
   stats. An admin page enables searching for tickets and downloading database
   backups.
 
-- **Two-way accountability** - All vspd requests must be signed with a private
-  key corresponding to the relevant ticket, and all vspd responses are signed
-  by with a private key known only by the server. This enables both the client
-  and the server to prove to outside observers if their counterparty is
-  misbehaving. For more detail, and examples, read
+- **Two-way accountability** - All vspd requests and responses are signed by
+  their sender, which enables both the client and the server to hold each other
+  accountable in the case of misbehaviour. For more detail, and examples, read
   [two-way-accountability.md](./docs/two-way-accountability.md).
 
 - **Dynamic fees** - Clients must request a new fee address and amount for every
