@@ -86,8 +86,9 @@ func setVoteChoices(c *gin.Context) {
 		}
 
 		if request.Timestamp <= prevReq.Timestamp {
-			log.Warnf("%s: Request uses invalid timestamp (ticketHash=%s): %v",
-				funcName, ticket.Hash, err)
+			log.Warnf("%s: Request uses invalid timestamp, %d is not greater "+
+				"than %d (ticketHash=%s)",
+				funcName, request.Timestamp, prevReq.Timestamp, ticket.Hash)
 			sendError(errInvalidTimestamp, c)
 			return
 		}
