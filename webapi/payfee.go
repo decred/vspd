@@ -276,7 +276,7 @@ findAddress:
 	// Send success response to client.
 	resp, respSig := sendJSONResponse(payFeeResponse{
 		Timestamp: time.Now().Unix(),
-		Request:   request,
+		Request:   reqBytes,
 	}, c)
 
 	// Store a record of the vote choice change.
