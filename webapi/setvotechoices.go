@@ -134,7 +134,7 @@ func setVoteChoices(c *gin.Context) {
 	// Send success response to client.
 	resp, respSig := sendJSONResponse(setVoteChoicesResponse{
 		Timestamp: time.Now().Unix(),
-		Request:   request,
+		Request:   reqBytes,
 	}, c)
 
 	// Store a record of the vote choice change.

@@ -36,7 +36,7 @@ func ticketStatus(c *gin.Context) {
 
 	sendJSONResponse(ticketStatusResponse{
 		Timestamp:       time.Now().Unix(),
-		Request:         request,
+		Request:         reqBytes,
 		TicketConfirmed: ticket.Confirmed,
 		FeeTxStatus:     string(ticket.FeeTxStatus),
 		FeeTxHash:       ticket.FeeTxHash,

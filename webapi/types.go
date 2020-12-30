@@ -25,11 +25,11 @@ type feeAddressRequest struct {
 }
 
 type feeAddressResponse struct {
-	Timestamp  int64             `json:"timestamp"`
-	FeeAddress string            `json:"feeaddress"`
-	FeeAmount  int64             `json:"feeamount"`
-	Expiration int64             `json:"expiration"`
-	Request    feeAddressRequest `json:"request"`
+	Timestamp  int64  `json:"timestamp"`
+	FeeAddress string `json:"feeaddress"`
+	FeeAmount  int64  `json:"feeamount"`
+	Expiration int64  `json:"expiration"`
+	Request    []byte `json:"request"`
 }
 
 type payFeeRequest struct {
@@ -41,8 +41,8 @@ type payFeeRequest struct {
 }
 
 type payFeeResponse struct {
-	Timestamp int64         `json:"timestamp"`
-	Request   payFeeRequest `json:"request"`
+	Timestamp int64  `json:"timestamp"`
+	Request   []byte `json:"request"`
 }
 
 type setVoteChoicesRequest struct {
@@ -52,8 +52,8 @@ type setVoteChoicesRequest struct {
 }
 
 type setVoteChoicesResponse struct {
-	Timestamp int64                 `json:"timestamp"`
-	Request   setVoteChoicesRequest `json:"request"`
+	Timestamp int64  `json:"timestamp"`
+	Request   []byte `json:"request"`
 }
 
 type ticketStatusRequest struct {
@@ -61,10 +61,10 @@ type ticketStatusRequest struct {
 }
 
 type ticketStatusResponse struct {
-	Timestamp       int64               `json:"timestamp"`
-	TicketConfirmed bool                `json:"ticketconfirmed"`
-	FeeTxStatus     string              `json:"feetxstatus"`
-	FeeTxHash       string              `json:"feetxhash"`
-	VoteChoices     map[string]string   `json:"votechoices"`
-	Request         ticketStatusRequest `json:"request"`
+	Timestamp       int64             `json:"timestamp"`
+	TicketConfirmed bool              `json:"ticketconfirmed"`
+	FeeTxStatus     string            `json:"feetxstatus"`
+	FeeTxHash       string            `json:"feetxhash"`
+	VoteChoices     map[string]string `json:"votechoices"`
+	Request         []byte            `json:"request"`
 }

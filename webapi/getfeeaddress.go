@@ -147,7 +147,7 @@ func feeAddress(c *gin.Context) {
 		}
 		sendJSONResponse(feeAddressResponse{
 			Timestamp:  now.Unix(),
-			Request:    request,
+			Request:    reqBytes,
 			FeeAddress: ticket.FeeAddress,
 			FeeAmount:  ticket.FeeAmount,
 			Expiration: ticket.FeeExpiration,
@@ -200,7 +200,7 @@ func feeAddress(c *gin.Context) {
 
 	sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),
-		Request:    request,
+		Request:    reqBytes,
 		FeeAddress: newAddress,
 		FeeAmount:  int64(fee),
 		Expiration: expire,
