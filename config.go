@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -20,6 +20,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v3"
 	"github.com/decred/dcrd/hdkeychain/v3"
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/version"
 	flags "github.com/jessevdk/go-flags"
 )
 
@@ -61,9 +62,10 @@ type config struct {
 	Designation     string        `long:"designation" ini-name:"designation" description:"Short name for the VSP. Customizes the logo in the top toolbar."`
 
 	// The following flags should be set on CLI only, not via config file.
-	FeeXPub    string `long:"feexpub" no-ini:"true" description:"Cold wallet xpub used for collecting fees. Should be provided once to initialize a vspd database."`
-	HomeDir    string `long:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
-	ConfigFile string `long:"configfile" no-ini:"true" description:"Path to configuration file."`
+	ShowVersion bool   `long:"version" no-ini:"true" description:"Display version information and exit."`
+	FeeXPub     string `long:"feexpub" no-ini:"true" description:"Cold wallet xpub used for collecting fees. Should be provided once to initialize a vspd database."`
+	HomeDir     string `long:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
+	ConfigFile  string `long:"configfile" no-ini:"true" description:"Path to configuration file."`
 
 	dbPath                                    string
 	netParams                                 *netParams
@@ -192,6 +194,14 @@ func loadConfig() (*config, error) {
 	}
 
 	appName := filepath.Base(os.Args[0])
+
+	// Show the version and exit if the version flag was specified.
+	if preCfg.ShowVersion {
+		fmt.Printf("%s version %s (Go version %s %s/%s)\n", appName,
+			version.String(), runtime.Version(), runtime.GOOS, runtime.GOARCH)
+		os.Exit(0)
+	}
+
 	appName = strings.TrimSuffix(appName, filepath.Ext(appName))
 	usageMessage := fmt.Sprintf("Use %s -h to show usage", appName)
 
