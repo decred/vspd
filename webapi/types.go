@@ -4,6 +4,8 @@
 
 package webapi
 
+import "encoding/json"
+
 type vspInfoResponse struct {
 	APIVersions   []int64 `json:"apiversions"`
 	Timestamp     int64   `json:"timestamp"`
@@ -25,11 +27,11 @@ type feeAddressRequest struct {
 }
 
 type feeAddressResponse struct {
-	Timestamp  int64  `json:"timestamp"`
-	FeeAddress string `json:"feeaddress"`
-	FeeAmount  int64  `json:"feeamount"`
-	Expiration int64  `json:"expiration"`
-	Request    []byte `json:"request"`
+	Timestamp  int64           `json:"timestamp"`
+	FeeAddress string          `json:"feeaddress"`
+	FeeAmount  int64           `json:"feeamount"`
+	Expiration int64           `json:"expiration"`
+	Request    json.RawMessage `json:"request"`
 }
 
 type payFeeRequest struct {
@@ -41,8 +43,8 @@ type payFeeRequest struct {
 }
 
 type payFeeResponse struct {
-	Timestamp int64  `json:"timestamp"`
-	Request   []byte `json:"request"`
+	Timestamp int64           `json:"timestamp"`
+	Request   json.RawMessage `json:"request"`
 }
 
 type setVoteChoicesRequest struct {
@@ -52,8 +54,8 @@ type setVoteChoicesRequest struct {
 }
 
 type setVoteChoicesResponse struct {
-	Timestamp int64  `json:"timestamp"`
-	Request   []byte `json:"request"`
+	Timestamp int64           `json:"timestamp"`
+	Request   json.RawMessage `json:"request"`
 }
 
 type ticketStatusRequest struct {
@@ -66,5 +68,5 @@ type ticketStatusResponse struct {
 	FeeTxStatus     string            `json:"feetxstatus"`
 	FeeTxHash       string            `json:"feetxhash"`
 	VoteChoices     map[string]string `json:"votechoices"`
-	Request         []byte            `json:"request"`
+	Request         json.RawMessage   `json:"request"`
 }
