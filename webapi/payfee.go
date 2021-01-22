@@ -244,18 +244,19 @@ findAddress:
 
 			ticket.FeeTxStatus = database.FeeError
 
-			err = db.UpdateTicket(ticket)
-			if err != nil {
-				log.Errorf("%s: db.UpdateTicket error, failed to set fee tx error (ticketHash=%s): %v",
-					funcName, ticket.Hash, err)
-			}
-
 			if strings.Contains(err.Error(),
 				"references outputs of unknown or fully-spent transaction") {
 				sendError(errCannotBroadcastFeeUnknownOutputs, c)
 			} else {
 				sendError(errCannotBroadcastFee, c)
 			}
+
+			err = db.UpdateTicket(ticket)
+			if err != nil {
+				log.Errorf("%s: db.UpdateTicket error, failed to set fee tx error (ticketHash=%s): %v",
+					funcName, ticket.Hash, err)
+			}
+
 			return
 		}
 
