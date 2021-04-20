@@ -5,8 +5,10 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -220,4 +222,27 @@ func (c *DcrdRPC) CanTicketVote(rawTx *dcrdtypes.TxRawResult, ticketHash string,
 	}
 
 	return live, nil
+}
+
+// ParseBlockConnectedNotification extracts the block header from a
+// blockconnected JSON-RPC notification.
+func ParseBlockConnectedNotification(params json.RawMessage) (*wire.BlockHeader, error) {
+	var notif []string
+	err := json.Unmarshal(params, &notif)
+	if err != nil {
+		return nil, fmt.Errorf("json unmarshal error: %w", err)
+	}
+
+	if len(notif) == 0 {
+		return nil, errors.New("notification is empty")
+	}
+
+	rawHeader := notif[0]
+	var header wire.BlockHeader
+	err = header.Deserialize(hex.NewDecoder(bytes.NewReader([]byte(rawHeader))))
+	if err != nil {
+		return nil, fmt.Errorf("error creating block header from bytes: %w", err)
+	}
+
+	return &header, nil
 }
