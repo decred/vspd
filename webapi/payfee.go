@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/v3"
-	"github.com/decred/dcrd/dcrec"
-	"github.com/decred/dcrd/dcrutil/v3"
-	"github.com/decred/dcrd/txscript/v3"
+	"github.com/decred/dcrd/blockchain/v4"
+	"github.com/decred/dcrd/dcrutil/v4"
+	"github.com/decred/dcrd/txscript/v4"
+	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
@@ -120,7 +120,7 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	err = blockchain.CheckTransactionSanity(feeTx, cfg.NetParams, isTreasuryEnabled)
+	err = blockchain.CheckTransactionSanity(feeTx, cfg.NetParams)
 	if err != nil {
 		log.Warnf("%s: Fee tx failed sanity check (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
@@ -150,7 +150,7 @@ findAddress:
 			return
 		}
 		for _, addr := range addresses {
-			if addr.Address() == ticket.FeeAddress {
+			if addr.String() == ticket.FeeAddress {
 				feePaid = dcrutil.Amount(txOut.Value)
 				break findAddress
 			}
@@ -164,8 +164,8 @@ findAddress:
 		return
 	}
 
-	wifAddr, err := dcrutil.NewAddressPubKeyHash(dcrutil.Hash160(votingWIF.PubKey()), cfg.NetParams,
-		dcrec.STEcdsaSecp256k1)
+	pkHash := dcrutil.Hash160(votingWIF.PubKey())
+	wifAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1V0(pkHash, cfg.NetParams)
 	if err != nil {
 		log.Errorf("%s: Failed to get voting address from WIF (ticketHash=%s, clientIP=%s): %v",
 			funcName, ticket.Hash, c.ClientIP(), err)
@@ -196,7 +196,7 @@ findAddress:
 	}
 
 	// Ensure provided private key will allow us to vote this ticket.
-	if votingAddr[0].Address() != wifAddr.Address() {
+	if votingAddr[0].String() != wifAddr.String() {
 		log.Warnf("%s: Voting address does not match provided private key: (ticketHash=%s, votingAddr=%+v, wifAddr=%+v)",
 			funcName, ticket.Hash, votingAddr[0], wifAddr)
 		sendErrorWithMsg("voting address does not match provided private key",

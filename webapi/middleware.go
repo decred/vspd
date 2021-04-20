@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/decred/dcrd/blockchain/stake/v3"
+	"github.com/decred/dcrd/blockchain/stake/v4"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
@@ -331,7 +331,7 @@ func vspAuth() gin.HandlerFunc {
 				return
 			}
 
-			commitmentAddress = addr.Address()
+			commitmentAddress = addr.String()
 		}
 
 		// Validate request signature to ensure ticket ownership.
