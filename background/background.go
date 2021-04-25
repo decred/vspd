@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"decred.org/dcrwallet/rpc/client/dcrd"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
@@ -46,7 +45,7 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 		return nil
 	}
 
-	header, _, err := dcrd.BlockConnected(params)
+	header, err := rpc.ParseBlockConnectedNotification(params)
 	if err != nil {
 		log.Errorf("Failed to parse dcrd block notification: %v", err)
 		return nil
