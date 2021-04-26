@@ -8,7 +8,6 @@ import (
 	"errors"
 
 	"github.com/decred/dcrd/chaincfg/v3"
-	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/hdkeychain/v3"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 )
@@ -73,7 +72,7 @@ func (m *addressGenerator) NextAddress() (string, uint32, error) {
 	}
 
 	// Convert to a standard pay-to-pubkey-hash address.
-	pkHash := dcrutil.Hash160(key.SerializedPubKey())
+	pkHash := stdaddr.Hash160(key.SerializedPubKey())
 	addr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1V0(pkHash, m.netParams)
 	if err != nil {
 		return "", 0, err

@@ -164,7 +164,7 @@ findAddress:
 		return
 	}
 
-	pkHash := dcrutil.Hash160(votingWIF.PubKey())
+	pkHash := stdaddr.Hash160(votingWIF.PubKey())
 	wifAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1V0(pkHash, cfg.NetParams)
 	if err != nil {
 		log.Errorf("%s: Failed to get voting address from WIF (ticketHash=%s, clientIP=%s): %v",
