@@ -14,7 +14,7 @@ import (
 	"strings"
 
 	"github.com/decred/dcrd/chaincfg/v3"
-	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v2"
+	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/jrick/bitset"
 	"github.com/jrick/wsrpc/v2"
