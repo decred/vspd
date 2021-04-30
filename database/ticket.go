@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -81,6 +81,8 @@ var (
 	ErrNoTicketFound = errors.New("no ticket found")
 )
 
+// InsertNewTicket will insert the provided ticket into the database. Returns an
+// error if either the ticket hash or fee address already exist.
 func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 	vdb.ticketsMtx.Lock()
 	defer vdb.ticketsMtx.Unlock()
@@ -104,10 +106,6 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 
 			if t.FeeAddress == ticket.FeeAddress {
 				return fmt.Errorf("ticket with fee address %s already exists", t.FeeAddress)
-			}
-
-			if t.FeeAddressIndex == ticket.FeeAddressIndex {
-				return fmt.Errorf("ticket with fee address index %d already exists", t.FeeAddressIndex)
 			}
 
 			return nil
@@ -190,6 +188,9 @@ func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, bool, error)
 	return ticket, found, err
 }
 
+// CountTickets returns the total number of voted, revoked, and currently voting
+// tickets. Requires deserializing every ticket in the db so should be used
+// sparingly.
 func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 	vdb.ticketsMtx.RLock()
 	defer vdb.ticketsMtx.RUnlock()
