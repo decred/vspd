@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -169,6 +169,8 @@ func feeAddress(c *gin.Context) {
 	newAddress, newAddressIdx, err := getNewFeeAddress(db, addrGen)
 	if err != nil {
 		log.Errorf("%s: getNewFeeAddress error (ticketHash=%s): %v", funcName, ticketHash, err)
+		sendError(errInternalError, c)
+		return
 	}
 
 	now := time.Now()
