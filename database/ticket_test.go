@@ -1,28 +1,44 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package database
 
 import (
+	"math/rand"
 	"reflect"
 	"testing"
 	"time"
 )
 
+var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+// randString randomly generates a string of the requested length, using only
+// characters from the provided charset.
+func randString(length int, charset string) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
+
 func exampleTicket() Ticket {
+	const hexCharset = "1234567890abcdef"
+	const addrCharset = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
 	return Ticket{
-		Hash:              "Hash",
-		CommitmentAddress: "Address",
+		Hash:              randString(64, hexCharset),
+		CommitmentAddress: randString(35, addrCharset),
 		FeeAddressIndex:   12345,
-		FeeAddress:        "FeeAddress",
+		FeeAddress:        randString(35, addrCharset),
 		FeeAmount:         10000000,
 		FeeExpiration:     4,
 		Confirmed:         false,
 		VoteChoices:       map[string]string{"AgendaID": "Choice"},
-		VotingWIF:         "VotingKey",
-		FeeTxHex:          "FeeTransction",
-		FeeTxHash:         "",
+		VotingWIF:         randString(53, addrCharset),
+		FeeTxHex:          randString(504, hexCharset),
+		FeeTxHash:         randString(64, hexCharset),
 		FeeTxStatus:       FeeBroadcast,
 	}
 }
@@ -35,18 +51,24 @@ func testInsertNewTicket(t *testing.T) {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
-	// Inserting a ticket with different fee address but same hash should fail.
+	// Insert another ticket.
+	err = db.InsertNewTicket(exampleTicket())
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	// Inserting a ticket with the same hash should fail.
 	ticket2 := exampleTicket()
-	ticket2.FeeAddress = ticket.FeeAddress + "2"
-	err = db.InsertNewTicket(ticket)
+	ticket2.Hash = ticket.Hash
+	err = db.InsertNewTicket(ticket2)
 	if err == nil {
 		t.Fatal("expected an error inserting ticket with duplicate hash")
 	}
 
-	// Inserting a ticket with different hash but same fee address should fail.
+	// Inserting a ticket with the same fee address should fail.
 	ticket3 := exampleTicket()
-	ticket3.FeeAddress = ticket.Hash + "2"
-	err = db.InsertNewTicket(ticket)
+	ticket3.FeeAddress = ticket.FeeAddress
+	err = db.InsertNewTicket(ticket3)
 	if err == nil {
 		t.Fatal("expected an error inserting ticket with duplicate fee addr")
 	}
@@ -67,7 +89,7 @@ func testDeleteTicket(t *testing.T) {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
-	// Delete ticket
+	// Delete ticket.
 	err = db.DeleteTicket(ticket)
 	if err != nil {
 		t.Fatalf("error deleting ticket: %v", err)
@@ -84,8 +106,8 @@ func testDeleteTicket(t *testing.T) {
 }
 
 func testGetTicketByHash(t *testing.T) {
-	ticket := exampleTicket()
 	// Insert a ticket into the database.
+	ticket := exampleTicket()
 	err := db.InsertNewTicket(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
@@ -134,7 +156,7 @@ func testUpdateTicket(t *testing.T) {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
-	// Update ticket with new values
+	// Update ticket with new values.
 	ticket.FeeAmount = ticket.FeeAmount + 1
 	ticket.FeeExpiration = ticket.FeeExpiration + 1
 	err = db.UpdateTicket(ticket)
@@ -183,19 +205,17 @@ func testTicketFeeExpired(t *testing.T) {
 }
 
 func testFilterTickets(t *testing.T) {
-	// Insert a ticket
+	// Insert a ticket.
 	ticket := exampleTicket()
 	err := db.InsertNewTicket(ticket)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
-	// Insert another ticket
-	ticket.Hash = ticket.Hash + "1"
-	ticket.FeeAddress = ticket.FeeAddress + "1"
-	ticket.FeeAddressIndex = ticket.FeeAddressIndex + 1
-	ticket.Confirmed = !ticket.Confirmed
-	err = db.InsertNewTicket(ticket)
+	// Insert another ticket.
+	ticket2 := exampleTicket()
+	ticket2.Confirmed = !ticket.Confirmed
+	err = db.InsertNewTicket(ticket2)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
@@ -208,7 +228,7 @@ func testFilterTickets(t *testing.T) {
 		t.Fatalf("error filtering tickets: %v", err)
 	}
 	if len(retrieved) != 2 {
-		t.Fatal("expected to find 2 tickets")
+		t.Fatalf("expected to find 2 tickets, found %d", len(retrieved))
 	}
 
 	// Only one ticket should be confirmed.
@@ -219,7 +239,7 @@ func testFilterTickets(t *testing.T) {
 		t.Fatalf("error filtering tickets: %v", err)
 	}
 	if len(retrieved) != 1 {
-		t.Fatal("expected to find 2 tickets")
+		t.Fatalf("expected to find 1 ticket, found %d", len(retrieved))
 	}
 	if retrieved[0].Confirmed != true {
 		t.Fatal("expected retrieved ticket to be confirmed")
@@ -233,7 +253,7 @@ func testFilterTickets(t *testing.T) {
 		t.Fatalf("error filtering tickets: %v", err)
 	}
 	if len(retrieved) != 0 {
-		t.Fatal("expected to find 0 tickets")
+		t.Fatalf("expected to find 0 tickets, found %d", len(retrieved))
 	}
 }
 
@@ -274,11 +294,9 @@ func testCountTickets(t *testing.T) {
 
 	// Insert a ticket with confirmed fee into the database.
 	// This should be counted.
-	ticket.Hash = ticket.Hash + "1"
-	ticket.FeeAddress = ticket.FeeAddress + "1"
-	ticket.FeeAddressIndex = ticket.FeeAddressIndex + 1
-	ticket.FeeTxStatus = FeeConfirmed
-	err = db.InsertNewTicket(ticket)
+	ticket2 := exampleTicket()
+	ticket2.FeeTxStatus = FeeConfirmed
+	err = db.InsertNewTicket(ticket2)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
@@ -287,12 +305,10 @@ func testCountTickets(t *testing.T) {
 
 	// Insert a voted ticket into the database.
 	// This should be counted.
-	ticket.Hash = ticket.Hash + "1"
-	ticket.FeeAddress = ticket.FeeAddress + "1"
-	ticket.FeeAddressIndex = ticket.FeeAddressIndex + 1
-	ticket.FeeTxStatus = FeeConfirmed
-	ticket.Outcome = Voted
-	err = db.InsertNewTicket(ticket)
+	ticket3 := exampleTicket()
+	ticket3.FeeTxStatus = FeeConfirmed
+	ticket3.Outcome = Voted
+	err = db.InsertNewTicket(ticket3)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
@@ -300,12 +316,11 @@ func testCountTickets(t *testing.T) {
 	count("voted", 1, 1, 0)
 
 	// Insert a revoked ticket into the database.
-	ticket.Hash = ticket.Hash + "1"
-	ticket.FeeAddress = ticket.FeeAddress + "1"
-	ticket.FeeAddressIndex = ticket.FeeAddressIndex + 1
-	ticket.FeeTxStatus = FeeConfirmed
-	ticket.Outcome = Revoked
-	err = db.InsertNewTicket(ticket)
+	// This should be counted.
+	ticket4 := exampleTicket()
+	ticket4.FeeTxStatus = FeeConfirmed
+	ticket4.Outcome = Revoked
+	err = db.InsertNewTicket(ticket4)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
