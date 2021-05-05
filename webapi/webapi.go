@@ -78,7 +78,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	if err != nil {
 		return fmt.Errorf("db.GetLastAddressIndex error: %w", err)
 	}
-	feeXPub, err := vdb.GetFeeXPub()
+	feeXPub, err := vdb.FeeXPub()
 	if err != nil {
 		return fmt.Errorf("db.GetFeeXPub error: %w", err)
 	}
@@ -88,7 +88,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	}
 
 	// Get the secret key used to initialize the cookie store.
-	cookieSecret, err := vdb.GetCookieSecret()
+	cookieSecret, err := vdb.CookieSecret()
 	if err != nil {
 		return fmt.Errorf("db.GetCookieSecret error: %w", err)
 	}

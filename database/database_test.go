@@ -90,7 +90,7 @@ func testCreateNew(t *testing.T) {
 	}
 
 	// A newly created DB should have a cookie secret.
-	secret, err := db.GetCookieSecret()
+	secret, err := db.CookieSecret()
 	if err != nil {
 		t.Fatalf("error getting cookie secret: %v", err)
 	}
@@ -100,7 +100,7 @@ func testCreateNew(t *testing.T) {
 	}
 
 	// A newly created DB should store the fee xpub it was initialized with.
-	retrievedXPub, err := db.GetFeeXPub()
+	retrievedXPub, err := db.FeeXPub()
 	if err != nil {
 		t.Fatalf("error getting fee xpub: %v", err)
 	}

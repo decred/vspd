@@ -85,6 +85,16 @@ func writeHotBackupFile(db *bolt.DB) error {
 	return err
 }
 
+func uint32ToBytes(i uint32) []byte {
+	bytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(bytes, i)
+	return bytes
+}
+
+func bytesToUint32(bytes []byte) uint32 {
+	return binary.LittleEndian.Uint32(bytes)
+}
+
 // CreateNew intializes a new bbolt database with all of the necessary vspd
 // buckets, and inserts:
 // - the provided extended pubkey (to be used for deriving fee addresses).
@@ -108,10 +118,8 @@ func CreateNew(dbFile, feeXPub string) error {
 			return fmt.Errorf("failed to create %s bucket: %w", string(vspBktK), err)
 		}
 
-		// Initialize with database version 1.
-		vbytes := make([]byte, 4)
-		binary.LittleEndian.PutUint32(vbytes, uint32(1))
-		err = vspBkt.Put(versionK, vbytes)
+		// Initialize with initial database version (1).
+		err = vspBkt.Put(versionK, uint32ToBytes(initialVersion))
 		if err != nil {
 			return err
 		}
@@ -188,7 +196,19 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 		return nil, fmt.Errorf("unable to open db file: %w", err)
 	}
 
-	log.Debugf("Opened database file %s", dbFile)
+	vdb := &VspDatabase{db: db, maxVoteChangeRecords: maxVoteChangeRecords}
+
+	dbVersion, err := vdb.Version()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get db version: %w", err)
+	}
+
+	log.Debugf("Opened database (version=%d, file=%s)", dbVersion, dbFile)
+
+	err = vdb.Upgrade(dbVersion)
+	if err != nil {
+		return nil, fmt.Errorf("database upgrade failed: %w", err)
+	}
 
 	// Start a ticker to update the backup file at the specified interval.
 	shutdownWg.Add(1)
@@ -209,7 +229,7 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 		}
 	}()
 
-	return &VspDatabase{db: db, maxVoteChangeRecords: maxVoteChangeRecords}, nil
+	return vdb, nil
 }
 
 // Close will close the database and then make a copy of the database to the
@@ -305,9 +325,9 @@ func (vdb *VspDatabase) KeyPair() (ed25519.PrivateKey, ed25519.PublicKey, error)
 	return signKey, pubKey, err
 }
 
-// GetFeeXPub retrieves the extended pubkey used for generating fee addresses
+// FeeXPub retrieves the extended pubkey used for generating fee addresses
 // from the database.
-func (vdb *VspDatabase) GetFeeXPub() (string, error) {
+func (vdb *VspDatabase) FeeXPub() (string, error) {
 	var feeXPub string
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		vspBkt := tx.Bucket(vspBktK)
@@ -325,9 +345,9 @@ func (vdb *VspDatabase) GetFeeXPub() (string, error) {
 	return feeXPub, err
 }
 
-// GetCookieSecret retrieves the generated cookie store secret key from the
+// CookieSecret retrieves the generated cookie store secret key from the
 // database.
-func (vdb *VspDatabase) GetCookieSecret() ([]byte, error) {
+func (vdb *VspDatabase) CookieSecret() ([]byte, error) {
 	var cookieSecret []byte
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		vspBkt := tx.Bucket(vspBktK)
@@ -343,6 +363,21 @@ func (vdb *VspDatabase) GetCookieSecret() ([]byte, error) {
 	})
 
 	return cookieSecret, err
+}
+
+// Version returns the current database version.
+func (vdb *VspDatabase) Version() (uint32, error) {
+	var version uint32
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		bytes := tx.Bucket(vspBktK).Get(versionK)
+		version = bytesToUint32(bytes)
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return version, nil
 }
 
 // BackupDB streams a backup of the database over an http response writer.

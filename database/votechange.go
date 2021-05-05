@@ -5,7 +5,6 @@
 package database
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -44,7 +43,7 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 		lowest := uint32(math.MaxUint32)
 		err = bkt.ForEach(func(k, v []byte) error {
 			count++
-			key := binary.LittleEndian.Uint32(k)
+			key := bytesToUint32(k)
 			if key > highest {
 				highest = key
 			}
@@ -60,9 +59,7 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 		// If bucket is at (or over) the limit of max allowed records, remove
 		// the oldest one.
 		if count >= vdb.maxVoteChangeRecords {
-			keyBytes := make([]byte, 4)
-			binary.LittleEndian.PutUint32(keyBytes, lowest)
-			err = bkt.Delete(keyBytes)
+			err = bkt.Delete(uint32ToBytes(lowest))
 			if err != nil {
 				return fmt.Errorf("failed to delete old vote change record: %w", err)
 			}
@@ -75,15 +72,12 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 			newKey = highest + 1
 		}
 
-		keyBytes := make([]byte, 4)
-		binary.LittleEndian.PutUint32(keyBytes, newKey)
-
 		// Insert record.
 		recordBytes, err := json.Marshal(record)
 		if err != nil {
 			return fmt.Errorf("could not marshal vote change record: %w", err)
 		}
-		err = bkt.Put(keyBytes, recordBytes)
+		err = bkt.Put(uint32ToBytes(newKey), recordBytes)
 		if err != nil {
 			return fmt.Errorf("could not store vote change record: %w", err)
 		}
@@ -113,7 +107,7 @@ func (vdb *VspDatabase) GetVoteChanges(ticketHash string) (map[uint32]VoteChange
 				return fmt.Errorf("could not unmarshal vote change record: %w", err)
 			}
 
-			records[binary.LittleEndian.Uint32(k)] = record
+			records[bytesToUint32(k)] = record
 
 			return nil
 		})
