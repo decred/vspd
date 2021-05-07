@@ -87,6 +87,7 @@ func run(ctx context.Context) error {
 	apiCfg := webapi.Config{
 		VSPFee:               cfg.VSPFee,
 		NetParams:            cfg.netParams.Params,
+		BlockExplorerURL:     cfg.netParams.BlockExplorerURL,
 		SupportEmail:         cfg.SupportEmail,
 		VspClosed:            cfg.VspClosed,
 		AdminPass:            cfg.AdminPass,
