@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
 	"sync"
@@ -26,6 +27,7 @@ import (
 type Config struct {
 	VSPFee               float64
 	NetParams            *chaincfg.Params
+	BlockExplorerURL     string
 	FeeAccountName       string
 	SupportEmail         string
 	VspClosed            bool
@@ -173,6 +175,14 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	}
 
 	router := gin.New()
+
+	// Add custom functions for use in templates.
+	router.SetFuncMap(template.FuncMap{
+		"txURL":      txURL(cfg.BlockExplorerURL),
+		"blockURL":   blockURL(cfg.BlockExplorerURL),
+		"addressURL": addressURL(cfg.BlockExplorerURL),
+	})
+
 	router.LoadHTMLGlob("webapi/templates/*.html")
 
 	// Recovery middleware handles any go panics generated while processing web

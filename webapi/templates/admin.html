@@ -97,7 +97,11 @@
                         <table class="table ticket-table mt-2 mb-4">
                             <tr>
                                 <th>Hash</th>
-                                <td>{{ .Ticket.Hash }}</td>
+                                <td>
+                                    <a href="{{ txURL .Ticket.Hash }}">
+                                        {{ .Ticket.Hash }}
+                                    </a>
+                                </td>
                             </tr>
                             <tr>
                                 <th>Commitment Address</th>
@@ -109,7 +113,11 @@
                             </tr>
                             <tr>
                                 <th>Fee Address</th>
-                                <td>{{ .Ticket.FeeAddress }}</td>
+                                <td>
+                                    <a href="{{ addressURL .Ticket.FeeAddress }}">
+                                        {{ .Ticket.FeeAddress }}
+                                    </a>
+                                </td>
                             </tr>
                             <tr>
                                 <th>Fee Amount</th>
@@ -173,12 +181,16 @@
                                 <td>{{ .Ticket.VotingWIF }}</td>
                             </tr>
                             <tr>
-                                <th>Fee Tx</th>
-                                <td>{{ .Ticket.FeeTxHex }}</td>
+                                <th>Fee Tx Hash</th>
+                                <td>
+                                    <a href="{{ txURL .Ticket.FeeTxHash }}">
+                                        {{ .Ticket.FeeTxHash }}
+                                    </a>
+                                </td>
                             </tr>
                             <tr>
-                                <th>Fee Tx Hash</th>
-                                <td>{{ .Ticket.FeeTxHash }}</td>
+                                <th>Fee Tx</th>
+                                <td>{{ .Ticket.FeeTxHex }}</td>
                             </tr>
                             <tr>
                                 <th>Fee Tx Status</th>
