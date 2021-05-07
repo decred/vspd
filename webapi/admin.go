@@ -7,6 +7,7 @@ package webapi
 import (
 	"net/http"
 
+	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
@@ -24,6 +25,14 @@ type WalletStatus struct {
 	Voting          bool   `json:"voting"`
 	BestBlockError  bool   `json:"bestblockerror"`
 	BestBlockHeight int64  `json:"bestblockheight"`
+}
+
+type searchResult struct {
+	Hash           string
+	Found          bool
+	Ticket         database.Ticket
+	VoteChanges    map[uint32]database.VoteChangeRecord
+	MaxVoteChanges int
 }
 
 func walletStatus(c *gin.Context) map[string]WalletStatus {
@@ -113,12 +122,12 @@ func ticketSearch(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "admin.html", gin.H{
-		"SearchResult": gin.H{
-			"Hash":           hash,
-			"Found":          found,
-			"Ticket":         ticket,
-			"VoteChanges":    voteChanges,
-			"MaxVoteChanges": cfg.MaxVoteChangeRecords,
+		"SearchResult": searchResult{
+			Hash:           hash,
+			Found:          found,
+			Ticket:         ticket,
+			VoteChanges:    voteChanges,
+			MaxVoteChanges: cfg.MaxVoteChangeRecords,
 		},
 		"VspStats":     getVSPStats(),
 		"WalletStatus": walletStatus(c),
