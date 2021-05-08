@@ -179,8 +179,8 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	// Add custom functions for use in templates.
 	router.SetFuncMap(template.FuncMap{
 		"txURL":      txURL(cfg.BlockExplorerURL),
-		"blockURL":   blockURL(cfg.BlockExplorerURL),
 		"addressURL": addressURL(cfg.BlockExplorerURL),
+		"dateTime":   dateTime,
 	})
 
 	router.LoadHTMLGlob("webapi/templates/*.html")
