@@ -55,7 +55,7 @@ func updateVSPStats(db *database.VspDatabase, cfg Config) error {
 		Revoked:      revoked,
 		VSPFee:       cfg.VSPFee,
 		Network:      cfg.NetParams.Name,
-		UpdateTime:   time.Now().Format("Mon Jan _2 15:04:05 2006"),
+		UpdateTime:   dateTime(time.Now().Unix()),
 		SupportEmail: cfg.SupportEmail,
 		VspClosed:    cfg.VspClosed,
 		Debug:        cfg.Debug,
