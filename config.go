@@ -27,6 +27,8 @@ import (
 var (
 	defaultListen         = ":8800"
 	defaultLogLevel       = "debug"
+	defaultMaxLogSize     = int64(10)
+	defaultLogsToKeep     = 20
 	defaultVSPFee         = 3.0
 	defaultNetwork        = "testnet"
 	defaultHomeDir        = dcrutil.AppDataDir("vspd", false)
@@ -44,6 +46,8 @@ var (
 type config struct {
 	Listen          string        `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
 	LogLevel        string        `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
+	MaxLogSize      int64         `long:"maxlogsize" ini-name:"maxlogsize" description:"File size threshold for log file rotation (MB)."`
+	LogsToKeep      int           `long:"logstokeep" ini-name:"logstokeep" description:"The number of rotated log files to keep."`
 	Network         string        `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
 	VSPFee          float64       `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 2.0 (2%), 0.5 (0.5%)."`
 	DcrdHost        string        `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where vspd is running."`
@@ -164,6 +168,8 @@ func loadConfig() (*config, error) {
 	cfg := config{
 		Listen:         defaultListen,
 		LogLevel:       defaultLogLevel,
+		MaxLogSize:     defaultMaxLogSize,
+		LogsToKeep:     defaultLogsToKeep,
 		Network:        defaultNetwork,
 		VSPFee:         defaultVSPFee,
 		HomeDir:        defaultHomeDir,
@@ -392,7 +398,7 @@ func loadConfig() (*config, error) {
 
 	// Initialize loggers and log rotation.
 	logDir := filepath.Join(cfg.HomeDir, "logs", cfg.netParams.Name)
-	initLogRotator(filepath.Join(logDir, "vspd.log"))
+	initLogRotator(filepath.Join(logDir, "vspd.log"), cfg.MaxLogSize, cfg.LogsToKeep)
 	setLogLevels(cfg.LogLevel)
 
 	// Set the database path
