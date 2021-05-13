@@ -180,6 +180,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	router.SetFuncMap(template.FuncMap{
 		"txURL":      txURL(cfg.BlockExplorerURL),
 		"addressURL": addressURL(cfg.BlockExplorerURL),
+		"blockURL":   blockURL(cfg.BlockExplorerURL),
 		"dateTime":   dateTime,
 	})
 
