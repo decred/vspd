@@ -33,5 +33,5 @@ var simNetParams = netParams{
 	Params:              chaincfg.SimNetParams(),
 	DcrdRPCServerPort:   "19556",
 	WalletRPCServerPort: "19557",
-	BlockExplorerURL:    "https://dcrdata.decred.org",
+	BlockExplorerURL:    "...",
 }
