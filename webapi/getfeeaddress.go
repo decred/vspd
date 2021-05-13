@@ -176,10 +176,18 @@ func feeAddress(c *gin.Context) {
 	now := time.Now()
 	expire := now.Add(feeAddressExpiration).Unix()
 
-	confirmed := rawTicket.Confirmations >= requiredConfs
+	// Only set purchase height if the ticket already has 6 confs, otherwise its
+	// purchase height may change due to reorgs.
+	confirmed := false
+	purchaseHeight := int64(0)
+	if rawTicket.Confirmations >= requiredConfs {
+		confirmed = true
+		purchaseHeight = rawTicket.BlockHeight
+	}
 
 	dbTicket := database.Ticket{
 		Hash:              ticketHash,
+		PurchaseHeight:    purchaseHeight,
 		CommitmentAddress: commitmentAddress,
 		FeeAddressIndex:   newAddressIdx,
 		FeeAddress:        newAddress,
