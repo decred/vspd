@@ -15,6 +15,7 @@ type vspInfoResponse struct {
 	Voting        int64   `json:"voting"`
 	Voted         int64   `json:"voted"`
 	Revoked       int64   `json:"revoked"`
+	BlockHeight   int64   `json:"blockheight"`
 }
 
 type feeAddressRequest struct {
