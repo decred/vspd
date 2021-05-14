@@ -103,7 +103,7 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 }
 
 // drainAndReplaceBody will read and return the body of the provided request. It
-// replaces the request reader with an identical so it can be used again.
+// replaces the request reader with an identical one so it can be used again.
 func drainAndReplaceBody(req *http.Request) ([]byte, error) {
 	reqBytes, err := ioutil.ReadAll(req.Body)
 	if err != nil {
