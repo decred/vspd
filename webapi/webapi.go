@@ -69,9 +69,10 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	}
 
 	// Populate cached VSP stats before starting webserver.
-	err = updateVSPStats(vdb, config)
+	initVSPStats()
+	err = updateVSPStats(ctx, vdb, dcrd, config.NetParams)
 	if err != nil {
-		return fmt.Errorf("could not initialize VSP stats cache: %w", err)
+		log.Errorf("Could not initialize VSP stats cache: %v", err)
 	}
 
 	// Get the last used address index and the feeXpub from the database, and
@@ -139,7 +140,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 		}
 	}()
 
-	// Use a ticker to update template data.
+	// Use a ticker to update cached VSP stats.
 	var refresh time.Duration
 	if cfg.Debug {
 		refresh = 1 * time.Second
@@ -156,7 +157,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 				shutdownWg.Done()
 				return
 			case <-ticker.C:
-				err = updateVSPStats(db, cfg)
+				err = updateVSPStats(ctx, vdb, dcrd, config.NetParams)
 				if err != nil {
 					log.Errorf("Failed to update cached VSP stats: %v", err)
 				}

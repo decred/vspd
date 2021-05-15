@@ -243,7 +243,7 @@ func loadConfig() (*config, error) {
 			flags.IniIncludeComments|flags.IniIncludeDefaults)
 		if err != nil {
 			return nil, fmt.Errorf("error creating a default "+
-				"config file: %v", err)
+				"config file: %w", err)
 		}
 		fmt.Printf("Config file with default values written to %s\n", defaultConfigFile)
 

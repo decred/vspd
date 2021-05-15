@@ -25,5 +25,6 @@ func vspInfo(c *gin.Context) {
 		Voting:        cachedStats.Voting,
 		Voted:         cachedStats.Voted,
 		Revoked:       cachedStats.Revoked,
+		BlockHeight:   cachedStats.BlockHeight,
 	}, c)
 }
