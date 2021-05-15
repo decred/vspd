@@ -38,8 +38,6 @@ type Config struct {
 }
 
 const (
-	// TODO: Make this configurable or get it from RPC.
-	relayFee = 0.0001
 	// requiredConfs is the number of confirmations required to consider a
 	// ticket purchase or a fee transaction to be final.
 	requiredConfs = 6

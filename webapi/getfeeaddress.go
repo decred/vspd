@@ -49,7 +49,7 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 	if err != nil {
 		return 0, err
 	}
-	relayFee, err := dcrutil.NewAmount(relayFee)
+	relayFee, err := dcrutil.NewAmount(0.0001)
 	if err != nil {
 		return 0, err
 	}
