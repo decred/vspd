@@ -214,7 +214,7 @@ findAddress:
 
 	// At this point we are satisfied that the request is valid and the fee tx
 	// pays sufficient fees to the expected address. Proceed to update the
-	// database, and if the ticket is confirmed broadcast the transaction.
+	// database, and if the ticket is confirmed broadcast the fee transaction.
 
 	ticket.VotingWIF = votingWIF.String()
 	ticket.FeeTxHex = request.FeeTx

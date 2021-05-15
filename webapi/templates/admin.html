@@ -104,6 +104,17 @@
                                 </td>
                             </tr>
                             <tr>
+                                <th>Status</th>
+                                {{ if .Ticket.Confirmed }}
+                                    <td>
+                                        Confirmed (purchase height: 
+                                        <a href="{{ blockURL .Ticket.PurchaseHeight }}">{{ .Ticket.PurchaseHeight }}</a>)
+                                    </td>
+                                {{ else }}
+                                    <td>Not confirmed</td>
+                                {{ end }}
+                            </tr>
+                            <tr>
                                 <th>Commitment Address</th>
                                 <td>{{ .Ticket.CommitmentAddress }}</td>
                             </tr>
@@ -126,10 +137,6 @@
                             <tr>
                                 <th>Fee Expiration</th>
                                 <td>{{ .Ticket.FeeExpiration }} ({{ dateTime .Ticket.FeeExpiration }}) </td>
-                            </tr>
-                            <tr>
-                                <th>Confirmed</th>
-                                <td>{{ .Ticket.Confirmed }}</td>
                             </tr>
                             <tr>
                                 <th>Current Vote Choices</th>

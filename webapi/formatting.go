@@ -1,16 +1,25 @@
 package webapi
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 func addressURL(blockExplorerURL string) func(string) string {
 	return func(addr string) string {
-		return blockExplorerURL + "/address/" + addr
+		return fmt.Sprintf("%s/address/%s", blockExplorerURL, addr)
 	}
 }
 
 func txURL(blockExplorerURL string) func(string) string {
 	return func(txID string) string {
-		return blockExplorerURL + "/tx/" + txID
+		return fmt.Sprintf("%s/tx/%s", blockExplorerURL, txID)
+	}
+}
+
+func blockURL(blockExplorerURL string) func(int64) string {
+	return func(height int64) string {
+		return fmt.Sprintf("%s/block/%d", blockExplorerURL, height)
 	}
 }
 
