@@ -14,8 +14,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Recovery returns a middleware for a given writer that recovers from any
-// panics and calls the provided handle func to handle it.
+// Recovery returns a middleware that recovers from any panics which occur in
+// request handlers. It logs the panic, a stack trace, and the full request
+// details. It also ensure the client receives a 500 response rather than no
+// response at all.
 func Recovery() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
@@ -53,11 +55,11 @@ func Recovery() gin.HandlerFunc {
 	}
 }
 
-// formattedStack returns a nicely formatted formattedStack frame.
+// formattedStack returns a nicely formatted stack frame.
 func formattedStack() []byte {
-	buf := new(bytes.Buffer) // the returned data
-	// As we loop, we open files and read them. These variables record the currently
-	// loaded file.
+	buf := new(bytes.Buffer)
+	// As we loop, we open files and read them. These variables record the
+	// currently loaded file.
 	var lines [][]byte
 	var lastFile string
 	for i := 3; ; i++ {
@@ -65,7 +67,7 @@ func formattedStack() []byte {
 		if !ok {
 			break
 		}
-		// Print this much at least.  If we can't find the source, it won't show.
+		// Print this much at least. If we can't find the source, it won't show.
 		fmt.Fprintf(buf, "%s:%d (0x%x)\n", file, line, pc)
 		if file != lastFile {
 			data, err := ioutil.ReadFile(file)
@@ -97,12 +99,12 @@ func function(pc uintptr) []byte {
 	}
 	name := []byte(fn.Name())
 	// The name includes the path name to the package, which is unnecessary
-	// since the file name is already included.  Plus, it has center dots.
+	// since the file name is already included. Plus, it has center dots.
 	// That is, we see
 	//	runtime/debug.*T·ptrmethod
 	// and want
 	//	*T.ptrmethod
-	// Also the package path might contains dot (e.g. code.google.com/...),
+	// Also the package path might contain dot (e.g. code.google.com/...),
 	// so first eliminate the path prefix
 	if lastSlash := bytes.LastIndex(name, []byte("/")); lastSlash >= 0 {
 		name = name[lastSlash+1:]
