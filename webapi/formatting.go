@@ -24,5 +24,5 @@ func blockURL(blockExplorerURL string) func(int64) string {
 }
 
 func dateTime(t int64) string {
-	return time.Unix(t, 0).Format("2 Jan 2006 15:04:05")
+	return time.Unix(t, 0).Format("2 Jan 2006 15:04:05 MST")
 }
