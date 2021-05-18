@@ -203,11 +203,11 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 		return nil, fmt.Errorf("unable to get db version: %w", err)
 	}
 
-	log.Debugf("Opened database (version=%d, file=%s)", dbVersion, dbFile)
+	log.Infof("Opened database (version=%d, file=%s)", dbVersion, dbFile)
 
 	err = vdb.Upgrade(dbVersion)
 	if err != nil {
-		return nil, fmt.Errorf("database upgrade failed: %w", err)
+		return nil, fmt.Errorf("upgrade failed: %w", err)
 	}
 
 	// Start a ticker to update the backup file at the specified interval.
