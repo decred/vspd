@@ -180,6 +180,8 @@ func blockConnected() {
 		// If fee is confirmed, update the database and add ticket to voting
 		// wallets.
 		if feeTx.Confirmations >= requiredConfs {
+			// We no longer need the hex once the tx is confirmed on-chain.
+			ticket.FeeTxHex = ""
 			ticket.FeeTxStatus = database.FeeConfirmed
 			err = db.UpdateTicket(ticket)
 			if err != nil {
