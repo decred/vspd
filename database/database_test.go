@@ -70,6 +70,8 @@ func TestDatabase(t *testing.T) {
 		cancel()
 		wg.Wait()
 
+		db.Close()
+
 		os.Remove(testDb)
 		os.Remove(backupDb)
 	}
