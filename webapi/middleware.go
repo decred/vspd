@@ -102,6 +102,18 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 	}
 }
 
+// drainAndReplaceBody will read and return the body of the provided request. It
+// replaces the request reader with an identical one so it can be used again.
+func drainAndReplaceBody(req *http.Request) ([]byte, error) {
+	reqBytes, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
+	req.Body.Close()
+	req.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
+	return reqBytes, nil
+}
+
 // broadcastTicket will ensure that the local dcrd instance is aware of the
 // provided ticket.
 // Ticket hash, ticket hex, and parent hex are parsed from the request body and
@@ -111,16 +123,13 @@ func broadcastTicket() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		const funcName = "broadcastTicket"
 
-		// Read request bytes and then replace the request reader for
-		// downstream handlers to use.
-		reqBytes, err := ioutil.ReadAll(c.Request.Body)
+		// Read request bytes.
+		reqBytes, err := drainAndReplaceBody(c.Request)
 		if err != nil {
 			log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg(err.Error(), errBadRequest, c)
 			return
 		}
-		c.Request.Body.Close()
-		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
 
 		// Parse request to ensure ticket hash/hex and parent hex are included.
 		var request struct {
@@ -249,7 +258,7 @@ func vspAuth() gin.HandlerFunc {
 		const funcName = "vspAuth"
 
 		// Read request bytes.
-		reqBytes, err := ioutil.ReadAll(c.Request.Body)
+		reqBytes, err := drainAndReplaceBody(c.Request)
 		if err != nil {
 			log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg(err.Error(), errBadRequest, c)

@@ -188,7 +188,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	// Recovery middleware handles any go panics generated while processing web
 	// requests. Ensures a 500 response is sent to the client rather than
 	// sending no response at all.
-	router.Use(gin.Recovery())
+	router.Use(Recovery())
 
 	if debugMode {
 		// Logger middleware outputs very detailed logging of webserver requests
