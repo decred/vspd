@@ -159,12 +159,14 @@ func testUpdateTicket(t *testing.T) {
 	// Update ticket with new values.
 	ticket.FeeAmount = ticket.FeeAmount + 1
 	ticket.FeeExpiration = ticket.FeeExpiration + 1
+	ticket.VoteChoices = map[string]string{"New agenda": "New value"}
+
 	err = db.UpdateTicket(ticket)
 	if err != nil {
 		t.Fatalf("error updating ticket: %v", err)
 	}
 
-	// Retrieve ticket from database.
+	// Retrieve updated ticket from database.
 	retrieved, found, err := db.GetTicketByHash(ticket.Hash)
 	if err != nil {
 		t.Fatalf("error retrieving ticket by ticket hash: %v", err)
@@ -174,7 +176,8 @@ func testUpdateTicket(t *testing.T) {
 	}
 
 	if ticket.FeeAmount != retrieved.FeeAmount ||
-		ticket.FeeExpiration != retrieved.FeeExpiration {
+		ticket.FeeExpiration != retrieved.FeeExpiration ||
+		!reflect.DeepEqual(retrieved.VoteChoices, ticket.VoteChoices) {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
 
