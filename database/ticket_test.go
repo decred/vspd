@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 // randString randomly generates a string of the requested length, using only
 // characters from the provided charset.

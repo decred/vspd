@@ -6,7 +6,6 @@ package database
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
@@ -17,15 +16,15 @@ import (
 type FeeStatus string
 
 const (
-	// No fee transaction has been received yet.
+	// NoFee indicates no fee tx has been received yet.
 	NoFee FeeStatus = "none"
-	// Fee transaction has been received but not broadcast.
+	// FeeReceieved indicates fee tx has been received but not broadcast.
 	FeeReceieved FeeStatus = "received"
-	// Fee transaction has been broadcast but not confirmed.
+	// FeeBroadcast indicates fee tx has been broadcast but not confirmed.
 	FeeBroadcast FeeStatus = "broadcast"
-	// Fee transaction has been broadcast and confirmed.
+	// FeeConfirmed indicates fee tx has been broadcast and confirmed.
 	FeeConfirmed FeeStatus = "confirmed"
-	// Fee transaction could not be broadcast due to an error.
+	// FeeError indicates fee tx could not be broadcast due to an error.
 	FeeError FeeStatus = "error"
 )
 
@@ -33,9 +32,10 @@ const (
 type TicketOutcome string
 
 const (
-	// Ticket has been revoked, either because it was missed or it expired.
+	// Revoked indicates the ticket has been revoked, either because it was
+	// missed or it expired.
 	Revoked TicketOutcome = "revoked"
-	// Ticket has already voted.
+	// Voted indicates the ticket has already voted.
 	Voted TicketOutcome = "voted"
 )
 
@@ -76,10 +76,6 @@ func (t *Ticket) FeeExpired() bool {
 	now := time.Now()
 	return now.After(time.Unix(t.FeeExpiration, 0))
 }
-
-var (
-	ErrNoTicketFound = errors.New("no ticket found")
-)
 
 // InsertNewTicket will insert the provided ticket into the database. Returns an
 // error if either the ticket hash or fee address already exist.
