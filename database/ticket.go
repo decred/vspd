@@ -185,11 +185,7 @@ func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 	if err != nil {
 		return err
 	}
-	if err = bkt.Put(voteChoicesK, jsonVoteChoices); err != nil {
-		return err
-	}
-
-	return nil
+	return bkt.Put(voteChoicesK, jsonVoteChoices)
 }
 
 func getTicketFromBkt(bkt *bolt.Bucket) (Ticket, error) {
