@@ -41,20 +41,20 @@ const (
 
 // The keys used to store ticket values in the database.
 var (
-	HashK              = []byte("Hash")
-	PurchaseHeightK    = []byte("PurchaseHeight")
-	CommitmentAddressK = []byte("CommitmentAddress")
-	FeeAddressIndexK   = []byte("FeeAddressIndex")
-	FeeAddressK        = []byte("FeeAddress")
-	FeeAmountK         = []byte("FeeAmount")
-	FeeExpirationK     = []byte("FeeExpiration")
-	ConfirmedK         = []byte("Confirmed")
-	VotingWIFK         = []byte("VotingWIF")
-	VoteChoicesK       = []byte("VoteChoices")
-	FeeTxHexK          = []byte("FeeTxHex")
-	FeeTxHashK         = []byte("FeeTxHash")
-	FeeTxStatusK       = []byte("FeeTxStatus")
-	OutcomeK           = []byte("Outcome")
+	hashK              = []byte("Hash")
+	purchaseHeightK    = []byte("PurchaseHeight")
+	commitmentAddressK = []byte("CommitmentAddress")
+	feeAddressIndexK   = []byte("FeeAddressIndex")
+	feeAddressK        = []byte("FeeAddress")
+	feeAmountK         = []byte("FeeAmount")
+	feeExpirationK     = []byte("FeeExpiration")
+	confirmedK         = []byte("Confirmed")
+	votingWIFK         = []byte("VotingWIF")
+	voteChoicesK       = []byte("VoteChoices")
+	feeTxHexK          = []byte("FeeTxHex")
+	feeTxHashK         = []byte("FeeTxHash")
+	feeTxStatusK       = []byte("FeeTxStatus")
+	outcomeK           = []byte("Outcome")
 )
 
 type Ticket struct {
@@ -113,7 +113,7 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 		err = ticketBkt.ForEach(func(k, v []byte) error {
 			tbkt := ticketBkt.Bucket(k)
 
-			if string(tbkt.Get(FeeAddressK)) == ticket.FeeAddress {
+			if string(tbkt.Get(feeAddressK)) == ticket.FeeAddress {
 				return fmt.Errorf("ticket with fee address %s already exists", ticket.FeeAddress)
 			}
 
@@ -136,40 +136,40 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 // array, and stores them as values within the provided db bucket.
 func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 	var err error
-	if err = bkt.Put(HashK, []byte(ticket.Hash)); err != nil {
+	if err = bkt.Put(hashK, []byte(ticket.Hash)); err != nil {
 		return err
 	}
-	if err = bkt.Put(CommitmentAddressK, []byte(ticket.CommitmentAddress)); err != nil {
+	if err = bkt.Put(commitmentAddressK, []byte(ticket.CommitmentAddress)); err != nil {
 		return err
 	}
-	if err = bkt.Put(FeeAddressK, []byte(ticket.FeeAddress)); err != nil {
+	if err = bkt.Put(feeAddressK, []byte(ticket.FeeAddress)); err != nil {
 		return err
 	}
-	if err = bkt.Put(VotingWIFK, []byte(ticket.VotingWIF)); err != nil {
+	if err = bkt.Put(votingWIFK, []byte(ticket.VotingWIF)); err != nil {
 		return err
 	}
-	if err = bkt.Put(FeeTxHexK, []byte(ticket.FeeTxHex)); err != nil {
+	if err = bkt.Put(feeTxHexK, []byte(ticket.FeeTxHex)); err != nil {
 		return err
 	}
-	if err = bkt.Put(FeeTxHashK, []byte(ticket.FeeTxHash)); err != nil {
+	if err = bkt.Put(feeTxHashK, []byte(ticket.FeeTxHash)); err != nil {
 		return err
 	}
-	if err = bkt.Put(FeeTxStatusK, []byte(ticket.FeeTxStatus)); err != nil {
+	if err = bkt.Put(feeTxStatusK, []byte(ticket.FeeTxStatus)); err != nil {
 		return err
 	}
-	if err = bkt.Put(OutcomeK, []byte(ticket.Outcome)); err != nil {
+	if err = bkt.Put(outcomeK, []byte(ticket.Outcome)); err != nil {
 		return err
 	}
-	if err = bkt.Put(PurchaseHeightK, int64ToBytes(ticket.PurchaseHeight)); err != nil {
+	if err = bkt.Put(purchaseHeightK, int64ToBytes(ticket.PurchaseHeight)); err != nil {
 		return err
 	}
-	if err = bkt.Put(FeeAddressIndexK, uint32ToBytes(ticket.FeeAddressIndex)); err != nil {
+	if err = bkt.Put(feeAddressIndexK, uint32ToBytes(ticket.FeeAddressIndex)); err != nil {
 		return err
 	}
-	if err = bkt.Put(FeeAmountK, int64ToBytes(ticket.FeeAmount)); err != nil {
+	if err = bkt.Put(feeAmountK, int64ToBytes(ticket.FeeAmount)); err != nil {
 		return err
 	}
-	if err = bkt.Put(FeeExpirationK, int64ToBytes(ticket.FeeExpiration)); err != nil {
+	if err = bkt.Put(feeExpirationK, int64ToBytes(ticket.FeeExpiration)); err != nil {
 		return err
 	}
 
@@ -177,7 +177,7 @@ func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 	if ticket.Confirmed {
 		confirmed = []byte{1}
 	}
-	if err = bkt.Put(ConfirmedK, confirmed); err != nil {
+	if err = bkt.Put(confirmedK, confirmed); err != nil {
 		return err
 	}
 
@@ -185,7 +185,7 @@ func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 	if err != nil {
 		return err
 	}
-	if err = bkt.Put(VoteChoicesK, jsonVoteChoices); err != nil {
+	if err = bkt.Put(voteChoicesK, jsonVoteChoices); err != nil {
 		return err
 	}
 
@@ -195,27 +195,27 @@ func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 func getTicketFromBkt(bkt *bolt.Bucket) (Ticket, error) {
 	var ticket Ticket
 
-	ticket.Hash = string(bkt.Get(HashK))
-	ticket.CommitmentAddress = string(bkt.Get(CommitmentAddressK))
-	ticket.FeeAddress = string(bkt.Get(FeeAddressK))
-	ticket.VotingWIF = string(bkt.Get(VotingWIFK))
-	ticket.FeeTxHex = string(bkt.Get(FeeTxHexK))
-	ticket.FeeTxHash = string(bkt.Get(FeeTxHashK))
-	ticket.FeeTxStatus = FeeStatus(bkt.Get(FeeTxStatusK))
-	ticket.Outcome = TicketOutcome(bkt.Get(OutcomeK))
+	ticket.Hash = string(bkt.Get(hashK))
+	ticket.CommitmentAddress = string(bkt.Get(commitmentAddressK))
+	ticket.FeeAddress = string(bkt.Get(feeAddressK))
+	ticket.VotingWIF = string(bkt.Get(votingWIFK))
+	ticket.FeeTxHex = string(bkt.Get(feeTxHexK))
+	ticket.FeeTxHash = string(bkt.Get(feeTxHashK))
+	ticket.FeeTxStatus = FeeStatus(bkt.Get(feeTxStatusK))
+	ticket.Outcome = TicketOutcome(bkt.Get(outcomeK))
 
-	ticket.PurchaseHeight = bytesToInt64(bkt.Get(PurchaseHeightK))
-	ticket.FeeAddressIndex = bytesToUint32(bkt.Get(FeeAddressIndexK))
-	ticket.FeeAmount = bytesToInt64(bkt.Get(FeeAmountK))
-	ticket.FeeExpiration = bytesToInt64(bkt.Get(FeeExpirationK))
+	ticket.PurchaseHeight = bytesToInt64(bkt.Get(purchaseHeightK))
+	ticket.FeeAddressIndex = bytesToUint32(bkt.Get(feeAddressIndexK))
+	ticket.FeeAmount = bytesToInt64(bkt.Get(feeAmountK))
+	ticket.FeeExpiration = bytesToInt64(bkt.Get(feeExpirationK))
 
 	// TODO is this dodgy?
-	if bkt.Get(ConfirmedK)[0] == byte(1) {
+	if bkt.Get(confirmedK)[0] == byte(1) {
 		ticket.Confirmed = true
 	}
 
 	voteChoices := make(map[string]string)
-	err := json.Unmarshal(bkt.Get(VoteChoicesK), &voteChoices)
+	err := json.Unmarshal(bkt.Get(voteChoicesK), &voteChoices)
 	if err != nil {
 		return ticket, err
 	}
@@ -298,8 +298,8 @@ func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 		return ticketBkt.ForEach(func(k, v []byte) error {
 			tBkt := ticketBkt.Bucket(k)
 
-			if FeeStatus(tBkt.Get(FeeTxStatusK)) == FeeConfirmed {
-				switch TicketOutcome(tBkt.Get(OutcomeK)) {
+			if FeeStatus(tBkt.Get(feeTxStatusK)) == FeeConfirmed {
+				switch TicketOutcome(tBkt.Get(outcomeK)) {
 				case Voted:
 					voted++
 				case Revoked:
