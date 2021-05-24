@@ -39,37 +39,53 @@ const (
 	Voted TicketOutcome = "voted"
 )
 
-// Ticket is serialized to json and stored in bbolt db. The json keys are
-// deliberately kept short because they are duplicated many times in the db.
+// The keys used to store ticket values in the database.
+var (
+	hashK              = []byte("Hash")
+	purchaseHeightK    = []byte("PurchaseHeight")
+	commitmentAddressK = []byte("CommitmentAddress")
+	feeAddressIndexK   = []byte("FeeAddressIndex")
+	feeAddressK        = []byte("FeeAddress")
+	feeAmountK         = []byte("FeeAmount")
+	feeExpirationK     = []byte("FeeExpiration")
+	confirmedK         = []byte("Confirmed")
+	votingWIFK         = []byte("VotingWIF")
+	voteChoicesK       = []byte("VoteChoices")
+	feeTxHexK          = []byte("FeeTxHex")
+	feeTxHashK         = []byte("FeeTxHash")
+	feeTxStatusK       = []byte("FeeTxStatus")
+	outcomeK           = []byte("Outcome")
+)
+
 type Ticket struct {
-	Hash              string `json:"hsh"`
-	PurchaseHeight    int64  `json:"phgt"`
-	CommitmentAddress string `json:"cmtaddr"`
-	FeeAddressIndex   uint32 `json:"faddridx"`
-	FeeAddress        string `json:"faddr"`
-	FeeAmount         int64  `json:"famt"`
-	FeeExpiration     int64  `json:"fexp"`
+	Hash              string
+	PurchaseHeight    int64
+	CommitmentAddress string
+	FeeAddressIndex   uint32
+	FeeAddress        string
+	FeeAmount         int64
+	FeeExpiration     int64
 
 	// Confirmed will be set when the ticket has 6+ confirmations.
-	Confirmed bool `json:"conf"`
+	Confirmed bool
 
 	// VotingWIF is set in /payfee.
-	VotingWIF string `json:"vwif"`
+	VotingWIF string
 
 	// VoteChoices is initially set in /payfee, but can be updated in
 	// /setvotechoices.
-	VoteChoices map[string]string `json:"vchces"`
+	VoteChoices map[string]string
 
 	// FeeTxHex and FeeTxHash will be set when the fee tx has been received.
-	FeeTxHex  string `json:"fhex"`
-	FeeTxHash string `json:"fhsh"`
+	FeeTxHex  string
+	FeeTxHash string
 
 	// FeeTxStatus indicates the current state of the fee transaction.
-	FeeTxStatus FeeStatus `json:"fsts"`
+	FeeTxStatus FeeStatus
 
 	// Outcome is set once a ticket is either voted or revoked. An empty outcome
 	// indicates that a ticket is still votable.
-	Outcome TicketOutcome `json:"otcme"`
+	Outcome TicketOutcome
 }
 
 func (t *Ticket) FeeExpired() bool {
@@ -86,22 +102,19 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
-		hashBytes := []byte(ticket.Hash)
-
-		if ticketBkt.Get(hashBytes) != nil {
-			return fmt.Errorf("ticket already exists with hash %s", ticket.Hash)
+		// Create a bucket for the new ticket. Returns an error if bucket
+		// already exists.
+		newTicketBkt, err := ticketBkt.CreateBucket([]byte(ticket.Hash))
+		if err != nil {
+			return fmt.Errorf("could not create bucket for ticket: %w", err)
 		}
 
 		// Error if a ticket already exists with the same fee address.
-		err := ticketBkt.ForEach(func(k, v []byte) error {
-			var t Ticket
-			err := json.Unmarshal(v, &t)
-			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %w", err)
-			}
+		err = ticketBkt.ForEach(func(k, v []byte) error {
+			tbkt := ticketBkt.Bucket(k)
 
-			if t.FeeAddress == ticket.FeeAddress {
-				return fmt.Errorf("ticket with fee address %s already exists", t.FeeAddress)
+			if string(tbkt.Get(feeAddressK)) == ticket.FeeAddress {
+				return fmt.Errorf("ticket with fee address %s already exists", ticket.FeeAddress)
 			}
 
 			return nil
@@ -110,13 +123,102 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 			return err
 		}
 
-		ticketBytes, err := json.Marshal(ticket)
+		err = putTicketInBucket(newTicketBkt, ticket)
 		if err != nil {
-			return fmt.Errorf("could not marshal ticket: %w", err)
+			return fmt.Errorf("putting ticket in bucket failed: %w", err)
 		}
 
-		return ticketBkt.Put(hashBytes, ticketBytes)
+		return nil
 	})
+}
+
+// putTicketInBucket encodes each of the fields of the provided ticket as a byte
+// array, and stores them as values within the provided db bucket.
+func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
+	var err error
+	if err = bkt.Put(hashK, []byte(ticket.Hash)); err != nil {
+		return err
+	}
+	if err = bkt.Put(commitmentAddressK, []byte(ticket.CommitmentAddress)); err != nil {
+		return err
+	}
+	if err = bkt.Put(feeAddressK, []byte(ticket.FeeAddress)); err != nil {
+		return err
+	}
+	if err = bkt.Put(votingWIFK, []byte(ticket.VotingWIF)); err != nil {
+		return err
+	}
+	if err = bkt.Put(feeTxHexK, []byte(ticket.FeeTxHex)); err != nil {
+		return err
+	}
+	if err = bkt.Put(feeTxHashK, []byte(ticket.FeeTxHash)); err != nil {
+		return err
+	}
+	if err = bkt.Put(feeTxStatusK, []byte(ticket.FeeTxStatus)); err != nil {
+		return err
+	}
+	if err = bkt.Put(outcomeK, []byte(ticket.Outcome)); err != nil {
+		return err
+	}
+	if err = bkt.Put(purchaseHeightK, int64ToBytes(ticket.PurchaseHeight)); err != nil {
+		return err
+	}
+	if err = bkt.Put(feeAddressIndexK, uint32ToBytes(ticket.FeeAddressIndex)); err != nil {
+		return err
+	}
+	if err = bkt.Put(feeAmountK, int64ToBytes(ticket.FeeAmount)); err != nil {
+		return err
+	}
+	if err = bkt.Put(feeExpirationK, int64ToBytes(ticket.FeeExpiration)); err != nil {
+		return err
+	}
+
+	confirmed := []byte{0}
+	if ticket.Confirmed {
+		confirmed = []byte{1}
+	}
+	if err = bkt.Put(confirmedK, confirmed); err != nil {
+		return err
+	}
+
+	jsonVoteChoices, err := json.Marshal(ticket.VoteChoices)
+	if err != nil {
+		return err
+	}
+	return bkt.Put(voteChoicesK, jsonVoteChoices)
+}
+
+func getTicketFromBkt(bkt *bolt.Bucket) (Ticket, error) {
+	var ticket Ticket
+
+	ticket.Hash = string(bkt.Get(hashK))
+	ticket.CommitmentAddress = string(bkt.Get(commitmentAddressK))
+	ticket.FeeAddress = string(bkt.Get(feeAddressK))
+	ticket.VotingWIF = string(bkt.Get(votingWIFK))
+	ticket.FeeTxHex = string(bkt.Get(feeTxHexK))
+	ticket.FeeTxHash = string(bkt.Get(feeTxHashK))
+	ticket.FeeTxStatus = FeeStatus(bkt.Get(feeTxStatusK))
+	ticket.Outcome = TicketOutcome(bkt.Get(outcomeK))
+
+	ticket.PurchaseHeight = bytesToInt64(bkt.Get(purchaseHeightK))
+	ticket.FeeAddressIndex = bytesToUint32(bkt.Get(feeAddressIndexK))
+	ticket.FeeAmount = bytesToInt64(bkt.Get(feeAmountK))
+	ticket.FeeExpiration = bytesToInt64(bkt.Get(feeExpirationK))
+
+	// TODO is this dodgy?
+	if bkt.Get(confirmedK)[0] == byte(1) {
+		ticket.Confirmed = true
+	}
+
+	voteChoices := make(map[string]string)
+	err := json.Unmarshal(bkt.Get(voteChoicesK), &voteChoices)
+	if err != nil {
+		return ticket, err
+	}
+
+	ticket.VoteChoices = voteChoices
+
+	return ticket, nil
 }
 
 func (vdb *VspDatabase) DeleteTicket(ticket Ticket) error {
@@ -126,7 +228,7 @@ func (vdb *VspDatabase) DeleteTicket(ticket Ticket) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
-		err := ticketBkt.Delete([]byte(ticket.Hash))
+		err := ticketBkt.DeleteBucket([]byte(ticket.Hash))
 		if err != nil {
 			return fmt.Errorf("could not delete ticket: %w", err)
 		}
@@ -142,18 +244,13 @@ func (vdb *VspDatabase) UpdateTicket(ticket Ticket) error {
 	return vdb.db.Update(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
-		hashBytes := []byte(ticket.Hash)
+		bkt := ticketBkt.Bucket([]byte(ticket.Hash))
 
-		if ticketBkt.Get(hashBytes) == nil {
+		if bkt == nil {
 			return fmt.Errorf("ticket does not exist with hash %s", ticket.Hash)
 		}
 
-		ticketBytes, err := json.Marshal(ticket)
-		if err != nil {
-			return fmt.Errorf("could not marshal ticket: %w", err)
-		}
-
-		return ticketBkt.Put(hashBytes, ticketBytes)
+		return putTicketInBucket(bkt, ticket)
 	})
 }
 
@@ -164,16 +261,16 @@ func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, bool, error)
 	var ticket Ticket
 	var found bool
 	err := vdb.db.View(func(tx *bolt.Tx) error {
-		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
+		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK).Bucket([]byte(ticketHash))
 
-		ticketBytes := ticketBkt.Get([]byte(ticketHash))
-		if ticketBytes == nil {
+		if ticketBkt == nil {
 			return nil
 		}
 
-		err := json.Unmarshal(ticketBytes, &ticket)
+		var err error
+		ticket, err = getTicketFromBkt(ticketBkt)
 		if err != nil {
-			return fmt.Errorf("could not unmarshal ticket: %w", err)
+			return fmt.Errorf("could not get ticket: %w", err)
 		}
 
 		found = true
@@ -185,8 +282,7 @@ func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, bool, error)
 }
 
 // CountTickets returns the total number of voted, revoked, and currently voting
-// tickets. Requires deserializing every ticket in the db so should be used
-// sparingly.
+// tickets. This func iterates over every ticket so should be used sparingly.
 func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 	vdb.ticketsMtx.RLock()
 	defer vdb.ticketsMtx.RUnlock()
@@ -196,14 +292,10 @@ func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
 		return ticketBkt.ForEach(func(k, v []byte) error {
-			var ticket Ticket
-			err := json.Unmarshal(v, &ticket)
-			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %w", err)
-			}
+			tBkt := ticketBkt.Bucket(k)
 
-			if ticket.FeeTxStatus == FeeConfirmed {
-				switch ticket.Outcome {
+			if FeeStatus(tBkt.Get(feeTxStatusK)) == FeeConfirmed {
+				switch TicketOutcome(tBkt.Get(outcomeK)) {
 				case Voted:
 					voted++
 				case Revoked:
@@ -270,10 +362,9 @@ func (vdb *VspDatabase) filterTickets(filter func(Ticket) bool) ([]Ticket, error
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
 		return ticketBkt.ForEach(func(k, v []byte) error {
-			var ticket Ticket
-			err := json.Unmarshal(v, &ticket)
+			ticket, err := getTicketFromBkt(ticketBkt.Bucket(k))
 			if err != nil {
-				return fmt.Errorf("could not unmarshal ticket: %w", err)
+				return fmt.Errorf("could not get ticket: %w", err)
 			}
 
 			if filter(ticket) {

@@ -19,7 +19,7 @@ func removeOldFeeTxUpgrade(db *bolt.DB) error {
 		count := 0
 		err := ticketBkt.ForEach(func(k, v []byte) error {
 			// Deserialize the old ticket.
-			var ticket Ticket
+			var ticket v1Ticket
 			err := json.Unmarshal(v, &ticket)
 			if err != nil {
 				return fmt.Errorf("could not unmarshal ticket: %w", err)
@@ -51,7 +51,7 @@ func removeOldFeeTxUpgrade(db *bolt.DB) error {
 		// Update database version.
 		err = vspBkt.Put(versionK, uint32ToBytes(removeOldFeeTxVersion))
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to update db version: %w", err)
 		}
 
 		return nil

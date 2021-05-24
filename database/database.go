@@ -85,6 +85,16 @@ func writeHotBackupFile(db *bolt.DB) error {
 	return err
 }
 
+func int64ToBytes(i int64) []byte {
+	bytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bytes, uint64(i))
+	return bytes
+}
+
+func bytesToInt64(bytes []byte) int64 {
+	return int64(binary.LittleEndian.Uint64(bytes))
+}
+
 func uint32ToBytes(i uint32) []byte {
 	bytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bytes, i)

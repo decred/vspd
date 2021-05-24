@@ -89,9 +89,10 @@ func feeAddress(c *gin.Context) {
 	ticketHash := request.TicketHash
 
 	// Respond early if we already have the fee tx for this ticket.
-	if ticket.FeeTxStatus == database.FeeReceieved ||
-		ticket.FeeTxStatus == database.FeeBroadcast ||
-		ticket.FeeTxStatus == database.FeeConfirmed {
+	if knownTicket &&
+		(ticket.FeeTxStatus == database.FeeReceieved ||
+			ticket.FeeTxStatus == database.FeeBroadcast ||
+			ticket.FeeTxStatus == database.FeeConfirmed) {
 		log.Warnf("%s: Fee tx already received (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
 		sendError(errFeeAlreadyReceived, c)
