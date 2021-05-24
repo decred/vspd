@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -39,16 +39,16 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 		// Loop through the bucket to count the records, as well as finding the
 		// most recent and the oldest record.
 		var count int
-		highest := uint32(0)
-		lowest := uint32(math.MaxUint32)
+		newest := uint32(0)
+		oldest := uint32(math.MaxUint32)
 		err = bkt.ForEach(func(k, v []byte) error {
 			count++
 			key := bytesToUint32(k)
-			if key > highest {
-				highest = key
+			if key > newest {
+				newest = key
 			}
-			if key < lowest {
-				lowest = key
+			if key < oldest {
+				oldest = key
 			}
 			return nil
 		})
@@ -59,7 +59,7 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 		// If bucket is at (or over) the limit of max allowed records, remove
 		// the oldest one.
 		if count >= vdb.maxVoteChangeRecords {
-			err = bkt.Delete(uint32ToBytes(lowest))
+			err = bkt.Delete(uint32ToBytes(oldest))
 			if err != nil {
 				return fmt.Errorf("failed to delete old vote change record: %w", err)
 			}
@@ -69,7 +69,7 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 		// otherwise use most recent + 1.
 		var newKey uint32
 		if count > 0 {
-			newKey = highest + 1
+			newKey = newest + 1
 		}
 
 		// Insert record.

@@ -26,9 +26,9 @@ func currentVoteVersion(params *chaincfg.Params) uint32 {
 	return latestVersion
 }
 
-// isValidVoteChoices returns an error if provided vote choices are not valid for
-// the most recent agendas.
-func isValidVoteChoices(params *chaincfg.Params, voteVersion uint32, voteChoices map[string]string) error {
+// validConsensusVoteChoices returns an error if provided vote choices are not
+// valid for the most recent consensus agendas.
+func validConsensusVoteChoices(params *chaincfg.Params, voteVersion uint32, voteChoices map[string]string) error {
 
 agendaLoop:
 	for agenda, choice := range voteChoices {

@@ -207,7 +207,7 @@ func blockConnected() {
 					continue
 				}
 
-				// Update vote choices on voting wallets.
+				// Set vote choices on voting wallets.
 				for agenda, choice := range ticket.VoteChoices {
 					err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 					if err != nil {

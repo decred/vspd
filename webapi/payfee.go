@@ -104,7 +104,7 @@ func payFee(c *gin.Context) {
 	// Validate VoteChoices. Just log a warning if vote choices are not valid
 	// for the current vote version - the ticket should still be registered.
 	validVoteChoices := true
-	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), request.VoteChoices)
+	err = validConsensusVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), request.VoteChoices)
 	if err != nil {
 		validVoteChoices = false
 		log.Warnf("%s: Invalid vote choices (clientIP=%s, ticketHash=%s): %v",

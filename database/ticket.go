@@ -210,13 +210,11 @@ func getTicketFromBkt(bkt *bolt.Bucket) (Ticket, error) {
 		ticket.Confirmed = true
 	}
 
-	voteChoices := make(map[string]string)
-	err := json.Unmarshal(bkt.Get(voteChoicesK), &voteChoices)
+	ticket.VoteChoices = make(map[string]string)
+	err := json.Unmarshal(bkt.Get(voteChoicesK), &ticket.VoteChoices)
 	if err != nil {
 		return ticket, err
 	}
-
-	ticket.VoteChoices = voteChoices
 
 	return ticket, nil
 }

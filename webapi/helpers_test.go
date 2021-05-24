@@ -46,7 +46,7 @@ func TestIsValidVoteChoices(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := isValidVoteChoices(params, voteVersion, test.voteChoices)
+		err := validConsensusVoteChoices(params, voteVersion, test.voteChoices)
 		if (err == nil) != test.valid {
 			t.Fatalf("isValidVoteChoices failed for votechoices '%v'.", test.voteChoices)
 		}
