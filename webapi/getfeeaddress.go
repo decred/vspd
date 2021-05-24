@@ -19,10 +19,10 @@ import (
 // addrMtx protects getNewFeeAddress.
 var addrMtx sync.Mutex
 
-// getNewFeeAddress gets a new address from the address generator and stores the
-// new address index in the database. In order to maintain consistency between
-// the internal counter of address generator and the database, this function
-// cannot be run concurrently.
+// getNewFeeAddress gets a new address from the address generator, and updates
+// the last used address index in the database. In order to maintain consistency
+// between the internal counter of address generator and the database, this func
+// uses a mutex to ensure it is not run concurrently.
 func getNewFeeAddress(db *database.VspDatabase, addrGen *addressGenerator) (string, uint32, error) {
 	addrMtx.Lock()
 	defer addrMtx.Unlock()

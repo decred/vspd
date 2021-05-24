@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -120,7 +120,6 @@ func CreateNew(dbFile, feeXPub string) error {
 
 	defer db.Close()
 
-	// Create all storage buckets of the VSP if they don't already exist.
 	err = db.Update(func(tx *bolt.Tx) error {
 		// Create parent bucket.
 		vspBkt, err := tx.CreateBucket(vspBktK)

@@ -15,10 +15,6 @@ import (
 	"github.com/gin-gonic/gin/binding"
 )
 
-type timestampRequest struct {
-	Timestamp int64 `json:"timestamp" binding:"required"`
-}
-
 // setVoteChoices is the handler for "POST /api/v3/setvotechoices".
 func setVoteChoices(c *gin.Context) {
 	const funcName = "setVoteChoices"
@@ -76,7 +72,9 @@ func setVoteChoices(c *gin.Context) {
 	}
 
 	for _, change := range previousChanges {
-		var prevReq timestampRequest
+		var prevReq struct {
+			Timestamp int64 `json:"timestamp" binding:"required"`
+		}
 		err := json.Unmarshal([]byte(change.Request), &prevReq)
 		if err != nil {
 			log.Errorf("%s: Could not unmarshal vote change record (ticketHash=%s): %v",
@@ -95,7 +93,7 @@ func setVoteChoices(c *gin.Context) {
 	}
 
 	voteChoices := request.VoteChoices
-	err = isValidVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
+	err = validConsensusVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
 	if err != nil {
 		log.Warnf("%s: Invalid vote choices (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
@@ -103,8 +101,8 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
-	// Update VoteChoices in the database before updating the wallets. DB is
-	// source of truth and is less likely to error.
+	// Update VoteChoices in the database before updating the wallets. DB is the
+	// source of truth, and also is less likely to error.
 	ticket.VoteChoices = voteChoices
 	err = db.UpdateTicket(ticket)
 	if err != nil {
@@ -117,8 +115,8 @@ func setVoteChoices(c *gin.Context) {
 	// Update vote choices on voting wallets. Tickets are only added to voting
 	// wallets if their fee is confirmed.
 	if ticket.FeeTxStatus == database.FeeConfirmed {
-		for agenda, choice := range voteChoices {
-			for _, walletClient := range walletClients {
+		for _, walletClient := range walletClients {
+			for agenda, choice := range voteChoices {
 				err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 				if err != nil {
 					// If this fails, we still want to try the other wallets, so
