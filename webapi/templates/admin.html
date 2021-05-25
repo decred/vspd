@@ -193,7 +193,7 @@
                                         <table class="table ticket-table my-2">
                                             <tr>
                                                 <th>Request</th>
-                                                <td>{{ $value.Request }}</td>
+                                                <td>{{ indentJSON $value.Request }}</td>
                                             </tr>
                                             <tr>
                                                 <th>Request<br />Signature</th>
@@ -201,7 +201,7 @@
                                             </tr>
                                             <tr>
                                                 <th>Response</th>
-                                                <td>{{ $value.Response }}</td>
+                                                <td>{{ indentJSON $value.Response }}</td>
                                             </tr>
                                             <tr>
                                                 <th>Response<br />Signature</th>

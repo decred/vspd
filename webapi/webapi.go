@@ -182,6 +182,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 		"blockURL":   blockURL(cfg.BlockExplorerURL),
 		"dateTime":   dateTime,
 		"stripWss":   stripWss,
+		"indentJSON": indentJSON,
 	})
 
 	router.LoadHTMLGlob("webapi/templates/*.html")

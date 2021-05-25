@@ -117,7 +117,6 @@ footer .code {
 }
 
 .block__content table th {
-    vertical-align: top;
     white-space: nowrap;
 }
 
@@ -128,6 +127,7 @@ footer .code {
 .ticket-table td {
     font-size: 14px;
     text-align: left;
+    padding-right: 0;
 }
 
 
