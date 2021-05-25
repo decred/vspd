@@ -1,7 +1,10 @@
 package webapi
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"html/template"
 	"strings"
 	"time"
 )
@@ -32,4 +35,15 @@ func stripWss(input string) string {
 	input = strings.ReplaceAll(input, "wss://", "")
 	input = strings.ReplaceAll(input, "/ws", "")
 	return input
+}
+
+func indentJSON(input string) template.HTML {
+	var indented bytes.Buffer
+	err := json.Indent(&indented, []byte(input), "<br/>", "&nbsp;&nbsp;&nbsp;&nbsp;")
+	if err != nil {
+		log.Errorf("Failed to indent JSON: %w", err)
+		return template.HTML(input)
+	}
+
+	return template.HTML(indented.String())
 }
