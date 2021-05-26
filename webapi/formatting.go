@@ -2,6 +2,7 @@ package webapi
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -25,4 +26,10 @@ func blockURL(blockExplorerURL string) func(int64) string {
 
 func dateTime(t int64) string {
 	return time.Unix(t, 0).Format("2 Jan 2006 15:04:05 MST")
+}
+
+func stripWss(input string) string {
+	input = strings.ReplaceAll(input, "wss://", "")
+	input = strings.ReplaceAll(input, "/ws", "")
+	return input
 }
