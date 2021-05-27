@@ -24,223 +24,242 @@
 <div class="container">
     <div class="row">
 
-        <div class="col-12 p-3">
+        <div class="col-12 pt-2 pb-4">
             <div class="block__content">
-                <h1>Voting Wallet Status</h1>
 
-                <table id="status-table" class="w-100 mb-0">
-                    <thead>
-                        <th>URL</th>
-                        <th>Height</th>
-                        <th>Connected</th>
-                        <th>Unlocked</th>
-                        <th>Voting</th>
-                        <th>Vote Version</th>
-                    </thead>
-                    <tbody>
-                        {{ range $host, $status := .WalletStatus }}
-                        <tr>
-                            <td>{{ stripWss $host }}</td>
-                            
-                            {{ if $status.Connected }}
-    
-                                {{ if $status.BestBlockError }}
-                                    <td>
-                                        <div class="center">
-                                            <div class="status bad center with-text">
-                                                Error
-                                            </div>
-                                        </div>
-                                    </td>
-                                {{ else }}
-                                    <td>{{ $status.BestBlockHeight }}</td>
-                                {{ end }}
-    
-                                {{ if $status.InfoError }}
-                                    <td colspan="4">
-                                        <div class="center">
-                                            <div class="status bad center with-text">
-                                                Error getting wallet info
-                                            </div>
-                                        </div>
-                                    </td>
-                                {{ else }}
-                                    <td>
-                                        <div class="center">
-                                            <div class="status {{ if $status.DaemonConnected }}good{{else}}bad{{end}}"></div>
-                                        </div>
-                                    </td>
-                                    
-                                    
-                                    <td>
-                                        <div class="center">
-                                            <div class="status {{ if $status.Unlocked }}good{{else}}bad{{end}}"></div>
-                                        </div>
-                                    </td>
-                                    
-                                    
-                                    <td>
-                                        <div class="center">
-                                            <div class="status {{ if $status.Voting }}good{{else}}bad{{end}}"></div>
-                                        </div>
-                                    </td>
-                                    
-                                    <td>{{ $status.VoteVersion }}</td>
-                                {{ end }}
-    
-                            {{else}}
-                                <td colspan="5">
-                                    <div class="center">
-                                        <div class="status bad center with-text">
-                                            Cannot connect to wallet
-                                        </div>
-                                    </div>
-                                </td>
-                            {{end}}
-                        </tr>
-                        {{end}}
-                    </tbody>
-                </table>
+                <div class="tabset">
+                    <input
+                        type="radio"
+                        name="tabset_1"
+                        id="tabset_1_1"
+                        hidden
+                        aria-hidden="true"
+                        {{ with .SearchResult }}{{ else }}checked{{ end }}
+                    >
+                    <input
+                        type="radio"
+                        name="tabset_1"
+                        id="tabset_1_2"
+                        hidden
+                        aria-hidden="true"
+                        {{ with .SearchResult }}checked{{ end }}
+                    >
+                    <ul>
+                        <li><label for="tabset_1_1">Wallet Status</label></li>
+                        <li><label for="tabset_1_2">Ticket Search</label></li>
+                    </ul>
+                    
+                    <div>
 
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<div class="container">
-    <div class="row">
-
-        <div class="col-12 p-3">
-            <div class="block__content">
-                <h1>Ticket Search</h1>
-
-                <form class="mt-2 mb-4" action="/admin/ticket" method="post">
-                    <input type="text" name="hash" size="64" minlength="64" maxlength="64" required placeholder="Ticket hash" autocomplete="off">
-                    <button class="ml-3 btn btn-primary" type="submit">Search</button>
-                </form>
-
-                {{ with .SearchResult }}
-                    {{ if .Found }}
-                        <h1>Search Result</h1>
-                        <table class="table ticket-table mt-2 mb-4">
-                            <tr>
-                                <th>Hash</th>
-                                <td>
-                                    <a href="{{ txURL .Ticket.Hash }}">
-                                        {{ .Ticket.Hash }}
-                                    </a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Status</th>
-                                {{ if .Ticket.Confirmed }}
-                                    <td>
-                                        Confirmed (purchase height: 
-                                        <a href="{{ blockURL .Ticket.PurchaseHeight }}">{{ .Ticket.PurchaseHeight }}</a>)
-                                    </td>
-                                {{ else }}
-                                    <td>Not confirmed</td>
-                                {{ end }}
-                            </tr>
-                            <tr>
-                                <th>Commitment Address</th>
-                                <td>{{ .Ticket.CommitmentAddress }}</td>
-                            </tr>
-                            <tr>
-                                <th>Fee Address Index</th>
-                                <td>{{ .Ticket.FeeAddressIndex }}</td>
-                            </tr>
-                            <tr>
-                                <th>Fee Address</th>
-                                <td>
-                                    <a href="{{ addressURL .Ticket.FeeAddress }}">
-                                        {{ .Ticket.FeeAddress }}
-                                    </a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Fee Amount</th>
-                                <td>{{ .Ticket.FeeAmount }} atoms</td>
-                            </tr>
-                            <tr>
-                                <th>Fee Expiration</th>
-                                <td>{{ .Ticket.FeeExpiration }} ({{ dateTime .Ticket.FeeExpiration }}) </td>
-                            </tr>
-                            <tr>
-                                <th>Current Vote Choices</th>
-                                <td>
-                                    {{ range $key, $value := .Ticket.VoteChoices }}
-                                        {{ $key }}: {{ $value }} <br />
-                                    {{ end }}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>
-                                    Vote Choice Changes<br />
-                                    <em>({{ .MaxVoteChanges }} most recent)</em>
-                                </th>
-                                <td>
-                                    {{ range $key, $value := .VoteChanges }}
-                                    <details>
-                                        <summary>
-                                            {{ if eq $key 0}}
-                                                Initial choices
+                        <section>
+                            <table id="status-table" class="w-100 mb-0">
+                                <thead>
+                                    <th>URL</th>
+                                    <th>Height</th>
+                                    <th>Connected</th>
+                                    <th>Unlocked</th>
+                                    <th>Voting</th>
+                                    <th>Vote Version</th>
+                                </thead>
+                                <tbody>
+                                    {{ range $host, $status := .WalletStatus }}
+                                    <tr>
+                                        <td>{{ stripWss $host }}</td>
+                                        
+                                        {{ if $status.Connected }}
+                
+                                            {{ if $status.BestBlockError }}
+                                                <td>
+                                                    <div class="center">
+                                                        <div class="status bad center with-text">
+                                                            Error
+                                                        </div>
+                                                    </div>
+                                                </td>
                                             {{ else }}
-                                                Change {{ $key }}
+                                                <td>{{ $status.BestBlockHeight }}</td>
                                             {{ end }}
-                                        </summary>
-                                        <table class="table ticket-table my-2">
-                                            <tr>
-                                                <th>Request</th>
-                                                <td>{{ indentJSON $value.Request }}</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Request<br />Signature</th>
-                                                <td>{{ $value.RequestSignature }}</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Response</th>
-                                                <td>{{ indentJSON $value.Response }}</td>
-                                            </tr>
-                                            <tr>
-                                                <th>Response<br />Signature</th>
-                                                <td>{{ $value.ResponseSignature }}</td>
-                                            </tr>
-                                        </table>
-                                    </details>
+                
+                                            {{ if $status.InfoError }}
+                                                <td colspan="4">
+                                                    <div class="center">
+                                                        <div class="status bad center with-text">
+                                                            Error getting wallet info
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            {{ else }}
+                                                <td>
+                                                    <div class="center">
+                                                        <div class="status {{ if $status.DaemonConnected }}good{{else}}bad{{end}}"></div>
+                                                    </div>
+                                                </td>
+                                                
+                                                
+                                                <td>
+                                                    <div class="center">
+                                                        <div class="status {{ if $status.Unlocked }}good{{else}}bad{{end}}"></div>
+                                                    </div>
+                                                </td>
+                                                
+                                                
+                                                <td>
+                                                    <div class="center">
+                                                        <div class="status {{ if $status.Voting }}good{{else}}bad{{end}}"></div>
+                                                    </div>
+                                                </td>
+                                                
+                                                <td>{{ $status.VoteVersion }}</td>
+                                            {{ end }}
+                
+                                        {{else}}
+                                            <td colspan="5">
+                                                <div class="center">
+                                                    <div class="status bad center with-text">
+                                                        Cannot connect to wallet
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        {{end}}
+                                    </tr>
                                     {{end}}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Voting WIF</th>
-                                <td>{{ .Ticket.VotingWIF }}</td>
-                            </tr>
-                            <tr>
-                                <th>Fee Tx Hash</th>
-                                <td>
-                                    <a href="{{ txURL .Ticket.FeeTxHash }}">
-                                        {{ .Ticket.FeeTxHash }}
-                                    </a>
-                                </td>
-                            </tr>
-                            <tr>
-                                <th>Fee Tx</th>
-                                <td>{{ .Ticket.FeeTxHex }}</td>
-                            </tr>
-                            <tr>
-                                <th>Fee Tx Status</th>
-                                <td>{{ .Ticket.FeeTxStatus }}</td>
-                            </tr>
-                            <tr>
-                                <th>Ticket Outcome</th>
-                                <td>{{ .Ticket.Outcome }}</td>
-                            </tr>
-                        </table>
-                    {{ else }}
-                        <p>No ticket found with hash <span class="code">{{ .Hash }}</span></p>
-                    {{ end }}
-                {{ end }}
+                                </tbody>
+                            </table>
+                        </section>
+                        
+                        <section>
+                            <form class="mt-2 mb-4" action="/admin/ticket" method="post">
+                                <input type="text" name="hash" size="64" minlength="64" maxlength="64" required placeholder="Ticket hash" autocomplete="off"
+                                {{ with .SearchResult }}
+                                value="{{ .Ticket.Hash }}"
+                                {{ end }}>
+                                <button class="ml-3 btn btn-primary" type="submit">Search</button>
+                            </form>
+            
+                            {{ with .SearchResult }}
+                                {{ if .Found }}
+                                    <table id="ticket-table" class="mt-2 mb-4 w-100">
+                                        <tr>
+                                            <th>Hash</th>
+                                            <td>
+                                                <a href="{{ txURL .Ticket.Hash }}">
+                                                    {{ .Ticket.Hash }}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Status</th>
+                                            {{ if .Ticket.Confirmed }}
+                                                <td>
+                                                    Confirmed (purchase height: 
+                                                    <a href="{{ blockURL .Ticket.PurchaseHeight }}">{{ .Ticket.PurchaseHeight }}</a>)
+                                                </td>
+                                            {{ else }}
+                                                <td>Not confirmed</td>
+                                            {{ end }}
+                                        </tr>
+                                        <tr>
+                                            <th>Commitment Address</th>
+                                            <td>{{ .Ticket.CommitmentAddress }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fee Address Index</th>
+                                            <td>{{ .Ticket.FeeAddressIndex }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fee Address</th>
+                                            <td>
+                                                <a href="{{ addressURL .Ticket.FeeAddress }}">
+                                                    {{ .Ticket.FeeAddress }}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fee Amount</th>
+                                            <td>{{ .Ticket.FeeAmount }} atoms</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fee Expiration</th>
+                                            <td>{{ .Ticket.FeeExpiration }} ({{ dateTime .Ticket.FeeExpiration }}) </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Current Vote Choices</th>
+                                            <td>
+                                                {{ range $key, $value := .Ticket.VoteChoices }}
+                                                    {{ $key }}: {{ $value }} <br />
+                                                {{ end }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>
+                                                Vote Choice Changes<br />
+                                                <em>({{ .MaxVoteChanges }} most recent)</em>
+                                            </th>
+                                            <td>
+                                                {{ range $key, $value := .VoteChanges }}
+                                                <details>
+                                                    <summary>
+                                                        {{ if eq $key 0}}
+                                                            Initial choices
+                                                        {{ else }}
+                                                            Change {{ $key }}
+                                                        {{ end }}
+                                                    </summary>
+                                                    <table class="my-2">
+                                                        <tr>
+                                                            <th>Request</th>
+                                                            <td>{{ indentJSON $value.Request }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Request<br />Signature</th>
+                                                            <td>{{ $value.RequestSignature }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Response</th>
+                                                            <td>{{ indentJSON $value.Response }}</td>
+                                                        </tr>
+                                                        <tr>
+                                                            <th>Response<br />Signature</th>
+                                                            <td>{{ $value.ResponseSignature }}</td>
+                                                        </tr>
+                                                    </table>
+                                                </details>
+                                                {{end}}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Voting WIF</th>
+                                            <td>{{ .Ticket.VotingWIF }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fee Tx Hash</th>
+                                            <td>
+                                                <a href="{{ txURL .Ticket.FeeTxHash }}">
+                                                    {{ .Ticket.FeeTxHash }}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fee Tx</th>
+                                            <td>{{ .Ticket.FeeTxHex }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fee Tx Status</th>
+                                            <td>{{ .Ticket.FeeTxStatus }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Ticket Outcome</th>
+                                            <td>{{ .Ticket.Outcome }}</td>
+                                        </tr>
+                                    </table>
+                                {{ else }}
+                                    <p>No ticket found with hash <span class="code">{{ .Hash }}</span></p>
+                                {{ end }}
+                            {{ end }}
+                        </section>
+
+                    </div>
+                </div>
 
             </div>
         </div>
