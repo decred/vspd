@@ -2,6 +2,7 @@ html, body {
     height: 100%;
 }
 body {
+    overflow-y: overlay;
     background-color: #F3F5F6;
     color: #3D5873;
     display: flex;
@@ -71,7 +72,7 @@ footer .code {
 }
 
 @media (max-width: 768px) {
-    .footer__credit {
+  .footer__credit {
         text-align: center;
     }
 }
@@ -108,13 +109,11 @@ footer .code {
     line-height: 1.4;
 }
 
-.block__content th {
-    font-weight: normal;
-    padding-right: 15px;
-    color: #091440;
-    background-color: #edeff1;
-}
 
+.block__content table td ,
+.block__content table th {
+    padding: 10px 16px;
+}
 .block__content table td {
     word-break: break-word;
     font-family: "vspd-code";
@@ -122,16 +121,30 @@ footer .code {
 
 .block__content table th {
     white-space: nowrap;
+    font-family: "vspd";
+    vertical-align: top;
+    font-weight: normal;
+    background-color: #edeff1;
 }
 
 
-.ticket-table th {
+#ticket-table th,
+#ticket-table td {
+    border-top: 1px solid #dee2e6;
+}
+
+#ticket-table th {
     text-align: right;
 }
-.ticket-table td {
+#ticket-table td {
     font-size: 14px;
     text-align: left;
     padding-right: 0;
+    width: 100%;
+}
+
+#ticket-table details table td {
+    font-size: 12px;
 }
 
 
@@ -140,7 +153,6 @@ footer .code {
     border: 1px solid #edeff1;
     vertical-align: middle;
     text-align: center;
-    padding: 10px 16px;
 }
 
 #status-table .center {
@@ -164,4 +176,71 @@ footer .code {
 
 #status-table .with-text {
     padding-left: 40px;
+}
+
+
+.tabset > input {
+    display:block; /* "enable" hidden elements in IE/edge */
+    position:absolute; /* then hide them off-screen */
+    left:-100%;
+}
+
+.tabset > ul {
+    position:relative;
+    z-index:999;
+    list-style:none;
+    display:flex;
+    padding: 0;
+    margin: 0 0 30px;
+}
+
+.tabset > ul label {
+    display:inline-block;
+    padding: 10px 20px;
+}
+
+.tabset > div {
+    position:relative;
+}
+
+.tabset > input:nth-child(1):focus ~ ul li:nth-child(1) label,
+.tabset > input:nth-child(1):hover ~ ul li:nth-child(1) label,
+.tabset > input:nth-child(2):focus ~ ul li:nth-child(2) label,
+.tabset > input:nth-child(2):hover ~ ul li:nth-child(2) label,
+.tabset > input:nth-child(3):focus ~ ul li:nth-child(3) label,
+.tabset > input:nth-child(3):hover ~ ul li:nth-child(3) label,
+.tabset > input:nth-child(4):focus ~ ul li:nth-child(4) label,
+.tabset > input:nth-child(4):hover ~ ul li:nth-child(4) label,
+.tabset > input:nth-child(5):focus ~ ul li:nth-child(5) label,
+.tabset > input:nth-child(5):hover ~ ul li:nth-child(5) label {
+    cursor: pointer;
+    color: #091440;
+}
+
+.tabset > input:nth-child(1):checked ~ ul li:nth-child(1) label,
+.tabset > input:nth-child(2):checked ~ ul li:nth-child(2) label,
+.tabset > input:nth-child(3):checked ~ ul li:nth-child(3) label,
+.tabset > input:nth-child(4):checked ~ ul li:nth-child(4) label,
+.tabset > input:nth-child(5):checked ~ ul li:nth-child(5) label {
+    border-bottom: 5px solid #2ed8a3;
+    color: #091440;
+    cursor: default;
+}
+
+.tabset > div > section,
+.tabset > div > section h2 {
+    position:absolute;
+    top:-999em;
+    left:-999em;
+}
+.tabset > div > section {
+    padding: 0;
+}
+
+.tabset > input:nth-child(1):checked ~ div > section:nth-child(1),
+.tabset > input:nth-child(2):checked ~ div > section:nth-child(2),
+.tabset > input:nth-child(3):checked ~ div > section:nth-child(3),
+.tabset > input:nth-child(4):checked ~ div > section:nth-child(4),
+.tabset > input:nth-child(5):checked ~ div > section:nth-child(5) {
+    position:static;
 }
