@@ -183,6 +183,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 		"dateTime":   dateTime,
 		"stripWss":   stripWss,
 		"indentJSON": indentJSON,
+		"atomsToDCR": atomsToDCR,
 	})
 
 	router.LoadHTMLGlob("webapi/templates/*.html")
