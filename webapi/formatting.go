@@ -7,6 +7,8 @@ import (
 	"html/template"
 	"strings"
 	"time"
+
+	"github.com/decred/dcrd/dcrutil/v4"
 )
 
 func addressURL(blockExplorerURL string) func(string) string {
@@ -46,4 +48,8 @@ func indentJSON(input string) template.HTML {
 	}
 
 	return template.HTML(indented.String())
+}
+
+func atomsToDCR(atoms int64) string {
+	return dcrutil.Amount(atoms).String()
 }
