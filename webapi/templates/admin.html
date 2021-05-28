@@ -138,6 +138,9 @@
             
                             {{ with .SearchResult }}
                                 {{ if .Found }}
+
+                                    <h1>Ticket</h1>
+
                                     <table id="ticket-table" class="mt-2 mb-4 w-100">
                                         <tr>
                                             <th>Hash</th>
@@ -159,13 +162,22 @@
                                             {{ end }}
                                         </tr>
                                         <tr>
+                                            <th>Ticket Outcome</th>
+                                            <td>{{ .Ticket.Outcome }}</td>
+                                        </tr>
+                                        <tr>
                                             <th>Commitment Address</th>
                                             <td>{{ .Ticket.CommitmentAddress }}</td>
                                         </tr>
                                         <tr>
-                                            <th>Fee Address Index</th>
-                                            <td>{{ .Ticket.FeeAddressIndex }}</td>
+                                            <th>Voting WIF</th>
+                                            <td>{{ .Ticket.VotingWIF }}</td>
                                         </tr>
+                                    </table>
+
+                                    <h1>Fee</h1>
+
+                                    <table id="ticket-table" class="mt-2 mb-4 w-100">
                                         <tr>
                                             <th>Fee Address</th>
                                             <td>
@@ -175,6 +187,10 @@
                                             </td>
                                         </tr>
                                         <tr>
+                                            <th>Fee Address Index</th>
+                                            <td>{{ .Ticket.FeeAddressIndex }}</td>
+                                        </tr>
+                                        <tr>
                                             <th>Fee Amount</th>
                                             <td>{{ .Ticket.FeeAmount }} atoms</td>
                                         </tr>
@@ -182,6 +198,27 @@
                                             <th>Fee Expiration</th>
                                             <td>{{ .Ticket.FeeExpiration }} ({{ dateTime .Ticket.FeeExpiration }}) </td>
                                         </tr>
+                                        <tr>
+                                            <th>Fee Tx Hash</th>
+                                            <td>
+                                                <a href="{{ txURL .Ticket.FeeTxHash }}">
+                                                    {{ .Ticket.FeeTxHash }}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fee Tx</th>
+                                            <td>{{ .Ticket.FeeTxHex }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Fee Tx Status</th>
+                                            <td>{{ .Ticket.FeeTxStatus }}</td>
+                                        </tr>
+                                    </table>
+
+                                    <h1>Voting</h1>
+                                    
+                                    <table id="ticket-table" class="mt-2 mb-4 w-100">
                                         <tr>
                                             <th>Current Vote Choices</th>
                                             <td>
@@ -227,31 +264,8 @@
                                                 {{end}}
                                             </td>
                                         </tr>
-                                        <tr>
-                                            <th>Voting WIF</th>
-                                            <td>{{ .Ticket.VotingWIF }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Fee Tx Hash</th>
-                                            <td>
-                                                <a href="{{ txURL .Ticket.FeeTxHash }}">
-                                                    {{ .Ticket.FeeTxHash }}
-                                                </a>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th>Fee Tx</th>
-                                            <td>{{ .Ticket.FeeTxHex }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Fee Tx Status</th>
-                                            <td>{{ .Ticket.FeeTxStatus }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th>Ticket Outcome</th>
-                                            <td>{{ .Ticket.Outcome }}</td>
-                                        </tr>
                                     </table>
+
                                 {{ else }}
                                     <p>No ticket found with hash <span class="code">{{ .Hash }}</span></p>
                                 {{ end }}
