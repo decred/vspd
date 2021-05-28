@@ -167,7 +167,11 @@
                                         </tr>
                                         <tr>
                                             <th>Commitment Address</th>
-                                            <td>{{ .Ticket.CommitmentAddress }}</td>
+                                            <td>
+                                                <a href="{{ addressURL .Ticket.CommitmentAddress }}">
+                                                    {{ .Ticket.CommitmentAddress }}
+                                                </a>
+                                            </td>
                                         </tr>
                                         <tr>
                                             <th>Voting WIF</th>
