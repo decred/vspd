@@ -105,6 +105,18 @@ func bytesToUint32(bytes []byte) uint32 {
 	return binary.LittleEndian.Uint32(bytes)
 }
 
+func bytesToBool(bytes []byte) bool {
+	return bytes[0] == 1
+}
+
+func boolToBytes(b bool) []byte {
+	if b {
+		return []byte{1}
+	}
+
+	return []byte{0}
+}
+
 // CreateNew intializes a new bbolt database with all of the necessary vspd
 // buckets, and inserts:
 // - the provided extended pubkey (to be used for deriving fee addresses).

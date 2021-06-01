@@ -238,7 +238,7 @@ func testFilterTickets(t *testing.T) {
 
 	// Only one ticket should be confirmed.
 	retrieved, err = db.filterTickets(func(t *bolt.Bucket) bool {
-		return t.Get(confirmedK)[0] == byte(1)
+		return bytesToBool(t.Get(confirmedK))
 	})
 	if err != nil {
 		t.Fatalf("error filtering tickets: %v", err)

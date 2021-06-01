@@ -172,12 +172,7 @@ func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 	if err = bkt.Put(feeExpirationK, int64ToBytes(ticket.FeeExpiration)); err != nil {
 		return err
 	}
-
-	confirmed := []byte{0}
-	if ticket.Confirmed {
-		confirmed = []byte{1}
-	}
-	if err = bkt.Put(confirmedK, confirmed); err != nil {
+	if err = bkt.Put(confirmedK, boolToBytes(ticket.Confirmed)); err != nil {
 		return err
 	}
 
@@ -205,10 +200,7 @@ func getTicketFromBkt(bkt *bolt.Bucket) (Ticket, error) {
 	ticket.FeeAmount = bytesToInt64(bkt.Get(feeAmountK))
 	ticket.FeeExpiration = bytesToInt64(bkt.Get(feeExpirationK))
 
-	// TODO is this dodgy?
-	if bkt.Get(confirmedK)[0] == byte(1) {
-		ticket.Confirmed = true
-	}
+	ticket.Confirmed = bytesToBool(bkt.Get(confirmedK))
 
 	ticket.VoteChoices = make(map[string]string)
 	err := json.Unmarshal(bkt.Get(voteChoicesK), &ticket.VoteChoices)
@@ -316,7 +308,7 @@ func (vdb *VspDatabase) GetUnconfirmedTickets() ([]Ticket, error) {
 	defer vdb.ticketsMtx.RUnlock()
 
 	return vdb.filterTickets(func(t *bolt.Bucket) bool {
-		return t.Get(confirmedK)[0] == byte(0)
+		return !bytesToBool(t.Get(confirmedK))
 	})
 }
 
@@ -327,7 +319,7 @@ func (vdb *VspDatabase) GetPendingFees() ([]Ticket, error) {
 	defer vdb.ticketsMtx.RUnlock()
 
 	return vdb.filterTickets(func(t *bolt.Bucket) bool {
-		return t.Get(confirmedK)[0] == byte(1) && FeeStatus(t.Get(feeTxStatusK)) == FeeReceieved
+		return bytesToBool(t.Get(confirmedK)) && FeeStatus(t.Get(feeTxStatusK)) == FeeReceieved
 	})
 }
 
