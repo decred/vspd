@@ -15,16 +15,17 @@ import (
 func vspInfo(c *gin.Context) {
 	cachedStats := getVSPStats()
 	sendJSONResponse(vspInfoResponse{
-		APIVersions:   []int64{3},
-		Timestamp:     time.Now().Unix(),
-		PubKey:        signPubKey,
-		FeePercentage: cfg.VSPFee,
-		Network:       cfg.NetParams.Name,
-		VspClosed:     cfg.VspClosed,
-		VspdVersion:   version.String(),
-		Voting:        cachedStats.Voting,
-		Voted:         cachedStats.Voted,
-		Revoked:       cachedStats.Revoked,
-		BlockHeight:   cachedStats.BlockHeight,
+		APIVersions:       []int64{3},
+		Timestamp:         time.Now().Unix(),
+		PubKey:            signPubKey,
+		FeePercentage:     cfg.VSPFee,
+		Network:           cfg.NetParams.Name,
+		VspClosed:         cfg.VspClosed,
+		VspdVersion:       version.String(),
+		Voting:            cachedStats.Voting,
+		Voted:             cachedStats.Voted,
+		Revoked:           cachedStats.Revoked,
+		BlockHeight:       cachedStats.BlockHeight,
+		NetworkProportion: cachedStats.NetworkProportion,
 	}, c)
 }

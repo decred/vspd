@@ -53,3 +53,7 @@ func indentJSON(input string) template.HTML {
 func atomsToDCR(atoms int64) string {
 	return dcrutil.Amount(atoms).String()
 }
+
+func floatToPercent(input float64) string {
+	return fmt.Sprintf("%.2f%%", input*100)
+}

@@ -27,6 +27,11 @@
         <div class="stat-value">{{ .Network }}</div>
     </div>
 
+    <div class="col-6 col-sm-4 col-lg-2 py-3">
+        <div class="stat-title">Network Proportion</div>
+        <div class="stat-value">{{ floatToPercent .NetworkProportion }}</div>
+    </div>
+
 </div>
 
 {{ end }}

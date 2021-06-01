@@ -224,17 +224,6 @@ func (c *DcrdRPC) CanTicketVote(rawTx *dcrdtypes.TxRawResult, ticketHash string,
 	return live, nil
 }
 
-// GetBestBlockHeight uses getblockcount RPC to query the height of the best
-// block known by the dcrd instance.
-func (c *DcrdRPC) GetBestBlockHeight() (int64, error) {
-	var height int64
-	err := c.Call(c.ctx, "getblockcount", &height)
-	if err != nil {
-		return 0, err
-	}
-	return height, nil
-}
-
 // ParseBlockConnectedNotification extracts the block header from a
 // blockconnected JSON-RPC notification.
 func ParseBlockConnectedNotification(params json.RawMessage) (*wire.BlockHeader, error) {

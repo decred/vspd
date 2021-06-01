@@ -21,18 +21,19 @@ import (
 // vspStats is used to cache values which are commonly used by the API, so
 // repeated web requests don't repeatedly trigger DB or RPC calls.
 type vspStats struct {
-	PubKey       string
-	Voting       int64
-	Voted        int64
-	Revoked      int64
-	VSPFee       float64
-	Network      string
-	UpdateTime   string
-	SupportEmail string
-	VspClosed    bool
-	Debug        bool
-	Designation  string
-	BlockHeight  int64
+	PubKey            string
+	Voting            int64
+	Voted             int64
+	Revoked           int64
+	VSPFee            float64
+	Network           string
+	UpdateTime        string
+	SupportEmail      string
+	VspClosed         bool
+	Debug             bool
+	Designation       string
+	BlockHeight       uint32
+	NetworkProportion float64
 }
 
 var statsMtx sync.RWMutex
@@ -80,7 +81,7 @@ func updateVSPStats(ctx context.Context, db *database.VspDatabase,
 		return err
 	}
 
-	blockHeight, err := dcrdClient.GetBestBlockHeight()
+	bestBlock, err := dcrdClient.GetBestBlockHeader()
 	if err != nil {
 		return err
 	}
@@ -92,7 +93,8 @@ func updateVSPStats(ctx context.Context, db *database.VspDatabase,
 	stats.Voting = voting
 	stats.Voted = voted
 	stats.Revoked = revoked
-	stats.BlockHeight = blockHeight
+	stats.BlockHeight = bestBlock.Height
+	stats.NetworkProportion = float64(voting) / float64(bestBlock.PoolSize)
 
 	return nil
 }
