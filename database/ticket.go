@@ -315,8 +315,8 @@ func (vdb *VspDatabase) GetUnconfirmedTickets() ([]Ticket, error) {
 	vdb.ticketsMtx.RLock()
 	defer vdb.ticketsMtx.RUnlock()
 
-	return vdb.filterTickets(func(t Ticket) bool {
-		return !t.Confirmed
+	return vdb.filterTickets(func(t *bolt.Bucket) bool {
+		return t.Get(confirmedK)[0] == byte(0)
 	})
 }
 
@@ -326,8 +326,8 @@ func (vdb *VspDatabase) GetPendingFees() ([]Ticket, error) {
 	vdb.ticketsMtx.RLock()
 	defer vdb.ticketsMtx.RUnlock()
 
-	return vdb.filterTickets(func(t Ticket) bool {
-		return t.Confirmed && t.FeeTxStatus == FeeReceieved
+	return vdb.filterTickets(func(t *bolt.Bucket) bool {
+		return t.Get(confirmedK)[0] == byte(1) && FeeStatus(t.Get(feeTxStatusK)) == FeeReceieved
 	})
 }
 
@@ -337,16 +337,16 @@ func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
 	vdb.ticketsMtx.RLock()
 	defer vdb.ticketsMtx.RUnlock()
 
-	return vdb.filterTickets(func(t Ticket) bool {
-		return t.FeeTxStatus == FeeBroadcast
+	return vdb.filterTickets(func(t *bolt.Bucket) bool {
+		return FeeStatus(t.Get(feeTxStatusK)) == FeeBroadcast
 	})
 }
 
 // GetVotableTickets returns tickets with a confirmed fee tx and no outcome (ie.
 // not expired/voted/missed).
 func (vdb *VspDatabase) GetVotableTickets() ([]Ticket, error) {
-	return vdb.filterTickets(func(t Ticket) bool {
-		return t.FeeTxStatus == FeeConfirmed && t.Outcome == ""
+	return vdb.filterTickets(func(t *bolt.Bucket) bool {
+		return FeeStatus(t.Get(feeTxStatusK)) == FeeConfirmed && TicketOutcome(t.Get(outcomeK)) == ""
 	})
 }
 
@@ -354,18 +354,19 @@ func (vdb *VspDatabase) GetVotableTickets() ([]Ticket, error) {
 // database which match the filter.
 //
 // This function must be called with the lock held.
-func (vdb *VspDatabase) filterTickets(filter func(Ticket) bool) ([]Ticket, error) {
+func (vdb *VspDatabase) filterTickets(filter func(*bolt.Bucket) bool) ([]Ticket, error) {
 	var tickets []Ticket
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
 		return ticketBkt.ForEach(func(k, v []byte) error {
-			ticket, err := getTicketFromBkt(ticketBkt.Bucket(k))
-			if err != nil {
-				return fmt.Errorf("could not get ticket: %w", err)
-			}
+			ticketBkt := ticketBkt.Bucket(k)
 
-			if filter(ticket) {
+			if filter(ticketBkt) {
+				ticket, err := getTicketFromBkt(ticketBkt)
+				if err != nil {
+					return fmt.Errorf("could not get ticket: %w", err)
+				}
 				tickets = append(tickets, ticket)
 			}
 
