@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	bolt "go.etcd.io/bbolt"
 )
 
 var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -224,7 +226,7 @@ func testFilterTickets(t *testing.T) {
 	}
 
 	// Expect all tickets returned.
-	retrieved, err := db.filterTickets(func(t Ticket) bool {
+	retrieved, err := db.filterTickets(func(t *bolt.Bucket) bool {
 		return true
 	})
 	if err != nil {
@@ -235,8 +237,8 @@ func testFilterTickets(t *testing.T) {
 	}
 
 	// Only one ticket should be confirmed.
-	retrieved, err = db.filterTickets(func(t Ticket) bool {
-		return t.Confirmed
+	retrieved, err = db.filterTickets(func(t *bolt.Bucket) bool {
+		return t.Get(confirmedK)[0] == byte(1)
 	})
 	if err != nil {
 		t.Fatalf("error filtering tickets: %v", err)
@@ -249,8 +251,8 @@ func testFilterTickets(t *testing.T) {
 	}
 
 	// Expect no tickets with confirmed fee.
-	retrieved, err = db.filterTickets(func(t Ticket) bool {
-		return t.FeeTxStatus == FeeConfirmed
+	retrieved, err = db.filterTickets(func(t *bolt.Bucket) bool {
+		return FeeStatus(t.Get(feeTxStatusK)) == FeeConfirmed
 	})
 	if err != nil {
 		t.Fatalf("error filtering tickets: %v", err)
