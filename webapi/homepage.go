@@ -33,7 +33,7 @@ type vspStats struct {
 	Debug             bool
 	Designation       string
 	BlockHeight       uint32
-	NetworkProportion float64
+	NetworkProportion float32
 }
 
 var statsMtx sync.RWMutex
@@ -94,7 +94,7 @@ func updateVSPStats(ctx context.Context, db *database.VspDatabase,
 	stats.Voted = voted
 	stats.Revoked = revoked
 	stats.BlockHeight = bestBlock.Height
-	stats.NetworkProportion = float64(voting) / float64(bestBlock.PoolSize)
+	stats.NetworkProportion = float32(voting) / float32(bestBlock.PoolSize)
 
 	return nil
 }
