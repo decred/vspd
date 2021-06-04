@@ -6,22 +6,17 @@ package webapi
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/decred/dcrd/blockchain/v4"
 	"github.com/decred/dcrd/dcrutil/v4"
-	"github.com/decred/dcrd/txscript/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-)
-
-const (
-	// Assume the treasury is enabled
-	isTreasuryEnabled = true
 )
 
 // payFee is the handler for "POST /api/v3/payfee".
@@ -169,6 +164,7 @@ func payFee(c *gin.Context) {
 		return
 	}
 
+	// Decode the provided voting WIF to get its voting rights script.
 	pkHash := stdaddr.Hash160(votingWIF.PubKey())
 	wifAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1V0(pkHash, cfg.NetParams)
 	if err != nil {
@@ -178,7 +174,9 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	// Decode ticket transaction to get its voting address.
+	wantScriptVer, wantScript = wifAddr.VotingRightsScript()
+
+	// Decode ticket transaction to get its voting rights script.
 	ticketTx, err := decodeTransaction(rawTicket.Hex)
 	if err != nil {
 		log.Warnf("%s: Failed to decode ticket hex (ticketHash=%s): %v",
@@ -187,25 +185,14 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	const scriptVersion = 0
+	actualScriptVer := ticketTx.TxOut[0].Version
+	actualScript := ticketTx.TxOut[0].PkScript
 
-	// Get ticket voting address.
-	_, votingAddr, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, ticketTx.TxOut[0].PkScript, cfg.NetParams, isTreasuryEnabled)
-	if err != nil {
-		log.Errorf("%s: ExtractPK error (ticketHash=%s): %v", funcName, ticket.Hash, err)
-		sendError(errInternalError, c)
-		return
-	}
-	if len(votingAddr) == 0 {
-		log.Error("%s: No voting address found for ticket (ticketHash=%s)", funcName, ticket.Hash)
-		sendError(errInternalError, c)
-		return
-	}
-
-	// Ensure provided private key will allow us to vote this ticket.
-	if votingAddr[0].String() != wifAddr.String() {
-		log.Warnf("%s: Voting address does not match provided private key: (ticketHash=%s, votingAddr=%+v, wifAddr=%+v)",
-			funcName, ticket.Hash, votingAddr[0], wifAddr)
+	// Ensure provided voting WIF matches the actual voting address of the
+	// ticket. Both script and script version should match.
+	if actualScriptVer != wantScriptVer || !bytes.Equal(actualScript, wantScript) {
+		log.Warnf("%s: Voting address does not match provided private key: (ticketHash=%s)",
+			funcName, ticket.Hash)
 		sendErrorWithMsg("voting address does not match provided private key",
 			errInvalidPrivKey, c)
 		return
