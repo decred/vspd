@@ -5,6 +5,7 @@
 package webapi
 
 import (
+	"bytes"
 	"strings"
 	"time"
 
@@ -128,39 +129,43 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	// Loop through transaction outputs until we find one which pays to the
-	// expected fee address. Record how much is being paid to the fee address.
-	var feePaid dcrutil.Amount
-	const scriptVersion = 0
+	// Decode fee address to get its payment script details.
+	feeAddr, err := stdaddr.DecodeAddress(ticket.FeeAddress, cfg.NetParams)
+	if err != nil {
+		log.Errorf("%s: Failed to decode fee address (ticketHash=%s): %v",
+			funcName, ticket.Hash, err)
+		sendError(errInternalError, c)
+		return
+	}
 
-findAddress:
+	wantScriptVer, wantScript := feeAddr.PaymentScript()
+
+	// Confirm the provided fee transaction contains an output which pays to the
+	// expected payment script. Both script and script version should match.
+	var feePaid dcrutil.Amount
 	for _, txOut := range feeTx.TxOut {
-		if txOut.Version != scriptVersion {
-			log.Errorf("%s: Fee tx with invalid script version (clientIP=%s, ticketHash=%s): was %d, expected %d",
-				funcName, c.ClientIP(), ticket.Hash, txOut.Version, scriptVersion)
-			sendErrorWithMsg("invalid script version", errInvalidFeeTx, c)
-			return
-		}
-		_, addresses, _, err := txscript.ExtractPkScriptAddrs(scriptVersion,
-			txOut.PkScript, cfg.NetParams, isTreasuryEnabled)
-		if err != nil {
-			log.Errorf("%s: Extract PK error (clientIP=%s, ticketHash=%s): %v",
-				funcName, c.ClientIP(), ticket.Hash, err)
-			sendError(errInternalError, c)
-			return
-		}
-		for _, addr := range addresses {
-			if addr.String() == ticket.FeeAddress {
-				feePaid = dcrutil.Amount(txOut.Value)
-				break findAddress
-			}
+		if txOut.Version == wantScriptVer && bytes.Equal(txOut.PkScript, wantScript) {
+			feePaid = dcrutil.Amount(txOut.Value)
+			break
 		}
 	}
 
+	// Confirm a fee payment was found.
 	if feePaid == 0 {
 		log.Warnf("%s: Fee tx did not include expected payment (ticketHash=%s, feeAddress=%s, clientIP=%s)",
 			funcName, ticket.Hash, ticket.FeeAddress, c.ClientIP())
-		sendErrorWithMsg("feetx did not include any payments for fee address", errInvalidFeeTx, c)
+		sendErrorWithMsg(
+			fmt.Sprintf("feetx did not include any payments for fee address %s", ticket.FeeAddress),
+			errInvalidFeeTx, c)
+		return
+	}
+
+	// Confirm fee payment is equal to or larger than the minimum expected.
+	minFee := dcrutil.Amount(ticket.FeeAmount)
+	if feePaid < minFee {
+		log.Warnf("%s: Fee too small (ticketHash=%s, clientIP=%s): was %s, expected minimum %s",
+			funcName, ticket.Hash, c.ClientIP(), feePaid, minFee)
+		sendError(errFeeTooSmall, c)
 		return
 	}
 
@@ -182,6 +187,8 @@ findAddress:
 		return
 	}
 
+	const scriptVersion = 0
+
 	// Get ticket voting address.
 	_, votingAddr, _, err := txscript.ExtractPkScriptAddrs(scriptVersion, ticketTx.TxOut[0].PkScript, cfg.NetParams, isTreasuryEnabled)
 	if err != nil {
@@ -201,14 +208,6 @@ findAddress:
 			funcName, ticket.Hash, votingAddr[0], wifAddr)
 		sendErrorWithMsg("voting address does not match provided private key",
 			errInvalidPrivKey, c)
-		return
-	}
-
-	minFee := dcrutil.Amount(ticket.FeeAmount)
-	if feePaid < minFee {
-		log.Warnf("%s: Fee too small (ticketHash=%s, clientIP=%s): was %s, expected minimum %s",
-			funcName, ticket.Hash, c.ClientIP(), feePaid, minFee)
-		sendError(errFeeTooSmall, c)
 		return
 	}
 
