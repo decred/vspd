@@ -35,6 +35,7 @@ type Config struct {
 	Debug                bool
 	Designation          string
 	MaxVoteChangeRecords int
+	VspdVersion          string
 }
 
 const (

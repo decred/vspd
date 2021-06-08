@@ -94,6 +94,7 @@ func run(ctx context.Context) error {
 		Debug:                cfg.WebServerDebug,
 		Designation:          cfg.Designation,
 		MaxVoteChangeRecords: maxVoteChangeRecords,
+		VspdVersion:          version.String(),
 	}
 	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
 		dcrd, wallets, apiCfg)

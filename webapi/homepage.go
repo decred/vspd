@@ -35,6 +35,7 @@ type vspStats struct {
 	BlockHeight       uint32
 	NetworkProportion float32
 	RevokedProportion float32
+	VspdVersion       string
 }
 
 var statsMtx sync.RWMutex
@@ -62,6 +63,7 @@ func initVSPStats() {
 		VspClosed:    cfg.VspClosed,
 		Debug:        cfg.Debug,
 		Designation:  cfg.Designation,
+		VspdVersion:  cfg.VspdVersion,
 	}
 }
 

@@ -8,9 +8,9 @@
         <title>Decred VSP - {{ .VspStats.Designation }}</title>
 
         <link rel="stylesheet" href="/public/css/vendor/bootstrap.min.css" />
-        <link rel="stylesheet" href="/public/css/vspd.css" />
+        <link rel="stylesheet" href="/public/css/vspd.css?v={{ .VspStats.VspdVersion }}" />
         <!-- fonts.css should be last to ensure dcr fonts take precedence. -->
-        <link rel="stylesheet" href="/public/css/fonts.css" />
+        <link rel="stylesheet" href="/public/css/fonts.css?v={{ .VspStats.VspdVersion }}" />
 
         <!--  Custom favicon  -->
         <!-- Apple PWA -->
