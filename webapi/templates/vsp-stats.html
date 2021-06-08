@@ -14,7 +14,10 @@
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Revoked tickets</div>
-        <div class="stat-value">{{ .Revoked }}</div>
+        <div class="stat-value">
+            {{ .Revoked }}
+            <span class="text-muted">({{ float32ToPercent .RevokedProportion }})</span>
+        </div>
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
