@@ -54,7 +54,8 @@ when a VSP is closed will result in an error.
         "voting":10,
         "voted":25,
         "revoked":3,
-        "blockheight":623212
+        "blockheight":623212,
+        "estimatednetworkproportion":0.048478414
     }
     ```
 

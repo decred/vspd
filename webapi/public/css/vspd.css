@@ -53,6 +53,11 @@ body {
     color: #091440;
 }
 
+.vsp-stats .stat-value .text-muted{
+    font-size: 18px;
+    color: #8997A5;
+}
+
 footer {
     flex-shrink: 0;
     font-size: 0.8rem;

@@ -5,17 +5,18 @@
 package webapi
 
 type vspInfoResponse struct {
-	APIVersions   []int64 `json:"apiversions"`
-	Timestamp     int64   `json:"timestamp"`
-	PubKey        []byte  `json:"pubkey"`
-	FeePercentage float64 `json:"feepercentage"`
-	VspClosed     bool    `json:"vspclosed"`
-	Network       string  `json:"network"`
-	VspdVersion   string  `json:"vspdversion"`
-	Voting        int64   `json:"voting"`
-	Voted         int64   `json:"voted"`
-	Revoked       int64   `json:"revoked"`
-	BlockHeight   int64   `json:"blockheight"`
+	APIVersions       []int64 `json:"apiversions"`
+	Timestamp         int64   `json:"timestamp"`
+	PubKey            []byte  `json:"pubkey"`
+	FeePercentage     float64 `json:"feepercentage"`
+	VspClosed         bool    `json:"vspclosed"`
+	Network           string  `json:"network"`
+	VspdVersion       string  `json:"vspdversion"`
+	Voting            int64   `json:"voting"`
+	Voted             int64   `json:"voted"`
+	Revoked           int64   `json:"revoked"`
+	BlockHeight       uint32  `json:"blockheight"`
+	NetworkProportion float32 `json:"estimatednetworkproportion"`
 }
 
 type feeAddressRequest struct {
