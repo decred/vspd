@@ -5,9 +5,16 @@
 
         {{ if .VspStats.VspClosed }}
             <div class="alert alert-danger">
-                <h4 class="alert-heading">This Voting Service Provider is closed</h4>
-                A closed VSP will still vote on tickets with already paid fees, but will not accept new any tickets.
-                Visit <a href="https://decred.org/vsp/" class="alert-link" target="_blank" rel="noopener noreferrer">decred.org</a> to find a new VSP.
+                <h4 class="alert-heading mb-3">
+                    This Voting Service Provider is closed
+                </h4>
+                <p>
+                    {{ .VspStats.VspClosedMsg }}
+                </p>
+                <p>
+                    A closed VSP will still vote on tickets with already paid fees, but will not accept new any tickets.
+                    Visit <a href="https://decred.org/vsp/" class="alert-link" target="_blank" rel="noopener noreferrer">decred.org</a> to find a new VSP.
+                </p>
             </div>
         {{ end }}
 

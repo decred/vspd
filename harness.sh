@@ -151,6 +151,7 @@ webserverdebug = false
 supportemail = example@test.com
 backupinterval = 3m0s
 vspclosed = false
+vspclosedmsg = Your tickets are no longer welcome here. Please go away.
 adminpass=12345
 designation = harness
 EOF

@@ -10,6 +10,7 @@ type vspInfoResponse struct {
 	PubKey            []byte  `json:"pubkey"`
 	FeePercentage     float64 `json:"feepercentage"`
 	VspClosed         bool    `json:"vspclosed"`
+	VspClosedMsg      string  `json:"vspclosedmsg"`
 	Network           string  `json:"network"`
 	VspdVersion       string  `json:"vspdversion"`
 	Voting            int64   `json:"voting"`

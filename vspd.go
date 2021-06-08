@@ -90,6 +90,7 @@ func run(ctx context.Context) error {
 		BlockExplorerURL:     cfg.netParams.BlockExplorerURL,
 		SupportEmail:         cfg.SupportEmail,
 		VspClosed:            cfg.VspClosed,
+		VspClosedMsg:         cfg.VspClosedMsg,
 		AdminPass:            cfg.AdminPass,
 		Debug:                cfg.WebServerDebug,
 		Designation:          cfg.Designation,

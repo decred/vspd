@@ -21,6 +21,7 @@ func vspInfo(c *gin.Context) {
 		FeePercentage:     cfg.VSPFee,
 		Network:           cfg.NetParams.Name,
 		VspClosed:         cfg.VspClosed,
+		VspClosedMsg:      cfg.VspClosedMsg,
 		VspdVersion:       version.String(),
 		Voting:            cachedStats.Voting,
 		Voted:             cachedStats.Voted,
