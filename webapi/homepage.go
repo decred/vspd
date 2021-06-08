@@ -30,6 +30,7 @@ type vspStats struct {
 	UpdateTime        string
 	SupportEmail      string
 	VspClosed         bool
+	VspClosedMsg      string
 	Debug             bool
 	Designation       string
 	BlockHeight       uint32
@@ -61,6 +62,7 @@ func initVSPStats() {
 		Network:      cfg.NetParams.Name,
 		SupportEmail: cfg.SupportEmail,
 		VspClosed:    cfg.VspClosed,
+		VspClosedMsg: cfg.VspClosedMsg,
 		Debug:        cfg.Debug,
 		Designation:  cfg.Designation,
 		VspdVersion:  cfg.VspdVersion,

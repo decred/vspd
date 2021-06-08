@@ -62,6 +62,7 @@ type config struct {
 	SupportEmail    string        `long:"supportemail" ini-name:"supportemail" description:"Email address for users in need of support."`
 	BackupInterval  time.Duration `long:"backupinterval" ini-name:"backupinterval" description:"Time period between automatic database backups. Valid time units are {s,m,h}. Minimum 30 seconds."`
 	VspClosed       bool          `long:"vspclosed" ini-name:"vspclosed" description:"Closed prevents the VSP from accepting new tickets."`
+	VspClosedMsg    string        `long:"vspclosedmsg" ini-name:"vspclosedmsg" description:"A short message displayed on the webpage and returned by the status API endpoint if vspdclosed is true."`
 	AdminPass       string        `long:"adminpass" ini-name:"adminpass" description:"Password for accessing admin page."`
 	Designation     string        `long:"designation" ini-name:"designation" description:"Short name for the VSP. Customizes the logo in the top toolbar."`
 
@@ -292,6 +293,11 @@ func loadConfig() (*config, error) {
 		return nil, errors.New("invalid vspfee - should be greater than 0.01 and less than 100.0")
 	}
 
+	// If VSP is not closed, ignore any provided closure message.
+	if !cfg.VspClosed {
+		cfg.VspClosedMsg = ""
+	}
+
 	// Ensure the support email address is set.
 	if cfg.SupportEmail == "" {
 		return nil, errors.New("the supportemail option is not set")
@@ -409,7 +415,7 @@ func loadConfig() (*config, error) {
 		// If database already exists, return error.
 		if fileExists(cfg.dbPath) {
 			return nil, fmt.Errorf("database already initialized at %s, "+
-				"--feexpub option is not needed.", cfg.dbPath)
+				"--feexpub option is not needed", cfg.dbPath)
 		}
 
 		// Ensure provided value is a valid key for the selected network.
@@ -431,7 +437,7 @@ func loadConfig() (*config, error) {
 		// If database does not exist, return error.
 		if !fileExists(cfg.dbPath) {
 			return nil, fmt.Errorf("no database exists in %s. Run vspd with the"+
-				" --feexpub option to initialize one.", dataDir)
+				" --feexpub option to initialize one", dataDir)
 		}
 	}
 

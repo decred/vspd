@@ -31,6 +31,7 @@ type Config struct {
 	FeeAccountName       string
 	SupportEmail         string
 	VspClosed            bool
+	VspClosedMsg         string
 	AdminPass            string
 	Debug                bool
 	Designation          string
