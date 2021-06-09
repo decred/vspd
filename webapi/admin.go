@@ -98,6 +98,7 @@ func statusJSON(c *gin.Context) {
 func adminPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"VspStats":     getVSPStats(),
+		"WebApiCfg":    cfg,
 		"WalletStatus": walletStatus(c),
 	})
 }
@@ -130,6 +131,7 @@ func ticketSearch(c *gin.Context) {
 			MaxVoteChanges: cfg.MaxVoteChangeRecords,
 		},
 		"VspStats":     getVSPStats(),
+		"WebApiCfg":    cfg,
 		"WalletStatus": walletStatus(c),
 	})
 }
@@ -143,6 +145,7 @@ func adminLogin(c *gin.Context) {
 		log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"VspStats":          getVSPStats(),
+			"WebApiCfg":         cfg,
 			"IncorrectPassword": true,
 		})
 		return

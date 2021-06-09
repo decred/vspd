@@ -21,28 +21,20 @@ import (
 // vspStats is used to cache values which are commonly used by the API, so
 // repeated web requests don't repeatedly trigger DB or RPC calls.
 type vspStats struct {
+	UpdateTime        string
 	PubKey            string
 	Voting            int64
 	Voted             int64
 	Revoked           int64
-	VSPFee            float64
-	Network           string
-	UpdateTime        string
-	SupportEmail      string
-	VspClosed         bool
-	VspClosedMsg      string
-	Debug             bool
-	Designation       string
 	BlockHeight       uint32
 	NetworkProportion float32
 	RevokedProportion float32
-	VspdVersion       string
 }
 
 var statsMtx sync.RWMutex
-var stats *vspStats
+var stats vspStats
 
-func getVSPStats() *vspStats {
+func getVSPStats() vspStats {
 	statsMtx.RLock()
 	defer statsMtx.RUnlock()
 
@@ -52,20 +44,11 @@ func getVSPStats() *vspStats {
 // initVSPStats creates the struct which holds the cached VSP stats, and
 // initializes it with static values.
 func initVSPStats() {
-
 	statsMtx.Lock()
 	defer statsMtx.Unlock()
 
-	stats = &vspStats{
-		PubKey:       base64.StdEncoding.EncodeToString(signPubKey),
-		VSPFee:       cfg.VSPFee,
-		Network:      cfg.NetParams.Name,
-		SupportEmail: cfg.SupportEmail,
-		VspClosed:    cfg.VspClosed,
-		VspClosedMsg: cfg.VspClosedMsg,
-		Debug:        cfg.Debug,
-		Designation:  cfg.Designation,
-		VspdVersion:  cfg.VspdVersion,
+	stats = vspStats{
+		PubKey: base64.StdEncoding.EncodeToString(signPubKey),
 	}
 }
 
@@ -107,6 +90,7 @@ func updateVSPStats(ctx context.Context, db *database.VspDatabase,
 
 func homepage(c *gin.Context) {
 	c.HTML(http.StatusOK, "homepage.html", gin.H{
-		"VspStats": getVSPStats(),
+		"VspStats":  getVSPStats(),
+		"WebApiCfg": cfg,
 	})
 }
