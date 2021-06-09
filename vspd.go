@@ -105,8 +105,9 @@ func run(ctx context.Context) error {
 	}
 
 	// Create a dcrd client with a blockconnected notification handler.
+	notifHandler := background.NotificationHandler{ShutdownWg: &shutdownWg}
 	dcrdWithNotifs := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass,
-		cfg.DcrdHost, cfg.dcrdCert, &background.NotificationHandler{})
+		cfg.DcrdHost, cfg.dcrdCert, &notifHandler)
 	defer dcrdWithNotifs.Close()
 
 	// Start background process which will continually attempt to reconnect to

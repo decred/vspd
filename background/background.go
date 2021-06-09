@@ -26,7 +26,9 @@ var (
 	notifierClosed chan struct{}
 )
 
-type NotificationHandler struct{}
+type NotificationHandler struct {
+	ShutdownWg *sync.WaitGroup
+}
 
 const (
 	// consistencyInterval is the time period between wallet consistency checks.
@@ -41,6 +43,9 @@ const (
 // because that will cause the client to close and no further notifications will
 // be received until a new connection is established.
 func (n *NotificationHandler) Notify(method string, params json.RawMessage) error {
+	n.ShutdownWg.Add(1)
+	defer n.ShutdownWg.Done()
+
 	if method != "blockconnected" {
 		return nil
 	}
