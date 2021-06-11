@@ -130,7 +130,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 
 	// Start webserver.
 	go func() {
-		err = srv.Serve(listener)
+		err := srv.Serve(listener)
 		// If the server dies for any reason other than ErrServerClosed (from
 		// graceful server.Shutdown), log the error and request vspd be
 		// shutdown.
@@ -157,7 +157,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 				shutdownWg.Done()
 				return
 			case <-ticker.C:
-				err = updateCache(ctx, vdb, dcrd, config.NetParams)
+				err := updateCache(ctx, vdb, dcrd, config.NetParams)
 				if err != nil {
 					log.Errorf("Failed to update cached VSP stats: %v", err)
 				}
