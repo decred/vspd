@@ -4,19 +4,19 @@
     
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Live tickets</div>
-        <div class="stat-value">{{ .VspStats.Voting }}</div>
+        <div class="stat-value">{{ .WebApiCache.Voting }}</div>
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Voted tickets</div>
-        <div class="stat-value">{{ .VspStats.Voted }}</div>
+        <div class="stat-value">{{ .WebApiCache.Voted }}</div>
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Revoked tickets</div>
         <div class="stat-value">
-            {{ .VspStats.Revoked }}
-            <span class="text-muted">({{ float32ToPercent .VspStats.RevokedProportion }})</span>
+            {{ .WebApiCache.Revoked }}
+            <span class="text-muted">({{ float32ToPercent .WebApiCache.RevokedProportion }})</span>
         </div>
     </div>
 
@@ -32,7 +32,7 @@
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Network Proportion</div>
-        <div class="stat-value">{{ float32ToPercent .VspStats.NetworkProportion }}</div>
+        <div class="stat-value">{{ float32ToPercent .WebApiCache.NetworkProportion }}</div>
     </div>
 
 </div>

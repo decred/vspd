@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -69,8 +69,8 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 	}
 
 	// Populate cached VSP stats before starting webserver.
-	initVSPStats()
-	err = updateVSPStats(ctx, vdb, dcrd, config.NetParams)
+	initCache()
+	err = updateCache(ctx, vdb, dcrd, config.NetParams)
 	if err != nil {
 		log.Errorf("Could not initialize VSP stats cache: %v", err)
 	}
@@ -157,7 +157,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 				shutdownWg.Done()
 				return
 			case <-ticker.C:
-				err = updateVSPStats(ctx, vdb, dcrd, config.NetParams)
+				err = updateCache(ctx, vdb, dcrd, config.NetParams)
 				if err != nil {
 					log.Errorf("Failed to update cached VSP stats: %v", err)
 				}
