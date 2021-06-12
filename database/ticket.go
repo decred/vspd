@@ -271,6 +271,17 @@ func (vdb *VspDatabase) GetTicketByHash(ticketHash string) (Ticket, bool, error)
 	return ticket, found, err
 }
 
+// Size returns the current size of the database in bytes. Note that this may
+// not exactly match the size of the database file stored on disk.
+func (vdb *VspDatabase) Size() (uint64, error) {
+	var size uint64
+	err := vdb.db.View(func(tx *bolt.Tx) error {
+		size = uint64(tx.Size())
+		return nil
+	})
+	return size, err
+}
+
 // CountTickets returns the total number of voted, revoked, and currently voting
 // tickets. This func iterates over every ticket so should be used sparingly.
 func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
