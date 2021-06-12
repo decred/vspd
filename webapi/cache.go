@@ -80,7 +80,18 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 	cache.Revoked = revoked
 	cache.BlockHeight = bestBlock.Height
 	cache.NetworkProportion = float32(voting) / float32(bestBlock.PoolSize)
-	cache.RevokedProportion = float32(revoked) / float32(voted)
+
+	// Prevent dividing by zero when pool has no voted tickets.
+	switch voted {
+	case 0:
+		if revoked == 0 {
+			cache.RevokedProportion = 0
+		} else {
+			cache.RevokedProportion = 1
+		}
+	default:
+		cache.RevokedProportion = float32(revoked) / float32(voted)
+	}
 
 	return nil
 }
