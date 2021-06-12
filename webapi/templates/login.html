@@ -2,14 +2,15 @@
 
 <div class="py-4 container">
     <h1>Login</h1>
-    <form action="/admin" method="post">
+    <form class="py-3" action="/admin" method="post">
+
         <input type="password" name="password" required placeholder="Enter password">
-        <button class="ml-3 btn btn-primary" type="submit">Login</button>
+        
+        <p class="my-1 orange" style="visibility:{{ if .IncorrectPassword }}visible{{ else }}hidden{{ end }};">Incorrect password</p>
+
+        <button class="btn btn-primary" type="submit">Login</button>
     </form>
 
-    {{ if .IncorrectPassword }}
-        <p>Incorrect password</p>
-    {{ end }}
 </div>
 
 {{ template "footer" . }}
