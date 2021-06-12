@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/dustin/go-humanize"
 )
 
 // apiCache is used to cache values which are commonly used by the API, so
@@ -20,6 +21,7 @@ import (
 type apiCache struct {
 	UpdateTime        string
 	PubKey            string
+	DatabaseSize      string
 	Voting            int64
 	Voted             int64
 	Revoked           int64
@@ -54,6 +56,11 @@ func initCache() {
 func updateCache(ctx context.Context, db *database.VspDatabase,
 	dcrd rpc.DcrdConnect, netParams *chaincfg.Params) error {
 
+	dbSize, err := db.Size()
+	if err != nil {
+		return err
+	}
+
 	// Get latest counts of voting, voted and revoked tickets.
 	voting, voted, revoked, err := db.CountTickets()
 	if err != nil {
@@ -75,6 +82,7 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 	defer cacheMtx.Unlock()
 
 	cache.UpdateTime = dateTime(time.Now().Unix())
+	cache.DatabaseSize = humanize.Bytes(dbSize)
 	cache.Voting = voting
 	cache.Voted = voted
 	cache.Revoked = revoked

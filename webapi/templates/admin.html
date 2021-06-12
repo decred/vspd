@@ -4,18 +4,9 @@
     <div class="container">
 
         <div class="d-flex flex-wrap">
-            <h1 class="mr-auto text-nowrap">Admin Panel</h1>
-            
-            <div class="row">
-                <a class="m-2 btn btn-primary btn-small" href="/admin/backup" download>Backup</a>
-                
-                <form class="p-2" action="/admin/logout" method="post">
-                    <button type="submit" class="btn btn-primary btn-small">Logout</button>
-                </form>
-            </div>
+            <h1>Admin Panel</h1>
         </div>
         
-
         {{ template "vsp-stats" . }}
 
     </div>
@@ -33,7 +24,6 @@
                         name="tabset_1"
                         id="tabset_1_1"
                         hidden
-                        aria-hidden="true"
                         {{ with .SearchResult }}{{ else }}checked{{ end }}
                     >
                     <input
@@ -41,12 +31,25 @@
                         name="tabset_1"
                         id="tabset_1_2"
                         hidden
-                        aria-hidden="true"
                         {{ with .SearchResult }}checked{{ end }}
+                    >
+                    <input
+                        type="radio"
+                        name="tabset_1"
+                        id="tabset_1_3"
+                        hidden
+                    >
+                    <input
+                        type="radio"
+                        name="tabset_1"
+                        id="tabset_1_4"
+                        hidden
                     >
                     <ul>
                         <li><label for="tabset_1_1">Wallet Status</label></li>
                         <li><label for="tabset_1_2">Ticket Search</label></li>
+                        <li><label for="tabset_1_3">Database</label></li>
+                        <li><label for="tabset_1_4">Logout</label></li>
                     </ul>
                     
                     <div>
@@ -274,6 +277,17 @@
                                     <p>No ticket found with hash <span class="code">{{ .Hash }}</span></p>
                                 {{ end }}
                             {{ end }}
+                        </section>
+
+                        <section>
+                            <p>Database size: {{ .WebApiCache.DatabaseSize }}</p>
+                            <a class="btn btn-primary" href="/admin/backup" download>Download Backup</a>
+                        </section>
+
+                        <section>
+                            <form action="/admin/logout" method="post">
+                                <button type="submit" class="btn btn-primary">Logout</button>
+                            </form>
                         </section>
 
                     </div>
