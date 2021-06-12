@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -13,7 +13,7 @@ import (
 
 // vspInfo is the handler for "GET /api/v3/vspinfo".
 func vspInfo(c *gin.Context) {
-	cachedStats := getVSPStats()
+	cachedStats := getCache()
 	sendJSONResponse(vspInfoResponse{
 		APIVersions:       []int64{3},
 		Timestamp:         time.Now().Unix(),

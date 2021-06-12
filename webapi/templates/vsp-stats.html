@@ -4,35 +4,35 @@
     
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Live tickets</div>
-        <div class="stat-value">{{ .Voting }}</div>
+        <div class="stat-value">{{ .WebApiCache.Voting }}</div>
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Voted tickets</div>
-        <div class="stat-value">{{ .Voted }}</div>
+        <div class="stat-value">{{ .WebApiCache.Voted }}</div>
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Revoked tickets</div>
         <div class="stat-value">
-            {{ .Revoked }}
-            <span class="text-muted">({{ float32ToPercent .RevokedProportion }})</span>
+            {{ .WebApiCache.Revoked }}
+            <span class="text-muted">({{ float32ToPercent .WebApiCache.RevokedProportion }})</span>
         </div>
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">VSP Fee</div>
-        <div class="stat-value">{{ .VSPFee }}%</div>
+        <div class="stat-value">{{ .WebApiCfg.VSPFee }}%</div>
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Network</div>
-        <div class="stat-value">{{ .Network }}</div>
+        <div class="stat-value">{{ .WebApiCfg.NetParams.Name }}</div>
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Network Proportion</div>
-        <div class="stat-value">{{ float32ToPercent .NetworkProportion }}</div>
+        <div class="stat-value">{{ float32ToPercent .WebApiCache.NetworkProportion }}</div>
     </div>
 
 </div>

@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -62,7 +62,8 @@ func requireAdmin() gin.HandlerFunc {
 
 		if admin == nil {
 			c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-				"VspStats": getVSPStats(),
+				"WebApiCache": getCache(),
+				"WebApiCfg":   cfg,
 			})
 			c.Abort()
 			return

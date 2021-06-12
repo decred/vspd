@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -97,7 +97,8 @@ func statusJSON(c *gin.Context) {
 // adminPage is the handler for "GET /admin".
 func adminPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin.html", gin.H{
-		"VspStats":     getVSPStats(),
+		"WebApiCache":  getCache(),
+		"WebApiCfg":    cfg,
 		"WalletStatus": walletStatus(c),
 	})
 }
@@ -129,7 +130,8 @@ func ticketSearch(c *gin.Context) {
 			VoteChanges:    voteChanges,
 			MaxVoteChanges: cfg.MaxVoteChangeRecords,
 		},
-		"VspStats":     getVSPStats(),
+		"WebApiCache":  getCache(),
+		"WebApiCfg":    cfg,
 		"WalletStatus": walletStatus(c),
 	})
 }
@@ -142,7 +144,8 @@ func adminLogin(c *gin.Context) {
 	if password != cfg.AdminPass {
 		log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"VspStats":          getVSPStats(),
+			"WebApiCache":       getCache(),
+			"WebApiCfg":         cfg,
 			"IncorrectPassword": true,
 		})
 		return

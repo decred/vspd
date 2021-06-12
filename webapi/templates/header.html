@@ -5,12 +5,12 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-        <title>Decred VSP - {{ .VspStats.Designation }}</title>
+        <title>Decred VSP - {{ .WebApiCfg.Designation }}</title>
 
         <link rel="stylesheet" href="/public/css/vendor/bootstrap-4.5.0.min.css" />
-        <link rel="stylesheet" href="/public/css/vspd.css?v={{ .VspStats.VspdVersion }}" />
+        <link rel="stylesheet" href="/public/css/vspd.css?v={{ .WebApiCfg.VspdVersion }}" />
         <!-- fonts.css should be last to ensure dcr fonts take precedence. -->
-        <link rel="stylesheet" href="/public/css/fonts.css?v={{ .VspStats.VspdVersion }}" />
+        <link rel="stylesheet" href="/public/css/fonts.css?v={{ .WebApiCfg.VspdVersion }}" />
 
         <!--  Custom favicon  -->
         <!-- Apple PWA -->
@@ -59,13 +59,13 @@
                         </div>
                         <div class="logo--text">
                             VSP<br>
-                            <b>{{ .VspStats.Designation }}</b>
+                            <b>{{ .WebApiCfg.Designation }}</b>
                         </div>
                     </a>
                 </div>
             </nav>
 
-            {{ if .VspStats.Debug }}
+            {{ if .WebApiCfg.Debug }}
                 <div class="container">
                     <div class="alert alert-warning my-2">
                         Web server is running in debug mode - don't do this in production!

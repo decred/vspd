@@ -3,13 +3,13 @@
 <div class="vsp-overview pt-4 pb-3 mb-3">
     <div class="container">
 
-        {{ if .VspStats.VspClosed }}
+        {{ if .WebApiCfg.VspClosed }}
             <div class="alert alert-danger">
                 <h4 class="alert-heading mb-3">
                     This Voting Service Provider is closed
                 </h4>
                 <p>
-                    {{ .VspStats.VspClosedMsg }}
+                    {{ .WebApiCfg.VspClosedMsg }}
                 </p>
                 <p>
                     A closed VSP will still vote on tickets with already paid fees, but will not accept new any tickets.
@@ -27,7 +27,7 @@
             to find out more about VSPs, tickets, and voting.
         </p>
 
-        {{ template "vsp-stats" .VspStats }}
+        {{ template "vsp-stats" . }}
     
     </div>
 </div>
