@@ -62,7 +62,7 @@ type config struct {
 	SupportEmail    string        `long:"supportemail" ini-name:"supportemail" description:"Email address for users in need of support."`
 	BackupInterval  time.Duration `long:"backupinterval" ini-name:"backupinterval" description:"Time period between automatic database backups. Valid time units are {s,m,h}. Minimum 30 seconds."`
 	VspClosed       bool          `long:"vspclosed" ini-name:"vspclosed" description:"Closed prevents the VSP from accepting new tickets."`
-	VspClosedMsg    string        `long:"vspclosedmsg" ini-name:"vspclosedmsg" description:"A short message displayed on the webpage and returned by the status API endpoint if vspdclosed is true."`
+	VspClosedMsg    string        `long:"vspclosedmsg" ini-name:"vspclosedmsg" description:"A short message displayed on the webpage and returned by the status API endpoint if vspclosed is true."`
 	AdminPass       string        `long:"adminpass" ini-name:"adminpass" description:"Password for accessing admin page."`
 	Designation     string        `long:"designation" ini-name:"designation" description:"Short name for the VSP. Customizes the logo in the top toolbar."`
 
