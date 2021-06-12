@@ -58,6 +58,10 @@ body {
     color: #8997A5;
 }
 
+.orange {
+    color: #ed6d47;
+}
+
 footer {
     flex-shrink: 0;
     font-size: 0.8rem;
