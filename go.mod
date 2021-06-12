@@ -14,6 +14,7 @@ require (
 	github.com/decred/dcrd/txscript/v4 v4.0.0-20210415225937-dd2a786ee1d1
 	github.com/decred/dcrd/wire v1.4.0
 	github.com/decred/slog v1.2.0
+	github.com/dustin/go-humanize v1.0.0
 	github.com/gin-gonic/gin v1.7.1
 	github.com/gorilla/sessions v1.2.1
 	github.com/jessevdk/go-flags v1.5.0

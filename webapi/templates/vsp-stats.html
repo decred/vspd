@@ -4,18 +4,18 @@
     
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Live tickets</div>
-        <div class="stat-value">{{ .WebApiCache.Voting }}</div>
+        <div class="stat-value">{{ comma .WebApiCache.Voting }}</div>
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Voted tickets</div>
-        <div class="stat-value">{{ .WebApiCache.Voted }}</div>
+        <div class="stat-value">{{ comma .WebApiCache.Voted }}</div>
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="stat-title">Revoked tickets</div>
         <div class="stat-value">
-            {{ .WebApiCache.Revoked }}
+            {{ comma .WebApiCache.Revoked }}
             <span class="text-muted">({{ float32ToPercent .WebApiCache.RevokedProportion }})</span>
         </div>
     </div>

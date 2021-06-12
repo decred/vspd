@@ -20,6 +20,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 )
@@ -187,6 +188,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 		"indentJSON":       indentJSON,
 		"atomsToDCR":       atomsToDCR,
 		"float32ToPercent": float32ToPercent,
+		"comma":            humanize.Comma,
 	})
 
 	router.LoadHTMLGlob("webapi/templates/*.html")
