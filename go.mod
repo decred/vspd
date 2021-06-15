@@ -15,11 +15,11 @@ require (
 	github.com/decred/dcrd/wire v1.4.0
 	github.com/decred/slog v1.2.0
 	github.com/dustin/go-humanize v1.0.0
-	github.com/gin-gonic/gin v1.7.1
+	github.com/gin-gonic/gin v1.7.2
 	github.com/gorilla/sessions v1.2.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/jrick/bitset v1.0.0
 	github.com/jrick/logrotate v1.0.0
 	github.com/jrick/wsrpc/v2 v2.3.4
-	go.etcd.io/bbolt v1.3.5
+	go.etcd.io/bbolt v1.3.6
 )
