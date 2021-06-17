@@ -17,6 +17,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/vspd/rpc"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -413,4 +415,43 @@ func (vdb *VspDatabase) BackupDB(w http.ResponseWriter) error {
 	})
 
 	return err
+}
+
+// CheckIntegrity will ensure that all data in the database is present and up to
+// date.
+func (vdb *VspDatabase) CheckIntegrity(ctx context.Context, params *chaincfg.Params, dcrd rpc.DcrdConnect) error {
+
+	// Ensure all confirmed tickets have a purchase height.
+	// This is necessary because of an old bug which, in some circumstances,
+	// would prevent purchase height from being stored.
+
+	missing, err := vdb.GetMissingPurchaseHeight()
+	if err != nil {
+		return fmt.Errorf("GetMissingPurchaseHeight error: %w", err)
+	}
+
+	if len(missing) == 0 {
+		return nil
+	}
+
+	dcrdClient, err := dcrd.Client(ctx, params)
+	if err != nil {
+		return err
+	}
+
+	for _, ticket := range missing {
+		tktTx, err := dcrdClient.GetRawTransaction(ticket.Hash)
+		if err != nil {
+			return fmt.Errorf("dcrd.GetRawTransaction error: %w", err)
+		}
+		ticket.PurchaseHeight = tktTx.BlockHeight
+		err = vdb.UpdateTicket(ticket)
+		if err != nil {
+			return fmt.Errorf("UpdateTicket error: %w", err)
+		}
+	}
+
+	log.Infof("Added missing purchase height to %d tickets", len(missing))
+
+	return nil
 }

@@ -60,7 +60,7 @@ func run(ctx context.Context) error {
 			"accepting new tickets.")
 	}
 
-	// Waitgroup for services to signal when they have shutdown cleanly.
+	// WaitGroup for services to signal when they have shutdown cleanly.
 	var shutdownWg sync.WaitGroup
 	defer log.Info("Shutdown complete")
 
@@ -82,6 +82,13 @@ func run(ctx context.Context) error {
 	// Create RPC client for remote dcrwallet instance (used for voting).
 	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts)
 	defer wallets.Close()
+
+	// Ensure all data in database is present and up-to-date.
+	err = db.CheckIntegrity(ctx, cfg.netParams.Params, dcrd)
+	if err != nil {
+		// vspd should still start if this fails, so just log an error.
+		log.Errorf("Could not check database integrity: %v", err)
+	}
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
