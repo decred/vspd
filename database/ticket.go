@@ -353,6 +353,14 @@ func (vdb *VspDatabase) GetVotableTickets() ([]Ticket, error) {
 	})
 }
 
+// GetMissingPurchaseHeight returns tickets which are confirmed but do not have
+// a purchase height.
+func (vdb *VspDatabase) GetMissingPurchaseHeight() ([]Ticket, error) {
+	return vdb.filterTickets(func(t *bolt.Bucket) bool {
+		return bytesToBool(t.Get(confirmedK)) && bytesToInt64(t.Get(purchaseHeightK)) == 0
+	})
+}
+
 // filterTickets accepts a filter function and returns all tickets from the
 // database which match the filter.
 //
