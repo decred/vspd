@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -103,7 +103,7 @@ func payFee(c *gin.Context) {
 	err = validConsensusVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), request.VoteChoices)
 	if err != nil {
 		validVoteChoices = false
-		log.Warnf("%s: Invalid vote choices (clientIP=%s, ticketHash=%s): %v",
+		log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 	}
 
