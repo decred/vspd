@@ -5,7 +5,6 @@
 package database
 
 import (
-	"math/rand"
 	"reflect"
 	"testing"
 	"time"
@@ -13,22 +12,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
-
-// randString randomly generates a string of the requested length, using only
-// characters from the provided charset.
-func randString(length int, charset string) string {
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = charset[seededRand.Intn(len(charset))]
-	}
-	return string(b)
-}
-
 func exampleTicket() Ticket {
-	const hexCharset = "1234567890abcdef"
-	const addrCharset = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-
 	return Ticket{
 		Hash:              randString(64, hexCharset),
 		CommitmentAddress: randString(35, addrCharset),

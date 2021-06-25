@@ -25,10 +25,14 @@ const (
 	// moves each ticket into its own bucket and does away with JSON encoding.
 	ticketBucketVersion = 3
 
+	// altSigVersion adds a bucket to store alternate signatures used to verify
+	// messages sent to the vspd.
+	altSigVersion = 4
+
 	// latestVersion is the latest version of the database that is understood by
 	// vspd. Databases with recorded versions higher than this will fail to open
 	// (meaning any upgrades prevent reverting to older software).
-	latestVersion = ticketBucketVersion
+	latestVersion = altSigVersion
 )
 
 // upgrades maps between old database versions and the upgrade function to
@@ -36,6 +40,7 @@ const (
 var upgrades = []func(tx *bolt.DB) error{
 	initialVersion:        removeOldFeeTxUpgrade,
 	removeOldFeeTxVersion: ticketBucketUpgrade,
+	ticketBucketVersion:   altSigUpgrade,
 }
 
 // v1Ticket has the json tags required to unmarshal tickets stored in the
