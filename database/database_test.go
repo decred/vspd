@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -22,11 +23,35 @@ const (
 	backupDb             = "test.db-backup"
 	feeXPub              = "feexpub"
 	maxVoteChangeRecords = 3
+
+	addrCharset = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+	hexCharset  = "1234567890abcdef"
+	sigCharset  = "0123456789ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/="
 )
 
 var (
-	db *VspDatabase
+	db         *VspDatabase
+	seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
+
+// randBytes returns a byte slice of size n filled with random bytes.
+func randBytes(n int) []byte {
+	slice := make([]byte, n)
+	if _, err := seededRand.Read(slice); err != nil {
+		panic(err)
+	}
+	return slice
+}
+
+// randString randomly generates a string of the requested length, using only
+// characters from the provided charset.
+func randString(length int, charset string) string {
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
 
 // TestDatabase runs all database tests.
 func TestDatabase(t *testing.T) {
@@ -47,6 +72,9 @@ func TestDatabase(t *testing.T) {
 		"testDeleteTicket":      testDeleteTicket,
 		"testVoteChangeRecords": testVoteChangeRecords,
 		"testHTTPBackup":        testHTTPBackup,
+		"testAltSigData":        testAltSigData,
+		"testInsertAltSig":      testInsertAltSig,
+		"testDeleteAltSig":      testDeleteAltSig,
 	}
 
 	for testName, test := range tests {
