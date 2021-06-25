@@ -120,7 +120,7 @@ func setVoteChoices(c *gin.Context) {
 		// to attempt to update as much as possible regardless of any errors.
 		for _, walletClient := range walletClients {
 
-			// Consensus vote choices.
+			// Set consensus vote choices.
 			for agenda, choice := range request.VoteChoices {
 				err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 				if err != nil {
