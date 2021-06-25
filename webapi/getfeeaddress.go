@@ -49,6 +49,10 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	// Using a hard-coded amount for relay fee is acceptable here because this
+	// amount is never actually used to construct or broadcast transactions. It
+	// is only used to calculate the fee charged for adding a ticket to the VSP.
 	relayFee, err := dcrutil.NewAmount(0.0001)
 	if err != nil {
 		return 0, err
