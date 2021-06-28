@@ -7,6 +7,7 @@ package webapi
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"sync"
 	"time"
 
@@ -78,6 +79,10 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 		return err
 	}
 
+	if bestBlock.PoolSize == 0 {
+		return errors.New("dcr node reports a network ticket pool size of zero")
+	}
+
 	cacheMtx.Lock()
 	defer cacheMtx.Unlock()
 
@@ -87,9 +92,7 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 	cache.Voted = voted
 	cache.Revoked = revoked
 	cache.BlockHeight = bestBlock.Height
-	if bestBlock.PoolSize > 0 {
-		cache.NetworkProportion = float32(voting) / float32(bestBlock.PoolSize)
-	}
+	cache.NetworkProportion = float32(voting) / float32(bestBlock.PoolSize)
 
 	// Prevent dividing by zero when pool has no voted tickets.
 	switch voted {
