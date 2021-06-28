@@ -102,6 +102,14 @@ func blockConnected() {
 					log.Errorf("%s: db.DeleteTicket error (ticketHash=%s): %v",
 						funcName, ticket.Hash, err)
 				}
+
+				// This will not error if an alternate signature does not
+				// exist for ticket.
+				err = db.DeleteAltSig(ticket.Hash)
+				if err != nil {
+					log.Errorf("%s: db.DeleteAltSig error (ticketHash=%s): %v",
+						funcName, ticket.Hash, err)
+				}
 			} else {
 				log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v",
 					funcName, ticket.Hash, err)

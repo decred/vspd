@@ -347,9 +347,22 @@ func vspAuth() gin.HandlerFunc {
 		// Validate request signature to ensure ticket ownership.
 		err = validateSignature(reqBytes, commitmentAddress, c)
 		if err != nil {
-			log.Warnf("%s: Bad signature (clientIP=%s, ticketHash=%s): %v", funcName, c.ClientIP(), hash, err)
-			sendError(errBadSignature, c)
-			return
+			// Don't return an error straight away if sig validation fails -
+			// first check if we have an alternate sig address for this ticket.
+			altSigData, err := db.AltSigData(hash)
+			if err != nil {
+				log.Errorf("%s: db.AltSigData failed (ticketHash=%s): %v", funcName, hash, err)
+				sendError(errInternalError, c)
+				return
+			}
+
+			// If we have no alternate sig, or if validating with the alt sig
+			// fails, return an error to the client.
+			if altSigData == nil || validateSignature(reqBytes, altSigData.AltSigAddr, c) != nil {
+				log.Warnf("%s: Bad signature (clientIP=%s, ticketHash=%s)", funcName, c.ClientIP(), hash)
+				sendError(errBadSignature, c)
+				return
+			}
 		}
 
 		// Add ticket information to context so downstream handlers don't need
