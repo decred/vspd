@@ -41,7 +41,7 @@ when a VSP is closed will result in an error.
     No request body.
 
     Response:
-  
+
     ```json
     {
         "apiversions":[3],
@@ -64,6 +64,39 @@ when a VSP is closed will result in an error.
 
 **Registering a ticket is a two step process. The VSP will not add a ticket to
 its voting wallets unless both of these calls have succeeded.**
+
+#### Step Zero (optional)
+
+Set an alternate signing address for a ticket. The ticket must be valid and will
+be transmitted to the network if not found. If set, for all future requests
+involving this ticket, the vsp will check that a signature is good for this
+address and fallback to the commitment address if not. The address must be valid
+for the network and a pay to secp256k1 ECDSA pubkey hash script. The address can
+only be set once. Further requests to set a new address will be rejected.
+
+- `POST /api/v3/setaltsig`
+
+    Request:
+
+    ```json
+    {
+        "timestamp":1590509066,
+        "tickethash":"1b9f5dc3b4872c47f66b148b0633647458123d72a0f0623a90890cc51a668737",
+        "tickethex":"0100000001a8...bfa6e4bf9c5ec1",
+        "parenthex":"0100000022a7...580771a3064710",
+        "altsigaddress":"Tsfkn6k9AoYgVZRV6ZzcgmuVSgCdJQt9JY2"
+    }
+
+    ```
+
+    Response:
+
+    ```json
+    {
+        "timestamp":1590509066,
+        "request": {"<Copy of request body>"}
+    }
+    ```
 
 #### Step One
 
