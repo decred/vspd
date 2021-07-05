@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -212,7 +212,7 @@ func blockConnected() {
 					continue
 				}
 
-				// Set vote choices on voting wallets.
+				// Set consensus vote choices on voting wallets.
 				for agenda, choice := range ticket.VoteChoices {
 					err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 					if err != nil {
@@ -513,7 +513,7 @@ func checkWalletConsistency() {
 				continue
 			}
 
-			// Check if vote choices match
+			// Check if consensus vote choices match
 			for dbAgenda, dbChoice := range dbTicket.VoteChoices {
 				match := false
 				for _, walletChoice := range walletTicket.Choices {
@@ -527,7 +527,7 @@ func checkWalletConsistency() {
 					continue
 				}
 
-				log.Debugf("%s: Updating incorrect vote choices (wallet=%s, agenda=%s, ticketHash=%s)",
+				log.Debugf("%s: Updating incorrect consensus vote choices (wallet=%s, agenda=%s, ticketHash=%s)",
 					funcName, walletClient.String(), dbAgenda, dbTicket.Hash)
 
 				// If db and wallet are not matching, update wallet with correct

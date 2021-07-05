@@ -37,7 +37,7 @@ func exampleTicket() Ticket {
 		FeeAmount:         10000000,
 		FeeExpiration:     4,
 		Confirmed:         false,
-		VoteChoices:       map[string]string{"AgendaID": "Choice"},
+		VoteChoices:       map[string]string{"AgendaID": "yes"},
 		VotingWIF:         randString(53, addrCharset),
 		FeeTxHex:          randString(504, hexCharset),
 		FeeTxHash:         randString(64, hexCharset),

@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -92,10 +92,9 @@ func setVoteChoices(c *gin.Context) {
 		}
 	}
 
-	voteChoices := request.VoteChoices
-	err = validConsensusVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), voteChoices)
+	err = validConsensusVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), request.VoteChoices)
 	if err != nil {
-		log.Warnf("%s: Invalid vote choices (clientIP=%s, ticketHash=%s): %v",
+		log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 		sendErrorWithMsg(err.Error(), errInvalidVoteChoices, c)
 		return
@@ -103,7 +102,8 @@ func setVoteChoices(c *gin.Context) {
 
 	// Update VoteChoices in the database before updating the wallets. DB is the
 	// source of truth, and also is less likely to error.
-	ticket.VoteChoices = voteChoices
+	ticket.VoteChoices = request.VoteChoices
+
 	err = db.UpdateTicket(ticket)
 	if err != nil {
 		log.Errorf("%s: db.UpdateTicket error, failed to set vote choices (ticketHash=%s): %v",
@@ -115,16 +115,20 @@ func setVoteChoices(c *gin.Context) {
 	// Update vote choices on voting wallets. Tickets are only added to voting
 	// wallets if their fee is confirmed.
 	if ticket.FeeTxStatus == database.FeeConfirmed {
+
+		// Just log any errors which occur while setting vote choices. We want
+		// to attempt to update as much as possible regardless of any errors.
 		for _, walletClient := range walletClients {
-			for agenda, choice := range voteChoices {
+
+			// Set consensus vote choices.
+			for agenda, choice := range request.VoteChoices {
 				err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 				if err != nil {
-					// If this fails, we still want to try the other wallets, so
-					// don't return an error response, just log an error.
 					log.Errorf("%s: dcrwallet.SetVoteChoice failed (wallet=%s, ticketHash=%s): %v",
 						funcName, walletClient.String(), ticket.Hash, err)
 				}
 			}
+
 		}
 	}
 
