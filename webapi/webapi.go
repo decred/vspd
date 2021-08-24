@@ -55,7 +55,7 @@ var addrGen *addressGenerator
 var signPrivKey ed25519.PrivateKey
 var signPubKey ed25519.PublicKey
 
-func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *sync.WaitGroup,
+func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup,
 	listen string, vdb *database.VspDatabase, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, config Config) error {
 
 	cfg = config
@@ -137,7 +137,7 @@ func Start(ctx context.Context, requestShutdownChan chan struct{}, shutdownWg *s
 		// shutdown.
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Errorf("Unexpected webserver error: %v", err)
-			requestShutdownChan <- struct{}{}
+			requestShutdown()
 		}
 	}()
 

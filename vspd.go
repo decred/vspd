@@ -104,7 +104,7 @@ func run(ctx context.Context) error {
 		MaxVoteChangeRecords: maxVoteChangeRecords,
 		VspdVersion:          version.String(),
 	}
-	err = webapi.Start(ctx, shutdownRequestChannel, &shutdownWg, cfg.Listen, db,
+	err = webapi.Start(ctx, requestShutdown, &shutdownWg, cfg.Listen, db,
 		dcrd, wallets, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialize webapi: %v", err)
