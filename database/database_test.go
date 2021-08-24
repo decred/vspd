@@ -7,7 +7,7 @@ package database
 import (
 	"context"
 	"crypto/ed25519"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -152,7 +152,7 @@ func testHTTPBackup(t *testing.T) {
 	}
 
 	// Check reported length matches actual.
-	body, err := ioutil.ReadAll(rr.Result().Body)
+	body, err := io.ReadAll(rr.Result().Body)
 	if err != nil {
 		t.Fatalf("could not read http response body: %v", err)
 	}
