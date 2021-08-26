@@ -7,7 +7,7 @@ package webapi
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 
@@ -106,12 +106,12 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 // drainAndReplaceBody will read and return the body of the provided request. It
 // replaces the request reader with an identical one so it can be used again.
 func drainAndReplaceBody(req *http.Request) ([]byte, error) {
-	reqBytes, err := ioutil.ReadAll(req.Body)
+	reqBytes, err := io.ReadAll(req.Body)
 	if err != nil {
 		return nil, err
 	}
 	req.Body.Close()
-	req.Body = ioutil.NopCloser(bytes.NewBuffer(reqBytes))
+	req.Body = io.NopCloser(bytes.NewBuffer(reqBytes))
 	return reqBytes, nil
 }
 

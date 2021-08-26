@@ -42,7 +42,7 @@ VSP will add the ticket to a pool of always-online voting wallets.
 
 ## Implementation
 
-vspd is built and tested on go 1.15 and 1.16, making use of the following
+vspd is built and tested on go 1.16 and 1.17, making use of the following
 libraries:
 
 - [gin-gonic/gin](https://github.com/gin-gonic/gin) webserver.

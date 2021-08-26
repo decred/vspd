@@ -7,7 +7,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/user"
@@ -325,7 +324,7 @@ func loadConfig() (*config, error) {
 
 	// Load dcrd RPC certificate.
 	cfg.DcrdCert = cleanAndExpandPath(cfg.DcrdCert)
-	cfg.dcrdCert, err = ioutil.ReadFile(cfg.DcrdCert)
+	cfg.dcrdCert, err = os.ReadFile(cfg.DcrdCert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read dcrd cert file: %w", err)
 	}
@@ -377,7 +376,7 @@ func loadConfig() (*config, error) {
 	cfg.walletCerts = make([][]byte, numCert)
 	for i := 0; i < numCert; i++ {
 		certs[i] = cleanAndExpandPath(certs[i])
-		cfg.walletCerts[i], err = ioutil.ReadFile(certs[i])
+		cfg.walletCerts[i], err = os.ReadFile(certs[i])
 		if err != nil {
 			return nil, fmt.Errorf("failed to read dcrwallet cert file: %w", err)
 		}
