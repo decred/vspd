@@ -1,4 +1,5 @@
 // Copyright (c) 2013-2014 The btcsuite developers
+// Copyright (c) 2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -19,9 +20,9 @@ var shutdownRequestChannel = make(chan struct{})
 // withShutdownChannel are cancelled when this is closed.
 var shutdownSignaled = make(chan struct{})
 
-// signals defines the signals that are handled to do a clean shutdown.
-// Conditional compilation is used to also include SIGTERM on Unix.
-var signals = []os.Signal{os.Interrupt}
+// interruptSignals defines the signals that are handled to do a clean shutdown.
+// Conditional compilation is used to also include SIGTERM and SIGHUP on Unix.
+var interruptSignals = []os.Signal{os.Interrupt}
 
 // withShutdownCancel creates a copy of a context that is cancelled whenever
 // shutdown is invoked through an interrupt signal or from an JSON-RPC stop
@@ -36,7 +37,7 @@ func withShutdownCancel(ctx context.Context) context.Context {
 }
 
 // requestShutdown signals for starting the clean shutdown of the process
-// through an internal component (such as through the JSON-RPC stop request).
+// through an internal component.
 func requestShutdown() {
 	shutdownRequestChannel <- struct{}{}
 }
@@ -46,14 +47,14 @@ func requestShutdown() {
 // to be spawned in a new goroutine.
 func shutdownListener() {
 	interruptChannel := make(chan os.Signal, 1)
-	signal.Notify(interruptChannel, signals...)
+	signal.Notify(interruptChannel, interruptSignals...)
 
 	// Listen for the initial shutdown signal
 	select {
 	case sig := <-interruptChannel:
-		log.Infof("Received signal (%s).  Shutting down...", sig)
+		log.Infof("Received signal (%s). Shutting down...", sig)
 	case <-shutdownRequestChannel:
-		log.Info("Shutdown requested.  Shutting down...")
+		log.Info("Shutdown requested. Shutting down...")
 	}
 
 	// Cancel all contexts created from withShutdownCancel.
@@ -63,9 +64,10 @@ func shutdownListener() {
 	// been signaled.
 	for {
 		select {
-		case <-interruptChannel:
+		case sig := <-interruptChannel:
+			log.Infof("Received signal (%s). Already shutting down...", sig)
 		case <-shutdownRequestChannel:
+			log.Info("Shutdown requested. Already shutting down...")
 		}
-		log.Info("Shutdown signaled.  Already shutting down...")
 	}
 }
