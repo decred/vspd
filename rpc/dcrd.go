@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
@@ -126,31 +125,13 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 	allowHighFees := false
 	err := c.Call(c.ctx, "sendrawtransaction", nil, txHex, allowHighFees)
 	if err != nil {
-
-		// sendrawtransaction can return two different errors when a tx already
-		// exists:
-		//
-		// If the tx is in mempool...
-		//  Error code: -40
-		//  message: rejected transaction <hash>: already have transaction <hash>
-		//
-		// If the tx is in a mined block...
-		//  Error code: -1
-		//  message: rejected transaction <hash>: transaction already exists
-		//
+		// sendrawtransaction returns error code -40 (ErrRPCDuplicateTx) if the
+		// provided transaction already exists in the mempool or in a mined
+		// block.
 		// It's not a problem if the transaction has already been broadcast, so
-		// we will capture these errors and return nil.
-
-		// Exists in mempool.
+		// we will capture this error and return nil.
 		var e *wsrpc.Error
 		if errors.As(err, &e) && e.Code == ErrRPCDuplicateTx {
-			return nil
-		}
-
-		// Exists in mined block.
-		// We cannot use error code -1 here because it is a generic code for
-		// many errors, so we instead need to string match on the message.
-		if strings.Contains(err.Error(), "transaction already exists") {
 			return nil
 		}
 
