@@ -125,18 +125,7 @@ func testGetTicketByHash(t *testing.T) {
 	}
 
 	// Check ticket fields match expected.
-	if retrieved.Hash != ticket.Hash ||
-		retrieved.CommitmentAddress != ticket.CommitmentAddress ||
-		retrieved.FeeAddressIndex != ticket.FeeAddressIndex ||
-		retrieved.FeeAddress != ticket.FeeAddress ||
-		retrieved.FeeAmount != ticket.FeeAmount ||
-		retrieved.FeeExpiration != ticket.FeeExpiration ||
-		retrieved.Confirmed != ticket.Confirmed ||
-		!reflect.DeepEqual(retrieved.VoteChoices, ticket.VoteChoices) ||
-		retrieved.VotingWIF != ticket.VotingWIF ||
-		retrieved.FeeTxHex != ticket.FeeTxHex ||
-		retrieved.FeeTxHash != ticket.FeeTxHash ||
-		retrieved.FeeTxStatus != ticket.FeeTxStatus {
+	if !reflect.DeepEqual(retrieved, ticket) {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
 
@@ -177,9 +166,7 @@ func testUpdateTicket(t *testing.T) {
 		t.Fatal("expected found==true")
 	}
 
-	if ticket.FeeAmount != retrieved.FeeAmount ||
-		ticket.FeeExpiration != retrieved.FeeExpiration ||
-		!reflect.DeepEqual(retrieved.VoteChoices, ticket.VoteChoices) {
+	if !reflect.DeepEqual(retrieved, ticket) {
 		t.Fatal("retrieved ticket value didnt match expected")
 	}
 
