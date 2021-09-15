@@ -6,7 +6,7 @@
 
 ## Overview
 
-<img src="./docs/stakey.png" align="right" />
+<img src="./docs/img/stakey.png" align="right" />
 
 vspd is a from scratch implementation of a Voting Service Provider (VSP) for
 the Decred network.

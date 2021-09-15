@@ -4,6 +4,10 @@ This guide is deliberately written at a high level and with minimal details
 because it is assumed that VSP operators will already have a level of
 familiarity with Decred software and a level of sysadmin experience.
 
+<p align="center">
+  <img src="./img/architecture.png">
+</p>
+
 ## Prerequisites
 
 ### Build from source
@@ -45,7 +49,7 @@ front-end server must be able to reach each instance of dcrwallet over RPC.
 
 The front-end server is where vspd will be running. A webserver (eg. nginx)
 should be configured with SSL and used to proxy requests from the internet to
-vspd.
+vspd. **Do not run a voting wallet on your webserver.**
 
 1. Start an instance of dcrd on this server with transaction index enabled
    (`--txindex`). dcrd is used for fishing ticket details out of the chain, for
@@ -59,9 +63,9 @@ vspd.
 1. A vspd database must be initialized before vpsd can be started. To do this,
    provide vspd with the xpub key it should use for collecting fees:
 
-  ```no-highlight
-  $ vspd --feexpub=tpubVppjaMjp8GEW...
-  ```
+    ```no-highlight
+    $ vspd --feexpub=tpubVppjaMjp8GEW...
+    ```
 
 1. Once the database is initialized, vspd can be started for normal operation by
    running it without the `--feexpub` flag.
