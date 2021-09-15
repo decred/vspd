@@ -5,6 +5,7 @@
 package database
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -33,11 +34,7 @@ func testVoteChangeRecords(t *testing.T) {
 		t.Fatalf("error retrieving vote change records: %v", err)
 	}
 
-	if len(retrieved) != 1 ||
-		retrieved[0].Request != record.Request ||
-		retrieved[0].RequestSignature != record.RequestSignature ||
-		retrieved[0].Response != record.Response ||
-		retrieved[0].ResponseSignature != record.ResponseSignature {
+	if len(retrieved) != 1 || !reflect.DeepEqual(retrieved[0], record) {
 		t.Fatal("retrieved record didnt match expected")
 	}
 
