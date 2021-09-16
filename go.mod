@@ -15,7 +15,7 @@ require (
 	github.com/decred/dcrd/wire v1.4.1-0.20210525214639-70483c835b7f
 	github.com/decred/slog v1.2.0
 	github.com/dustin/go-humanize v1.0.0
-	github.com/gin-gonic/gin v1.7.3
+	github.com/gin-gonic/gin v1.7.4
 	github.com/gorilla/sessions v1.2.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/jrick/bitset v1.0.0
