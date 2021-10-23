@@ -21,6 +21,7 @@ import (
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/dustin/go-humanize"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 )
@@ -197,6 +198,9 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	// requests. Ensures a 500 response is sent to the client rather than
 	// sending no response at all.
 	router.Use(Recovery())
+
+	// Enable CORS so endpoints can be called from Decrediton.
+	router.Use(cors.Default())
 
 	if debugMode {
 		// Logger middleware outputs very detailed logging of webserver requests
