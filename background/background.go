@@ -253,28 +253,28 @@ func blockConnected() {
 	// successful wallet will have the most up-to-date ticket status, the others
 	// will be outdated.
 	for _, walletClient := range walletClients {
-		dbTickets, err := db.GetVotableTickets()
+		votableTickets, err := db.GetVotableTickets()
 		if err != nil {
 			log.Errorf("%s: db.GetVotableTickets failed: %v", funcName, err)
 			continue
 		}
 
 		// If the database has no votable tickets, there is nothing more to do
-		if len(dbTickets) == 0 {
+		if len(votableTickets) == 0 {
 			break
 		}
 
 		// Find the oldest block height from confirmed tickets.
-		oldestHeight := findOldestHeight(dbTickets)
+		oldestHeight := findOldestHeight(votableTickets)
 
 		ticketInfo, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
-			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
-				funcName, walletClient.String(), err)
+			log.Errorf("%s: dcrwallet.TicketInfo failed (startHeight=%d, wallet=%s): %v",
+				funcName, oldestHeight, walletClient.String(), err)
 			continue
 		}
 
-		for _, dbTicket := range dbTickets {
+		for _, dbTicket := range votableTickets {
 			tInfo, ok := ticketInfo[dbTicket.Hash]
 			if !ok {
 				log.Warnf("%s: TicketInfo response did not include expected ticket (wallet=%s, ticketHash=%s)",
@@ -283,7 +283,7 @@ func blockConnected() {
 			}
 
 			switch tInfo.Status {
-			case "revoked":
+			case "missed", "expired", "revoked":
 				dbTicket.Outcome = database.Revoked
 			case "voted":
 				dbTicket.Outcome = database.Voted
@@ -448,8 +448,8 @@ func checkWalletConsistency() {
 		// Get all tickets the wallet is aware of.
 		walletTickets, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
-			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
-				funcName, walletClient.String(), err)
+			log.Errorf("%s: dcrwallet.TicketInfo failed (startHeight=%d, wallet=%s): %v",
+				funcName, oldestHeight, walletClient.String(), err)
 			continue
 		}
 
@@ -506,8 +506,8 @@ func checkWalletConsistency() {
 		// Get all tickets the wallet is aware of.
 		walletTickets, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
-			log.Errorf("%s: dcrwallet.TicketInfo failed (wallet=%s): %v",
-				funcName, walletClient.String(), err)
+			log.Errorf("%s: dcrwallet.TicketInfo failed (startHeight=%d, wallet=%s): %v",
+				funcName, oldestHeight, walletClient.String(), err)
 			continue
 		}
 
