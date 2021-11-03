@@ -32,6 +32,12 @@ func setAltSig(c *gin.Context) {
 
 	// Get values which have been added to context by middleware.
 	dcrdClient := c.MustGet("DcrdClient").(Node)
+	dcrdErr := c.MustGet("DcrdClientErr")
+	if dcrdErr != nil {
+		log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+		sendError(errInternalError, c)
+		return
+	}
 	reqBytes := c.MustGet("RequestBytes").([]byte)
 
 	if cfg.VspClosed {
