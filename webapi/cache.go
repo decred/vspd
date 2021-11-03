@@ -69,7 +69,7 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 	}
 
 	// Get latest best block height.
-	dcrdClient, err := dcrd.Client(ctx, netParams)
+	dcrdClient, _, err := dcrd.Client(ctx, netParams)
 	if err != nil {
 		return err
 	}

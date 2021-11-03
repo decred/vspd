@@ -75,10 +75,11 @@ func requireAdmin() gin.HandlerFunc {
 // downstream handlers to make use of.
 func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		client, err := dcrd.Client(c, cfg.NetParams)
+		client, hostname, err := dcrd.Client(c, cfg.NetParams)
 		// Don't handle the error here, add it to the context and let downstream
 		// handlers decide what to do with it.
 		c.Set("DcrdClient", client)
+		c.Set("DcrdHostname", hostname)
 		c.Set("DcrdClientErr", err)
 	}
 }
