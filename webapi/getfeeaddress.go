@@ -76,6 +76,12 @@ func feeAddress(c *gin.Context) {
 	knownTicket := c.MustGet("KnownTicket").(bool)
 	commitmentAddress := c.MustGet("CommitmentAddress").(string)
 	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
+	dcrdErr := c.MustGet("DcrdClientErr")
+	if dcrdErr != nil {
+		log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+		sendError(errInternalError, c)
+		return
+	}
 	reqBytes := c.MustGet("RequestBytes").([]byte)
 
 	if cfg.VspClosed {

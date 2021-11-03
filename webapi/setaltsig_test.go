@@ -119,6 +119,7 @@ func TestSetAltSig(t *testing.T) {
 	const testAddr = "DsVoDXNQqyF3V83PJJ5zMdnB4pQuJHBAh15"
 	tests := []struct {
 		name                 string
+		dcrdClientErr        bool
 		vspClosed            bool
 		deformReq            int
 		addr                 string
@@ -136,6 +137,11 @@ func TestSetAltSig(t *testing.T) {
 		vspClosed: true,
 		wantCode:  http.StatusBadRequest,
 	}, {
+		name:          "dcrd client error",
+		dcrdClientErr: true,
+		wantCode:      http.StatusInternalServerError,
+	}, {
+
 		name:      "bad request",
 		deformReq: 1,
 		wantCode:  http.StatusBadRequest,
@@ -207,8 +213,15 @@ func TestSetAltSig(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, r := gin.CreateTestContext(w)
 
+		var dcrdErr error
+		if test.dcrdClientErr {
+			tNode = nil
+			dcrdErr = errors.New("error")
+		}
+
 		handle := func(c *gin.Context) {
 			c.Set("DcrdClient", tNode)
+			c.Set("DcrdClientErr", dcrdErr)
 			c.Set("RequestBytes", b[test.deformReq:])
 			setAltSig(c)
 		}

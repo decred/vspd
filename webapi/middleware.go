@@ -76,13 +76,10 @@ func requireAdmin() gin.HandlerFunc {
 func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		client, err := dcrd.Client(c, cfg.NetParams)
-		if err != nil {
-			log.Error(err)
-			sendError(errInternalError, c)
-			return
-		}
-
+		// Don't handle the error here, add it to the context and let downstream
+		// handlers decide what to do with it.
 		c.Set("DcrdClient", client)
+		c.Set("DcrdClientErr", err)
 	}
 }
 
@@ -179,6 +176,13 @@ func broadcastTicket() gin.HandlerFunc {
 
 		// Check if local dcrd already knows the parent tx.
 		dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
+		dcrdErr := c.MustGet("DcrdClientErr")
+		if dcrdErr != nil {
+			log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+			sendError(errInternalError, c)
+			return
+		}
+
 		_, err = dcrdClient.GetRawTransaction(parentHash.String())
 		var e *wsrpc.Error
 		if err == nil {
@@ -312,6 +316,12 @@ func vspAuth() gin.HandlerFunc {
 			commitmentAddress = ticket.CommitmentAddress
 		} else {
 			dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
+			dcrdErr := c.MustGet("DcrdClientErr")
+			if dcrdErr != nil {
+				log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+				sendError(errInternalError, c)
+				return
+			}
 
 			resp, err := dcrdClient.GetRawTransaction(hash)
 			if err != nil {

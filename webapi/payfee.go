@@ -27,6 +27,12 @@ func payFee(c *gin.Context) {
 	ticket := c.MustGet("Ticket").(database.Ticket)
 	knownTicket := c.MustGet("KnownTicket").(bool)
 	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
+	dcrdErr := c.MustGet("DcrdClientErr")
+	if dcrdErr != nil {
+		log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+		sendError(errInternalError, c)
+		return
+	}
 	reqBytes := c.MustGet("RequestBytes").([]byte)
 
 	if cfg.VspClosed {
