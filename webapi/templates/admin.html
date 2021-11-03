@@ -46,7 +46,7 @@
                         hidden
                     >
                     <ul>
-                        <li><label for="tabset_1_1">Wallet Status</label></li>
+                        <li><label for="tabset_1_1">VSP Status</label></li>
                         <li><label for="tabset_1_2">Ticket Search</label></li>
                         <li><label for="tabset_1_3">Database</label></li>
                         <li><label for="tabset_1_4">Logout</label></li>
@@ -54,80 +54,126 @@
                     
                     <div>
 
-                        <section>
-                            <table id="status-table" class="w-100 mb-0">
-                                <thead>
-                                    <th>URL</th>
-                                    <th>Height</th>
-                                    <th>Connected</th>
-                                    <th>Unlocked</th>
-                                    <th>Voting</th>
-                                    <th>Vote Version</th>
-                                </thead>
-                                <tbody>
-                                    {{ range $host, $status := .WalletStatus }}
-                                    <tr>
-                                        <td>{{ stripWss $host }}</td>
+                        <section class="d-flex row justify-content-center">
+
+                            <div class="vsp-status">
+                                <h1>Local dcrd</h1>
+
+                                <table class="vsp-status">
+                                    <thead>
+                                        <th>URL</th>
+                                        <th>Height</th>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>{{ stripWss .DcrdStatus.Host }}</td>
+                                            
+                                            {{ if .DcrdStatus.Connected }}
+                    
+                                                {{ if .DcrdStatus.BestBlockError }}
+                                                    <td>
+                                                        <div class="center">
+                                                            <div class="status bad center with-text">
+                                                                Error
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                {{ else }}
+                                                    <td>{{ .DcrdStatus.BestBlockHeight }}</td>
+                                                {{ end }}
+                    
+                                            {{else}}
+                                                <td>
+                                                    <div class="center">
+                                                        <div class="status bad center with-text">
+                                                            Cannot connect
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            {{end}}
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="vsp-status">
+                                <h1>Voting Wallets</h1>
+
+                                <table class="vsp-status">
+                                    <thead>
+                                        <th>URL</th>
+                                        <th>Height</th>
+                                        <th>Connected<br />to dcrd</th>
+                                        <th>Unlocked</th>
+                                        <th>Voting</th>
+                                        <th>Vote<br />Version</th>
+                                    </thead>
+                                    <tbody>
+                                        {{ range $host, $status := .WalletStatus }}
+                                        <tr>
+                                            <td>{{ stripWss $host }}</td>
                                         
-                                        {{ if $status.Connected }}
+                                            {{ if $status.Connected }}
                 
-                                            {{ if $status.BestBlockError }}
-                                                <td>
+                                                {{ if $status.BestBlockError }}
+                                                    <td>
+                                                        <div class="center">
+                                                            <div class="status bad center with-text">
+                                                                Error
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                {{ else }}
+                                                    <td>{{ $status.BestBlockHeight }}</td>
+                                                {{ end }}
+                
+                                                {{ if $status.InfoError }}
+                                                    <td colspan="4">
+                                                        <div class="center">
+                                                            <div class="status bad center with-text">
+                                                                Error getting wallet info
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                {{ else }}
+                                                    <td>
+                                                        <div class="center">
+                                                            <div class="status {{ if $status.DaemonConnected }}good{{else}}bad{{end}}"></div>
+                                                        </div>
+                                                    </td>
+                                                
+                                                
+                                                    <td>
+                                                        <div class="center">
+                                                            <div class="status {{ if $status.Unlocked }}good{{else}}bad{{end}}"></div>
+                                                        </div>
+                                                    </td>
+                                                
+                                                
+                                                    <td>
+                                                        <div class="center">
+                                                            <div class="status {{ if $status.Voting }}good{{else}}bad{{end}}"></div>
+                                                        </div>
+                                                    </td>
+                                                
+                                                    <td>{{ $status.VoteVersion }}</td>
+                                                {{ end }}
+                
+                                            {{else}}
+                                                <td colspan="5">
                                                     <div class="center">
                                                         <div class="status bad center with-text">
-                                                            Error
+                                                            Cannot connect to wallet
                                                         </div>
                                                     </div>
                                                 </td>
-                                            {{ else }}
-                                                <td>{{ $status.BestBlockHeight }}</td>
-                                            {{ end }}
-                
-                                            {{ if $status.InfoError }}
-                                                <td colspan="4">
-                                                    <div class="center">
-                                                        <div class="status bad center with-text">
-                                                            Error getting wallet info
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            {{ else }}
-                                                <td>
-                                                    <div class="center">
-                                                        <div class="status {{ if $status.DaemonConnected }}good{{else}}bad{{end}}"></div>
-                                                    </div>
-                                                </td>
-                                                
-                                                
-                                                <td>
-                                                    <div class="center">
-                                                        <div class="status {{ if $status.Unlocked }}good{{else}}bad{{end}}"></div>
-                                                    </div>
-                                                </td>
-                                                
-                                                
-                                                <td>
-                                                    <div class="center">
-                                                        <div class="status {{ if $status.Voting }}good{{else}}bad{{end}}"></div>
-                                                    </div>
-                                                </td>
-                                                
-                                                <td>{{ $status.VoteVersion }}</td>
-                                            {{ end }}
-                
-                                        {{else}}
-                                            <td colspan="5">
-                                                <div class="center">
-                                                    <div class="status bad center with-text">
-                                                        Cannot connect to wallet
-                                                    </div>
-                                                </div>
-                                            </td>
+                                            {{end}}
+                                        </tr>
                                         {{end}}
-                                    </tr>
-                                    {{end}}
-                                </tbody>
-                            </table>
+                                    </tbody>
+                                </table>
+                            </div>
+
                         </section>
                         
                         <section>

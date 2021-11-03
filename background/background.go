@@ -71,7 +71,7 @@ func blockConnected() {
 
 	ctx := context.Background()
 
-	dcrdClient, err := dcrdRPC.Client(ctx, netParams)
+	dcrdClient, _, err := dcrdRPC.Client(ctx, netParams)
 	if err != nil {
 		log.Errorf("%s: %v", funcName, err)
 		return
@@ -314,7 +314,7 @@ func (n *NotificationHandler) Close() error {
 func connectNotifier(shutdownCtx context.Context, dcrdWithNotifs rpc.DcrdConnect) error {
 	notifierClosed = make(chan struct{})
 
-	dcrdClient, err := dcrdWithNotifs.Client(shutdownCtx, netParams)
+	dcrdClient, _, err := dcrdWithNotifs.Client(shutdownCtx, netParams)
 	if err != nil {
 		return err
 	}
@@ -411,7 +411,7 @@ func checkWalletConsistency() {
 
 	ctx := context.Background()
 
-	dcrdClient, err := dcrdRPC.Client(ctx, netParams)
+	dcrdClient, _, err := dcrdRPC.Client(ctx, netParams)
 	if err != nil {
 		log.Errorf("%s: %v", funcName, err)
 		return

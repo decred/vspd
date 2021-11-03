@@ -47,16 +47,16 @@ func SetupDcrd(user, pass, addr string, cert []byte, n wsrpc.Notifier) DcrdConne
 
 // Client creates a new DcrdRPC client instance. Returns an error if dialing
 // dcrd fails or if dcrd is misconfigured.
-func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*DcrdRPC, error) {
+func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*DcrdRPC, string, error) {
 	c, newConnection, err := d.dial(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("dcrd connection error: %w", err)
+		return nil, d.addr, fmt.Errorf("dcrd connection error: %w", err)
 	}
 
 	// If this is a reused connection, we don't need to validate the dcrd config
 	// again.
 	if !newConnection {
-		return &DcrdRPC{c, ctx}, nil
+		return &DcrdRPC{c, ctx}, d.addr, nil
 	}
 
 	// Verify dcrd is at the required api version.
@@ -64,19 +64,19 @@ func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*
 	err = c.Call(ctx, "version", &verMap)
 	if err != nil {
 		d.Close()
-		return nil, fmt.Errorf("dcrd version check failed: %w", err)
+		return nil, d.addr, fmt.Errorf("dcrd version check failed: %w", err)
 	}
 
 	ver, exists := verMap["dcrdjsonrpcapi"]
 	if !exists {
 		d.Close()
-		return nil, fmt.Errorf("dcrd version response missing 'dcrdjsonrpcapi'")
+		return nil, d.addr, fmt.Errorf("dcrd version response missing 'dcrdjsonrpcapi'")
 	}
 
 	sVer := semver{ver.Major, ver.Minor, ver.Patch}
 	if !semverCompatible(requiredDcrdVersion, sVer) {
 		d.Close()
-		return nil, fmt.Errorf("dcrd has incompatible JSON-RPC version: got %s, expected %s",
+		return nil, d.addr, fmt.Errorf("dcrd has incompatible JSON-RPC version: got %s, expected %s",
 			sVer, requiredDcrdVersion)
 	}
 
@@ -85,11 +85,11 @@ func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*
 	err = c.Call(ctx, "getcurrentnet", &netID)
 	if err != nil {
 		d.Close()
-		return nil, fmt.Errorf("dcrd getcurrentnet check failed: %w", err)
+		return nil, d.addr, fmt.Errorf("dcrd getcurrentnet check failed: %w", err)
 	}
 	if netID != netParams.Net {
 		d.Close()
-		return nil, fmt.Errorf("dcrd running on %s, expected %s", netID, netParams.Net)
+		return nil, d.addr, fmt.Errorf("dcrd running on %s, expected %s", netID, netParams.Net)
 	}
 
 	// Verify dcrd has tx index enabled (required for getrawtransaction).
@@ -97,14 +97,14 @@ func (d *DcrdConnect) Client(ctx context.Context, netParams *chaincfg.Params) (*
 	err = c.Call(ctx, "getinfo", &info)
 	if err != nil {
 		d.Close()
-		return nil, fmt.Errorf("dcrd getinfo check failed: %w", err)
+		return nil, d.addr, fmt.Errorf("dcrd getinfo check failed: %w", err)
 	}
 	if !info.TxIndex {
 		d.Close()
-		return nil, errors.New("dcrd does not have transaction index enabled (--txindex)")
+		return nil, d.addr, errors.New("dcrd does not have transaction index enabled (--txindex)")
 	}
 
-	return &DcrdRPC{c, ctx}, nil
+	return &DcrdRPC{c, ctx}, d.addr, nil
 }
 
 // GetRawTransaction uses getrawtransaction RPC to retrieve details about the

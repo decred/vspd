@@ -118,13 +118,13 @@ The `[WRN]` level is used to indicate events which are of interest, but do not
 necessarily require investigation (eg. bad requests from clients, recoverable
 errors).
 
-### Voting Wallet Status
+### VSP Status
 
-The current status of the voting wallets is displayed in a table on the `/admin`
+The current status of the VSP is displayed in a table on the `/admin`
 page, and the same information can be retrieved as a JSON object from
 `/admin/status` for automated monitoring. This endpoint requires Basic HTTP
 Authentication with the username `admin` and the password set in vspd
-configuration. A 200 HTTP status will be returned if the voting wallets seem
+configuration. A 200 HTTP status will be returned if the VSP seems
 healthy, or a 500 status will be used to indicate something is wrong.
 
 ```bash
@@ -133,17 +133,24 @@ $ curl --user admin:12345 --request GET http://localhost:8800/admin/status
 
 ```json
 {
-  "wss://127.0.0.1:20111/ws":
-    {
-      "connected":true,
-      "infoerror":false,
-      "daemonconnected":true,
-      "voteversion":8,
-      "unlocked":true,
-      "voting":true,
-      "bestblockerror":false,
-      "bestblockheight":462345
+  "dcrd": {
+    "host": "wss://127.0.0.1:19109/ws",
+    "connected": true,
+    "bestblockerror": false,
+    "bestblockheight": 802572
+  },
+  "wallets": {
+    "wss://127.0.0.1:20111/ws": {
+      "connected": true,
+      "infoerror": false,
+      "daemonconnected": true,
+      "voteversion": 10,
+      "unlocked": true,
+      "voting": true,
+      "bestblockerror": false,
+      "bestblockheight": 802572
     }
+  }
 }
 ```
 

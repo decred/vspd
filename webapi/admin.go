@@ -27,6 +27,16 @@ type WalletStatus struct {
 	BestBlockHeight int64  `json:"bestblockheight"`
 }
 
+// DcrdStatus describes the current status of the local instance of dcrd used by
+// vspd. This is used by the admin.html template, and also serialized to JSON
+// for the /admin/status endpoint.
+type DcrdStatus struct {
+	Host            string `json:"host"`
+	Connected       bool   `json:"connected"`
+	BestBlockError  bool   `json:"bestblockerror"`
+	BestBlockHeight uint32 `json:"bestblockheight"`
+}
+
 type searchResult struct {
 	Hash           string
 	Found          bool
@@ -34,6 +44,31 @@ type searchResult struct {
 	AltSig         string
 	VoteChanges    map[uint32]database.VoteChangeRecord
 	MaxVoteChanges int
+}
+
+func dcrdStatus(c *gin.Context) DcrdStatus {
+	hostname := c.MustGet("DcrdHostname").(string)
+	status := DcrdStatus{Host: hostname}
+
+	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
+	dcrdErr := c.MustGet("DcrdClientErr")
+	if dcrdErr != nil {
+		log.Errorf("could not get dcrd client: %v", dcrdErr.(error))
+		return status
+	}
+
+	status.Connected = true
+
+	bestBlock, err := dcrdClient.GetBestBlockHeader()
+	if err != nil {
+		log.Errorf("could not get dcrd best block header: %v", err)
+		status.BestBlockError = true
+		return status
+	}
+
+	status.BestBlockHeight = bestBlock.Height
+
+	return status
 }
 
 func walletStatus(c *gin.Context) map[string]WalletStatus {
@@ -92,7 +127,17 @@ func statusJSON(c *gin.Context) {
 		}
 	}
 
-	c.AbortWithStatusJSON(httpStatus, wallets)
+	dcrd := dcrdStatus(c)
+
+	// Respond with HTTP status 500 if dcrd has issues.
+	if !dcrd.Connected || dcrd.BestBlockError {
+		httpStatus = http.StatusInternalServerError
+	}
+
+	c.AbortWithStatusJSON(httpStatus, gin.H{
+		"wallets": wallets,
+		"dcrd":    dcrd,
+	})
 }
 
 // adminPage is the handler for "GET /admin".
@@ -101,6 +146,7 @@ func adminPage(c *gin.Context) {
 		"WebApiCache":  getCache(),
 		"WebApiCfg":    cfg,
 		"WalletStatus": walletStatus(c),
+		"DcrdStatus":   dcrdStatus(c),
 	})
 }
 
@@ -147,6 +193,7 @@ func ticketSearch(c *gin.Context) {
 		"WebApiCache":  getCache(),
 		"WebApiCfg":    cfg,
 		"WalletStatus": walletStatus(c),
+		"DcrdStatus":   dcrdStatus(c),
 	})
 }
 

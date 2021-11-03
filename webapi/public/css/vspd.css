@@ -151,34 +151,41 @@ footer .code {
     font-size: 12px;
 }
 
+.vsp-status {
+    padding: 10px;
+}
 
-#status-table th,
-#status-table td {
+.vsp-status table {
+    margin-bottom: 28px;
+}
+
+.vsp-status table th,
+.vsp-status table td {
     border: 1px solid #edeff1;
     vertical-align: middle;
     text-align: center;
 }
 
-#status-table .center {
+.vsp-status table .center {
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-#status-table .status {
+.vsp-status table .status {
     height: 30px;
     padding-left: 30px;
 }
 
-#status-table .good {
+.vsp-status table .good {
     background: url(/public/images/success-icon.svg) no-repeat center center;
 }
 
-#status-table .bad {
+.vsp-status table .bad {
     background: url(/public/images/error-icon.svg) no-repeat left center;
 }
 
-#status-table .with-text {
+.vsp-status table .with-text {
     padding-left: 40px;
 }
 

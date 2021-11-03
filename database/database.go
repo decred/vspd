@@ -436,7 +436,7 @@ func (vdb *VspDatabase) CheckIntegrity(ctx context.Context, params *chaincfg.Par
 		return nil
 	}
 
-	dcrdClient, err := dcrd.Client(ctx, params)
+	dcrdClient, _, err := dcrd.Client(ctx, params)
 	if err != nil {
 		return err
 	}

@@ -232,14 +232,14 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	admin := router.Group("/admin").Use(
 		withWalletClients(wallets), withSession(cookieStore), requireAdmin(),
 	)
-	admin.GET("", adminPage)
-	admin.POST("/ticket", ticketSearch)
+	admin.GET("", withDcrdClient(dcrd), adminPage)
+	admin.POST("/ticket", withDcrdClient(dcrd), ticketSearch)
 	admin.GET("/backup", downloadDatabaseBackup)
 	admin.POST("/logout", adminLogout)
 
 	// Require Basic HTTP Auth on /admin/status endpoint.
 	basic := router.Group("/admin").Use(
-		withWalletClients(wallets), gin.BasicAuth(gin.Accounts{
+		withDcrdClient(dcrd), withWalletClients(wallets), gin.BasicAuth(gin.Accounts{
 			"admin": cfg.AdminPass,
 		}),
 	)
