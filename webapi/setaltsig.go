@@ -39,7 +39,7 @@ func setAltSig(c *gin.Context) {
 		return
 	}
 
-	var request SetAltSigRequest
+	var request setAltSigRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
@@ -100,7 +100,7 @@ func setAltSig(c *gin.Context) {
 	sigStr := c.GetHeader("VSP-Client-Signature")
 
 	// Send success response to client.
-	res, resSig := sendJSONResponse(SetAltSigResponse{
+	res, resSig := sendJSONResponse(setAltSigResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)
