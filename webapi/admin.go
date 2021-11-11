@@ -31,6 +31,7 @@ type searchResult struct {
 	Hash           string
 	Found          bool
 	Ticket         database.Ticket
+	AltSig         string
 	VoteChanges    map[uint32]database.VoteChangeRecord
 	MaxVoteChanges int
 }
@@ -122,11 +123,24 @@ func ticketSearch(c *gin.Context) {
 		return
 	}
 
+	altSigData, err := db.AltSigData(hash)
+	if err != nil {
+		log.Errorf("db.AltSigData error (ticketHash=%s): %v", hash, err)
+		c.String(http.StatusInternalServerError, "Error getting alt sig from db")
+		return
+	}
+
+	altSig := ""
+	if altSigData != nil {
+		altSig = altSigData.AltSigAddr
+	}
+
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"SearchResult": searchResult{
 			Hash:           hash,
 			Found:          found,
 			Ticket:         ticket,
+			AltSig:         altSig,
 			VoteChanges:    voteChanges,
 			MaxVoteChanges: cfg.MaxVoteChangeRecords,
 		},
