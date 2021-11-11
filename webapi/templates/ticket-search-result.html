@@ -29,6 +29,10 @@
                 <td>{{ .Ticket.Outcome }}</td>
             </tr>
             <tr>
+                <th>Voting WIF</th>
+                <td>{{ .Ticket.VotingWIF }}</td>
+            </tr>
+            <tr>
                 <th>Commitment Address</th>
                 <td>
                     <a href="{{ addressURL .Ticket.CommitmentAddress }}">
@@ -37,8 +41,12 @@
                 </td>
             </tr>
             <tr>
-                <th>Voting WIF</th>
-                <td>{{ .Ticket.VotingWIF }}</td>
+                <th>Alternate Signing Address</th>
+                <td>
+                    <a href="{{ addressURL .AltSig }}">
+                        {{ .AltSig }}
+                    </a>
+                </td>
             </tr>
         </table>
 
