@@ -72,7 +72,7 @@ type ticketStatusResponse struct {
 	Request         []byte            `json:"request"`
 }
 
-type SetAltSigRequest struct {
+type setAltSigRequest struct {
 	Timestamp     int64  `json:"timestamp" binding:"required"`
 	TicketHash    string `json:"tickethash" binding:"required"`
 	TicketHex     string `json:"tickethex" binding:"required"`
@@ -80,7 +80,7 @@ type SetAltSigRequest struct {
 	AltSigAddress string `json:"altsigaddress" binding:"required"`
 }
 
-type SetAltSigResponse struct {
+type setAltSigResponse struct {
 	Timestamp int64  `json:"timestamp"`
 	Request   []byte `json:"request"`
 }

@@ -171,7 +171,7 @@ func TestSetAltSig(t *testing.T) {
 
 	for _, test := range tests {
 		ticketHash := randString(64, hexCharset)
-		req := &SetAltSigRequest{
+		req := &setAltSigRequest{
 			Timestamp:     time.Now().Unix(),
 			TicketHash:    ticketHash,
 			TicketHex:     randString(504, hexCharset),
