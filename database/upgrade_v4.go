@@ -10,22 +10,22 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-func altSigUpgrade(db *bolt.DB) error {
-	log.Infof("Upgrading database to version %d", altSigVersion)
+func altSignAddrUpgrade(db *bolt.DB) error {
+	log.Infof("Upgrading database to version %d", altSignAddrVersion)
 
 	// Run the upgrade in a single database transaction so it can be safely
 	// rolled back if an error is encountered.
 	err := db.Update(func(tx *bolt.Tx) error {
 		vspBkt := tx.Bucket(vspBktK)
 
-		// Create altsig bucket.
-		_, err := vspBkt.CreateBucket(altSigBktK)
+		// Create alt sign addr bucket.
+		_, err := vspBkt.CreateBucket(altSignAddrBktK)
 		if err != nil {
-			return fmt.Errorf("failed to create %s bucket: %w", altSigBktK, err)
+			return fmt.Errorf("failed to create %s bucket: %w", altSignAddrBktK, err)
 		}
 
 		// Update database version.
-		err = vspBkt.Put(versionK, uint32ToBytes(altSigVersion))
+		err = vspBkt.Put(versionK, uint32ToBytes(altSignAddrVersion))
 		if err != nil {
 			return fmt.Errorf("failed to update db version: %w", err)
 		}

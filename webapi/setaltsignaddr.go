@@ -25,10 +25,10 @@ type Node interface {
 	GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, error)
 }
 
-// setAltSig is the handler for "POST /api/v3/setaltsig".
-func setAltSig(c *gin.Context) {
+// setAltSignAddr is the handler for "POST /api/v3/setaltsignaddr".
+func setAltSignAddr(c *gin.Context) {
 
-	const funcName = "setAltSig"
+	const funcName = "setAltSignAddr"
 
 	// Get values which have been added to context by middleware.
 	dcrdClient := c.MustGet(dcrdKey).(Node)
@@ -45,23 +45,23 @@ func setAltSig(c *gin.Context) {
 		return
 	}
 
-	var request setAltSigRequest
+	var request setAltSignAddrRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
 
-	altSigAddr, ticketHash := request.AltSigAddress, request.TicketHash
+	altSignAddr, ticketHash := request.AltSignAddress, request.TicketHash
 
-	currentData, err := db.AltSigData(ticketHash)
+	currentData, err := db.AltSignAddrData(ticketHash)
 	if err != nil {
-		log.Errorf("%s: db.AltSigData (ticketHash=%s): %v", funcName, ticketHash, err)
+		log.Errorf("%s: db.AltSignAddrData (ticketHash=%s): %v", funcName, ticketHash, err)
 		sendError(errInternalError, c)
 		return
 	}
 	if currentData != nil {
-		msg := "alternate signature data already exists"
+		msg := "alternate sign address data already exists"
 		log.Warnf("%s: %s (ticketHash=%s)", funcName, msg, ticketHash)
 		sendErrorWithMsg(msg, errBadRequest, c)
 		return
@@ -69,14 +69,14 @@ func setAltSig(c *gin.Context) {
 	}
 
 	// Fail fast if the pubkey doesn't decode properly.
-	addr, err := stdaddr.DecodeAddressV0(altSigAddr, cfg.NetParams)
+	addr, err := stdaddr.DecodeAddressV0(altSignAddr, cfg.NetParams)
 	if err != nil {
-		log.Warnf("%s: Alt sig address cannot be decoded (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		log.Warnf("%s: Alt sign address cannot be decoded (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
 	if _, ok := addr.(*stdaddr.AddressPubKeyHashEcdsaSecp256k1V0); !ok {
-		log.Warnf("%s: Alt sig address is unexpected type (clientIP=%s, type=%T)", funcName, c.ClientIP(), addr)
+		log.Warnf("%s: Alt sign address is unexpected type (clientIP=%s, type=%T)", funcName, c.ClientIP(), addr)
 		sendErrorWithMsg("wrong type for alternate signing address", errBadRequest, c)
 		return
 	}
@@ -103,28 +103,26 @@ func setAltSig(c *gin.Context) {
 		return
 	}
 
-	sigStr := c.GetHeader("VSP-Client-Signature")
-
 	// Send success response to client.
-	res, resSig := sendJSONResponse(setAltSigResponse{
+	resp, respSig := sendJSONResponse(setAltSignAddrResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)
 
-	data := &database.AltSigData{
-		AltSigAddr: altSigAddr,
-		Req:        reqBytes,
-		ReqSig:     sigStr,
-		Res:        []byte(res),
-		ResSig:     resSig,
+	data := &database.AltSignAddrData{
+		AltSignAddr: altSignAddr,
+		Req:         reqBytes,
+		ReqSig:      c.GetHeader("VSP-Client-Signature"),
+		Resp:        []byte(resp),
+		RespSig:     respSig,
 	}
 
-	err = db.InsertAltSig(ticketHash, data)
+	err = db.InsertAltSignAddr(ticketHash, data)
 	if err != nil {
-		log.Errorf("%s: db.InsertAltSig error, failed to set alt data (ticketHash=%s): %v",
+		log.Errorf("%s: db.InsertAltSignAddr error (ticketHash=%s): %v",
 			funcName, ticketHash, err)
 		return
 	}
 
-	log.Debugf("%s: New alt sig pubkey set for ticket: (ticketHash=%s)", funcName, ticketHash)
+	log.Debugf("%s: New alt sign address set for ticket: (ticketHash=%s)", funcName, ticketHash)
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -72,15 +72,15 @@ type ticketStatusResponse struct {
 	Request         []byte            `json:"request"`
 }
 
-type setAltSigRequest struct {
-	Timestamp     int64  `json:"timestamp" binding:"required"`
-	TicketHash    string `json:"tickethash" binding:"required"`
-	TicketHex     string `json:"tickethex" binding:"required"`
-	ParentHex     string `json:"parenthex" binding:"required"`
-	AltSigAddress string `json:"altsigaddress" binding:"required"`
+type setAltSignAddrRequest struct {
+	Timestamp      int64  `json:"timestamp" binding:"required"`
+	TicketHash     string `json:"tickethash" binding:"required"`
+	TicketHex      string `json:"tickethex" binding:"required"`
+	ParentHex      string `json:"parenthex" binding:"required"`
+	AltSignAddress string `json:"altsignaddress" binding:"required"`
 }
 
-type setAltSigResponse struct {
+type setAltSignAddrResponse struct {
 	Timestamp int64  `json:"timestamp"`
 	Request   []byte `json:"request"`
 }

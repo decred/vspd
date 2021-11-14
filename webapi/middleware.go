@@ -359,17 +359,17 @@ func vspAuth() gin.HandlerFunc {
 		err = validateSignature(reqBytes, commitmentAddress, c)
 		if err != nil {
 			// Don't return an error straight away if sig validation fails -
-			// first check if we have an alternate sig address for this ticket.
-			altSigData, err := db.AltSigData(hash)
+			// first check if we have an alternate sign address for this ticket.
+			altSigData, err := db.AltSignAddrData(hash)
 			if err != nil {
-				log.Errorf("%s: db.AltSigData failed (ticketHash=%s): %v", funcName, hash, err)
+				log.Errorf("%s: db.AltSignAddrData failed (ticketHash=%s): %v", funcName, hash, err)
 				sendError(errInternalError, c)
 				return
 			}
 
-			// If we have no alternate sig, or if validating with the alt sig
-			// fails, return an error to the client.
-			if altSigData == nil || validateSignature(reqBytes, altSigData.AltSigAddr, c) != nil {
+			// If we have no alternate sign address, or if validating with the
+			// alt sign addr fails, return an error to the client.
+			if altSigData == nil || validateSignature(reqBytes, altSigData.AltSignAddr, c) != nil {
 				log.Warnf("%s: Bad signature (clientIP=%s, ticketHash=%s)", funcName, c.ClientIP(), hash)
 				sendError(errBadSignature, c)
 				return
