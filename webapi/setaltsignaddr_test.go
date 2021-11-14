@@ -27,8 +27,11 @@ import (
 )
 
 const (
-	sigCharset = "0123456789ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/="
+	// hexCharset is a list of all valid hexadecimal characters.
 	hexCharset = "1234567890abcdef"
+	// sigCharset is a list of all valid request/response signature characters
+	// (base64 encoding).
+	sigCharset = "0123456789ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/="
 	testDb     = "test.db"
 	backupDb   = "test.db-backup"
 )
@@ -115,19 +118,19 @@ func (n *testNode) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, err
 	return nil, n.getRawTransactionErr
 }
 
-func TestSetAltSig(t *testing.T) {
+func TestSetAltSignAddress(t *testing.T) {
 	const testAddr = "DsVoDXNQqyF3V83PJJ5zMdnB4pQuJHBAh15"
 	tests := []struct {
-		name                 string
-		dcrdClientErr        bool
-		vspClosed            bool
-		deformReq            int
-		addr                 string
-		getRawTransactionErr error
-		canTicketNotVote     bool
-		isExistingAltSig     bool
-		canTicketVoteErr     error
-		wantCode             int
+		name                  string
+		dcrdClientErr         bool
+		vspClosed             bool
+		deformReq             int
+		addr                  string
+		getRawTransactionErr  error
+		canTicketNotVote      bool
+		isExistingAltSignAddr bool
+		canTicketVoteErr      error
+		wantCode              int
 	}{{
 		name:     "ok",
 		addr:     testAddr,
@@ -169,20 +172,20 @@ func TestSetAltSig(t *testing.T) {
 		canTicketNotVote: true,
 		wantCode:         http.StatusBadRequest,
 	}, {
-		name:             "hist at max",
-		addr:             testAddr,
-		isExistingAltSig: true,
-		wantCode:         http.StatusBadRequest,
+		name:                  "hist at max",
+		addr:                  testAddr,
+		isExistingAltSignAddr: true,
+		wantCode:              http.StatusBadRequest,
 	}}
 
 	for _, test := range tests {
 		ticketHash := randString(64, hexCharset)
-		req := &setAltSigRequest{
-			Timestamp:     time.Now().Unix(),
-			TicketHash:    ticketHash,
-			TicketHex:     randString(504, hexCharset),
-			ParentHex:     randString(504, hexCharset),
-			AltSigAddress: test.addr,
+		req := &setAltSignAddrRequest{
+			Timestamp:      time.Now().Unix(),
+			TicketHash:     ticketHash,
+			TicketHex:      randString(504, hexCharset),
+			ParentHex:      randString(504, hexCharset),
+			AltSignAddress: test.addr,
 		}
 		reqSig := randString(504, hexCharset)
 		b, err := json.Marshal(req)
@@ -190,16 +193,16 @@ func TestSetAltSig(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if test.isExistingAltSig {
-			data := &database.AltSigData{
-				AltSigAddr: test.addr,
-				Req:        b,
-				ReqSig:     reqSig,
-				Res:        randBytes(1000),
-				ResSig:     randString(96, sigCharset),
+		if test.isExistingAltSignAddr {
+			data := &database.AltSignAddrData{
+				AltSignAddr: test.addr,
+				Req:         b,
+				ReqSig:      reqSig,
+				Resp:        randBytes(1000),
+				RespSig:     randString(96, sigCharset),
 			}
-			if err := db.InsertAltSig(ticketHash, data); err != nil {
-				t.Fatalf("%q: unable to insert ticket: %v", test.name, err)
+			if err := db.InsertAltSignAddr(ticketHash, data); err != nil {
+				t.Fatalf("%q: unable to insert alt sign addr: %v", test.name, err)
 			}
 		}
 
@@ -223,7 +226,7 @@ func TestSetAltSig(t *testing.T) {
 			c.Set(dcrdKey, tNode)
 			c.Set(dcrdErrorKey, dcrdErr)
 			c.Set(requestBytesKey, b[test.deformReq:])
-			setAltSig(c)
+			setAltSignAddr(c)
 		}
 
 		r.POST("/", handle)
@@ -241,20 +244,20 @@ func TestSetAltSig(t *testing.T) {
 			t.Errorf("%q: expected status %d, got %d", test.name, test.wantCode, w.Code)
 		}
 
-		altsig, err := db.AltSigData(ticketHash)
+		altsig, err := db.AltSignAddrData(ticketHash)
 		if err != nil {
-			t.Fatalf("%q: unable to get alt sig data: %v", test.name, err)
+			t.Fatalf("%q: unable to get alt sign addr data: %v", test.name, err)
 		}
 
-		if test.wantCode != http.StatusOK && !test.isExistingAltSig {
+		if test.wantCode != http.StatusOK && !test.isExistingAltSignAddr {
 			if altsig != nil {
-				t.Fatalf("%q: expected no alt sig saved for errored state", test.name)
+				t.Fatalf("%q: expected no alt sign addr saved for errored state", test.name)
 			}
 			continue
 		}
 
 		if !bytes.Equal(b, altsig.Req) || altsig.ReqSig != reqSig {
-			t.Fatalf("%q: expected alt sig data different than actual", test.name)
+			t.Fatalf("%q: expected alt sign addr data different than actual", test.name)
 		}
 	}
 }

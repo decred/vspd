@@ -103,11 +103,11 @@ func blockConnected() {
 						funcName, ticket.Hash, err)
 				}
 
-				// This will not error if an alternate signature does not
+				// This will not error if an alternate signing address does not
 				// exist for ticket.
-				err = db.DeleteAltSig(ticket.Hash)
+				err = db.DeleteAltSignAddr(ticket.Hash)
 				if err != nil {
-					log.Errorf("%s: db.DeleteAltSig error (ticketHash=%s): %v",
+					log.Errorf("%s: db.DeleteAltSignAddr error (ticketHash=%s): %v",
 						funcName, ticket.Hash, err)
 				}
 			} else {

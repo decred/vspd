@@ -50,8 +50,8 @@ var (
 	privateKeyK = []byte("privatekey")
 	// lastaddressindex is the index of the last address used for fees.
 	lastAddressIndexK = []byte("lastaddressindex")
-	// altSigBktK stores alternate signatures.
-	altSigBktK = []byte("altsigbkt")
+	// altSignAddrBktK stores alternate signing addresses.
+	altSignAddrBktK = []byte("altsigbkt")
 )
 
 const (

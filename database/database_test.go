@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2021 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -24,9 +24,13 @@ const (
 	feeXPub              = "feexpub"
 	maxVoteChangeRecords = 3
 
+	// addrCharset is a list of all valid DCR address characters.
 	addrCharset = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-	hexCharset  = "1234567890abcdef"
-	sigCharset  = "0123456789ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/="
+	// hexCharset is a list of all valid hexadecimal characters.
+	hexCharset = "1234567890abcdef"
+	// sigCharset is a list of all valid request/response signature characters
+	// (base64 encoding).
+	sigCharset = "0123456789ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/="
 )
 
 var (
@@ -72,9 +76,9 @@ func TestDatabase(t *testing.T) {
 		"testDeleteTicket":      testDeleteTicket,
 		"testVoteChangeRecords": testVoteChangeRecords,
 		"testHTTPBackup":        testHTTPBackup,
-		"testAltSigData":        testAltSigData,
-		"testInsertAltSig":      testInsertAltSig,
-		"testDeleteAltSig":      testDeleteAltSig,
+		"testAltSignAddrData":   testAltSignAddrData,
+		"testInsertAltSignAddr": testInsertAltSignAddr,
+		"testDeleteAltSignAddr": testDeleteAltSignAddr,
 	}
 
 	for testName, test := range tests {
