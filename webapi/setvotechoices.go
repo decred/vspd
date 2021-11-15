@@ -20,10 +20,10 @@ func setVoteChoices(c *gin.Context) {
 	const funcName = "setVoteChoices"
 
 	// Get values which have been added to context by middleware.
-	ticket := c.MustGet("Ticket").(database.Ticket)
-	knownTicket := c.MustGet("KnownTicket").(bool)
-	walletClients := c.MustGet("WalletClients").([]*rpc.WalletRPC)
-	reqBytes := c.MustGet("RequestBytes").([]byte)
+	ticket := c.MustGet(ticketKey).(database.Ticket)
+	knownTicket := c.MustGet(knownTicketKey).(bool)
+	walletClients := c.MustGet(walletsKey).([]*rpc.WalletRPC)
+	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	// If we cannot set the vote choices on at least one voting wallet right
 	// now, don't update the database, just return an error.

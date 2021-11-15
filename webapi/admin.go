@@ -47,11 +47,11 @@ type searchResult struct {
 }
 
 func dcrdStatus(c *gin.Context) DcrdStatus {
-	hostname := c.MustGet("DcrdHostname").(string)
+	hostname := c.MustGet(dcrdHostKey).(string)
 	status := DcrdStatus{Host: hostname}
 
-	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
-	dcrdErr := c.MustGet("DcrdClientErr")
+	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
 		log.Errorf("could not get dcrd client: %v", dcrdErr.(error))
 		return status
@@ -72,8 +72,8 @@ func dcrdStatus(c *gin.Context) DcrdStatus {
 }
 
 func walletStatus(c *gin.Context) map[string]WalletStatus {
-	walletClients := c.MustGet("WalletClients").([]*rpc.WalletRPC)
-	failedWalletClients := c.MustGet("FailedWalletClients").([]string)
+	walletClients := c.MustGet(walletsKey).([]*rpc.WalletRPC)
+	failedWalletClients := c.MustGet(failedWalletsKey).([]string)
 
 	walletStatus := make(map[string]WalletStatus)
 	for _, v := range walletClients {
@@ -236,7 +236,7 @@ func downloadDatabaseBackup(c *gin.Context) {
 // setAdminStatus stores the authentication status of the current session and
 // redirects the client to GET /admin.
 func setAdminStatus(admin interface{}, c *gin.Context) {
-	session := c.MustGet("session").(*sessions.Session)
+	session := c.MustGet(sessionKey).(*sessions.Session)
 	session.Values["admin"] = admin
 	err := session.Save(c.Request, c.Writer)
 	if err != nil {
