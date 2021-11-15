@@ -24,16 +24,16 @@ func payFee(c *gin.Context) {
 	const funcName = "payFee"
 
 	// Get values which have been added to context by middleware.
-	ticket := c.MustGet("Ticket").(database.Ticket)
-	knownTicket := c.MustGet("KnownTicket").(bool)
-	dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
-	dcrdErr := c.MustGet("DcrdClientErr")
+	ticket := c.MustGet(ticketKey).(database.Ticket)
+	knownTicket := c.MustGet(knownTicketKey).(bool)
+	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
 		log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
 		sendError(errInternalError, c)
 		return
 	}
-	reqBytes := c.MustGet("RequestBytes").([]byte)
+	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	if cfg.VspClosed {
 		sendError(errVspClosed, c)

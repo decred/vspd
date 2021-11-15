@@ -49,6 +49,20 @@ const (
 	feeAddressExpiration = 1 * time.Hour
 )
 
+// Hard-coded keys used for storing values in the web context.
+const (
+	sessionKey           = "Session"
+	dcrdKey              = "DcrdClient"
+	dcrdHostKey          = "DcrdHostname"
+	dcrdErrorKey         = "DcrdClientErr"
+	walletsKey           = "WalletClients"
+	failedWalletsKey     = "FailedWalletClients"
+	requestBytesKey      = "RequestBytes"
+	ticketKey            = "Ticket"
+	knownTicketKey       = "KnownTicket"
+	commitmentAddressKey = "CommitmentAddress"
+)
+
 var cfg Config
 var db *database.VspDatabase
 var addrGen *addressGenerator

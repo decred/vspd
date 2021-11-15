@@ -49,7 +49,7 @@ func withSession(store *sessions.CookieStore) gin.HandlerFunc {
 			}
 		}
 
-		c.Set("session", session)
+		c.Set(sessionKey, session)
 	}
 }
 
@@ -57,7 +57,7 @@ func withSession(store *sessions.CookieStore) gin.HandlerFunc {
 // authenticated as an admin, otherwise it will render the login template.
 func requireAdmin() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session := c.MustGet("session").(*sessions.Session)
+		session := c.MustGet(sessionKey).(*sessions.Session)
 		admin := session.Values["admin"]
 
 		if admin == nil {
@@ -78,9 +78,9 @@ func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 		client, hostname, err := dcrd.Client(c, cfg.NetParams)
 		// Don't handle the error here, add it to the context and let downstream
 		// handlers decide what to do with it.
-		c.Set("DcrdClient", client)
-		c.Set("DcrdHostname", hostname)
-		c.Set("DcrdClientErr", err)
+		c.Set(dcrdKey, client)
+		c.Set(dcrdHostKey, hostname)
+		c.Set(dcrdErrorKey, err)
 	}
 }
 
@@ -96,8 +96,8 @@ func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 			log.Errorf("Failed to connect to %d wallet(s), proceeding with only %d",
 				len(failedConnections), len(clients))
 		}
-		c.Set("WalletClients", clients)
-		c.Set("FailedWalletClients", failedConnections)
+		c.Set(walletsKey, clients)
+		c.Set(failedWalletsKey, failedConnections)
 	}
 }
 
@@ -176,8 +176,8 @@ func broadcastTicket() gin.HandlerFunc {
 		parentHash := parentTx.TxHash()
 
 		// Check if local dcrd already knows the parent tx.
-		dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
-		dcrdErr := c.MustGet("DcrdClientErr")
+		dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+		dcrdErr := c.MustGet(dcrdErrorKey)
 		if dcrdErr != nil {
 			log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
 			sendError(errInternalError, c)
@@ -273,7 +273,7 @@ func vspAuth() gin.HandlerFunc {
 
 		// Add request bytes to request context for downstream handlers to reuse.
 		// Necessary because the request body reader can only be used once.
-		c.Set("RequestBytes", reqBytes)
+		c.Set(requestBytesKey, reqBytes)
 
 		// Parse request and ensure there is a ticket hash included.
 		var request struct {
@@ -316,8 +316,8 @@ func vspAuth() gin.HandlerFunc {
 		if ticketFound {
 			commitmentAddress = ticket.CommitmentAddress
 		} else {
-			dcrdClient := c.MustGet("DcrdClient").(*rpc.DcrdRPC)
-			dcrdErr := c.MustGet("DcrdClientErr")
+			dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+			dcrdErr := c.MustGet(dcrdErrorKey)
 			if dcrdErr != nil {
 				log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
 				sendError(errInternalError, c)
@@ -378,9 +378,9 @@ func vspAuth() gin.HandlerFunc {
 
 		// Add ticket information to context so downstream handlers don't need
 		// to access the db for it.
-		c.Set("Ticket", ticket)
-		c.Set("KnownTicket", ticketFound)
-		c.Set("CommitmentAddress", commitmentAddress)
+		c.Set(ticketKey, ticket)
+		c.Set(knownTicketKey, ticketFound)
+		c.Set(commitmentAddressKey, commitmentAddress)
 	}
 
 }

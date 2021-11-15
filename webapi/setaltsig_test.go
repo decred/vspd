@@ -220,9 +220,9 @@ func TestSetAltSig(t *testing.T) {
 		}
 
 		handle := func(c *gin.Context) {
-			c.Set("DcrdClient", tNode)
-			c.Set("DcrdClientErr", dcrdErr)
-			c.Set("RequestBytes", b[test.deformReq:])
+			c.Set(dcrdKey, tNode)
+			c.Set(dcrdErrorKey, dcrdErr)
+			c.Set(requestBytesKey, b[test.deformReq:])
 			setAltSig(c)
 		}
 

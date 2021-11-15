@@ -17,9 +17,9 @@ func ticketStatus(c *gin.Context) {
 	const funcName = "ticketStatus"
 
 	// Get values which have been added to context by middleware.
-	ticket := c.MustGet("Ticket").(database.Ticket)
-	knownTicket := c.MustGet("KnownTicket").(bool)
-	reqBytes := c.MustGet("RequestBytes").([]byte)
+	ticket := c.MustGet(ticketKey).(database.Ticket)
+	knownTicket := c.MustGet(knownTicketKey).(bool)
+	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	if !knownTicket {
 		log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
