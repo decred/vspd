@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020 The Decred developers
+# Copyright (c) 2020-2021 The Decred developers
 # Use of this source code is governed by an ISC
 # license that can be found in the LICENSE file.
 #
@@ -8,12 +8,16 @@
 #
 # To use the script simply run `./harness.sh` from the repo root.
 #
-# The script makes a few assumptions about the system it is running on:
+# By default, the harness script will use `/tmp/vspd-harness` as a working
+# directory. This can be changed using the `-r` flag, eg:
+#
+#   ./harness.sh -r /my/harness/path
+#
+# The harness script makes a few assumptions about the system it is running on:
 # - tmux is installed
 # - dcrd, dcrwallet and vspd are available on $PATH
 # - Decred testnet chain is already downloaded and sync'd
 # - dcrd transaction index is already built
-# - /tmp directory exists
 # - The following files exist:
 #   - ${HOME}/.dcrd/rpc.cert
 #   - ${HOME}/.dcrd/rpc.key
@@ -23,7 +27,6 @@
 set -e
 
 TMUX_SESSION="vspd-harness"
-HARNESS_ROOT=/tmp/vspd-harness
 RPC_USER="user"
 RPC_PASS="pass"
 NUMBER_OF_WALLETS=3
@@ -37,7 +40,13 @@ WALLET_RPC_KEY="${HOME}/.dcrwallet/rpc.key"
 
 VSPD_FEE_XPUB="tpubVppjaMjp8GEWzpMGHdXNhkjqof8baKGkUzneNEiocnnjnjY9hQPe6mxzZQyzyKYS3u5yxLp8KrJvibqDzc75RGqzkv2JMPYDXmCRR1a39jg"
 
-tmux new-session -d -s $TMUX_SESSION
+HARNESS_ROOT=/tmp/vspd-harness
+while getopts r: flag
+do
+    case "${flag}" in
+        r) HARNESS_ROOT=${OPTARG};
+    esac
+done
 
 if [ -d "${HARNESS_ROOT}" ]; then
   while true; do
@@ -50,6 +59,8 @@ if [ -d "${HARNESS_ROOT}" ]; then
     esac
   done
 fi
+
+tmux new-session -d -s $TMUX_SESSION
 
 #################################################
 # Setup dcrd.
