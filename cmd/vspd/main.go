@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"runtime"
@@ -55,6 +56,20 @@ func run() int {
 	// through an interrupt signal.
 	shutdownCtx := withShutdownCancel(context.Background())
 	go shutdownListener(log)
+
+	// Request admin password if admin password is not set in config.
+	var adminAuthSHA [32]byte
+	if cfg.AdminPass == "" {
+		adminAuthSHA, err = passwordHashPrompt(shutdownCtx, "Admin password for accessing admin page: ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cannot use password: %v\n", err)
+			return 1
+		}
+	} else {
+		adminAuthSHA = sha256.Sum256([]byte(cfg.AdminPass))
+		// Clear password string
+		cfg.AdminPass = ""
+	}
 
 	// Show version at startup.
 	log.Criticalf("Version %s (Go version %s %s/%s)", version.String(), runtime.Version(),
@@ -175,7 +190,7 @@ func run() int {
 		SupportEmail:         cfg.SupportEmail,
 		VspClosed:            cfg.VspClosed,
 		VspClosedMsg:         cfg.VspClosedMsg,
-		AdminPass:            cfg.AdminPass,
+		AdminAuthSHA:         adminAuthSHA,
 		Debug:                cfg.WebServerDebug,
 		Designation:          cfg.Designation,
 		MaxVoteChangeRecords: maxVoteChangeRecords,

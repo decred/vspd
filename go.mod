@@ -24,6 +24,7 @@ require (
 	github.com/jrick/logrotate v1.0.0
 	github.com/jrick/wsrpc/v2 v2.3.5
 	go.etcd.io/bbolt v1.3.6
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 )
 
 require (
