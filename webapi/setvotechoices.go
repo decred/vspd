@@ -134,8 +134,8 @@ func setVoteChoices(c *gin.Context) {
 
 	log.Debugf("%s: Vote choices updated (ticketHash=%s)", funcName, ticket.Hash)
 
-	// Send success response to client.
-	resp, respSig := sendJSONResponse(setVoteChoicesResponse{
+	// Prepare response to client.
+	resp, respSig := prepareJSONResponse(setVoteChoicesResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)
@@ -151,5 +151,9 @@ func setVoteChoices(c *gin.Context) {
 		})
 	if err != nil {
 		log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
+		sendError(errInternalError, c)
 	}
+
+	// Send success response to client
+	sendJSONSuccess(resp, respSig, c)
 }

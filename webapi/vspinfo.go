@@ -14,7 +14,7 @@ import (
 // vspInfo is the handler for "GET /api/v3/vspinfo".
 func vspInfo(c *gin.Context) {
 	cachedStats := getCache()
-	sendJSONResponse(vspInfoResponse{
+	resp, respSig := prepareJSONResponse(vspInfoResponse{
 		APIVersions:       []int64{3},
 		Timestamp:         time.Now().Unix(),
 		PubKey:            signPubKey,
@@ -29,4 +29,5 @@ func vspInfo(c *gin.Context) {
 		BlockHeight:       cachedStats.BlockHeight,
 		NetworkProportion: cachedStats.NetworkProportion,
 	}, c)
+	sendJSONSuccess(resp, respSig, c)
 }

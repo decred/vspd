@@ -34,7 +34,7 @@ func ticketStatus(c *gin.Context) {
 		return
 	}
 
-	sendJSONResponse(ticketStatusResponse{
+	resp, respSig := prepareJSONResponse(ticketStatusResponse{
 		Timestamp:       time.Now().Unix(),
 		Request:         reqBytes,
 		TicketConfirmed: ticket.Confirmed,
@@ -42,4 +42,6 @@ func ticketStatus(c *gin.Context) {
 		FeeTxHash:       ticket.FeeTxHash,
 		VoteChoices:     ticket.VoteChoices,
 	}, c)
+	// Send success response to client
+	sendJSONSuccess(resp, respSig, c)
 }

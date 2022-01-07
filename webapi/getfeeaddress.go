@@ -156,14 +156,15 @@ func feeAddress(c *gin.Context) {
 			log.Debugf("%s: Expired fee updated (newFeeAmt=%s, ticketHash=%s)",
 				funcName, newFee, ticket.Hash)
 		}
-		sendJSONResponse(feeAddressResponse{
+		resp, respSig := prepareJSONResponse(feeAddressResponse{
 			Timestamp:  now.Unix(),
 			Request:    reqBytes,
 			FeeAddress: ticket.FeeAddress,
 			FeeAmount:  ticket.FeeAmount,
 			Expiration: ticket.FeeExpiration,
 		}, c)
-
+		// Send success response to client.
+		sendJSONSuccess(resp, respSig, c)
 		return
 	}
 
@@ -219,11 +220,13 @@ func feeAddress(c *gin.Context) {
 		"feeAddr=%s, feeAmt=%s, ticketHash=%s)",
 		funcName, confirmed, newAddressIdx, newAddress, fee, ticketHash)
 
-	sendJSONResponse(feeAddressResponse{
+	resp, respSig := prepareJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),
 		Request:    reqBytes,
 		FeeAddress: newAddress,
 		FeeAmount:  int64(fee),
 		Expiration: expire,
 	}, c)
+	// Send success response to client.
+	sendJSONSuccess(resp, respSig, c)
 }

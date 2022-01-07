@@ -103,8 +103,8 @@ func setAltSignAddr(c *gin.Context) {
 		return
 	}
 
-	// Send success response to client.
-	resp, respSig := sendJSONResponse(setAltSignAddrResponse{
+	// Prepare response to client.
+	resp, respSig := prepareJSONResponse(setAltSignAddrResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)
@@ -119,10 +119,12 @@ func setAltSignAddr(c *gin.Context) {
 
 	err = db.InsertAltSignAddr(ticketHash, data)
 	if err != nil {
-		log.Errorf("%s: db.InsertAltSignAddr error (ticketHash=%s): %v",
-			funcName, ticketHash, err)
+		log.Errorf("%s: db.InsertAltSignAddr error (ticketHash=%s): %v", funcName, ticketHash, err)
+		sendError(errInternalError, c)
 		return
 	}
 
+	// Send success response to client.
+	sendJSONSuccess(resp, respSig, c)
 	log.Debugf("%s: New alt sign address set for ticket: (ticketHash=%s)", funcName, ticketHash)
 }

@@ -262,10 +262,16 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	return router
 }
 
-// sendJSONResponse serializes the provided response, signs it, and sends the
-// response to the client with a 200 OK status. Returns the seralized response
-// and the signature.
-func sendJSONResponse(resp interface{}, c *gin.Context) (string, string) {
+// sendJSONSuccess sends the provided response and response signature
+// to the client with a 200 OK status.
+func sendJSONSuccess(resp interface{}, sigStr string, c *gin.Context) {
+	c.Writer.Header().Set("VSP-Server-Signature", sigStr)
+	c.AbortWithStatusJSON(http.StatusOK, resp)
+}
+
+// prepareJSONResponse serializes the provided response and signs it.
+// Returns the seralized response and the signature.
+func prepareJSONResponse(resp interface{}, c *gin.Context) (string, string) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
 		log.Errorf("JSON marshal error: %v", err)
@@ -275,9 +281,6 @@ func sendJSONResponse(resp interface{}, c *gin.Context) (string, string) {
 
 	sig := ed25519.Sign(signPrivKey, dec)
 	sigStr := base64.StdEncoding.EncodeToString(sig)
-	c.Writer.Header().Set("VSP-Server-Signature", sigStr)
-
-	c.AbortWithStatusJSON(http.StatusOK, resp)
 
 	return string(dec), sigStr
 }

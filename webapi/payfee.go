@@ -266,8 +266,8 @@ func payFee(c *gin.Context) {
 			funcName, ticket.Hash, ticket.FeeTxHash)
 	}
 
-	// Send success response to client.
-	resp, respSig := sendJSONResponse(payFeeResponse{
+	// Prepare response to client.
+	resp, respSig := prepareJSONResponse(payFeeResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)
@@ -283,5 +283,9 @@ func payFee(c *gin.Context) {
 		})
 	if err != nil {
 		log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
+		sendError(errInternalError, c)
 	}
+
+	// Send success response to client.
+	sendJSONSuccess(resp, respSig, c)
 }
