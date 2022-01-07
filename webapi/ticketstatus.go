@@ -34,12 +34,26 @@ func ticketStatus(c *gin.Context) {
 		return
 	}
 
+	// Get altSignAddress from database
+	altSignAddrData, err := db.AltSignAddrData(ticket.Hash)
+	if err != nil {
+		log.Errorf("%s: db.AltSignAddrData error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+		sendError(errInternalError, c)
+		return
+	}
+
+	altSignAddr := ""
+	if altSignAddrData != nil {
+		altSignAddr = altSignAddrData.AltSignAddr
+	}
+
 	sendJSONResponse(ticketStatusResponse{
 		Timestamp:       time.Now().Unix(),
 		Request:         reqBytes,
 		TicketConfirmed: ticket.Confirmed,
 		FeeTxStatus:     string(ticket.FeeTxStatus),
 		FeeTxHash:       ticket.FeeTxHash,
+		AltSignAddress:  altSignAddr,
 		VoteChoices:     ticket.VoteChoices,
 	}, c)
 }

@@ -209,7 +209,8 @@ its `feetxstatus` is `confirmed`.
       "timestamp":1590509066,
       "ticketconfirmed":true,
       "feetxstatus":"broadcast",
-      "feetxhash": "e1c02b04b5bbdae66cf8e3c88366c4918d458a2d27a26144df37f54a2bc956ac",
+      "feetxhash":"e1c02b04b5bbdae66cf8e3c88366c4918d458a2d27a26144df37f54a2bc956ac",
+      "altsignaddress":"Tsfkn6k9AoYgVZRV6ZzcgmuVSgCdJQt9JY2",
       "votechoices":{"headercommitments":"no"},
       "request": {"<Copy of request body>"}
     }
