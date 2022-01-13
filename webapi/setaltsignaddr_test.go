@@ -42,6 +42,7 @@ var (
 	maxVoteChangeRecords = 3
 )
 
+// randBytes returns a byte slice of size n filled with random bytes.
 func randBytes(n int) []byte {
 	slice := make([]byte, n)
 	if _, err := seededRand.Read(slice); err != nil {
@@ -196,9 +197,9 @@ func TestSetAltSignAddress(t *testing.T) {
 		if test.isExistingAltSignAddr {
 			data := &database.AltSignAddrData{
 				AltSignAddr: test.addr,
-				Req:         b,
+				Req:         string(b),
 				ReqSig:      reqSig,
-				Resp:        randBytes(1000),
+				Resp:        string(randBytes(1000)),
 				RespSig:     randString(96, sigCharset),
 			}
 			if err := db.InsertAltSignAddr(ticketHash, data); err != nil {
@@ -256,7 +257,7 @@ func TestSetAltSignAddress(t *testing.T) {
 			continue
 		}
 
-		if !bytes.Equal(b, altsig.Req) || altsig.ReqSig != reqSig {
+		if !bytes.Equal(b, []byte(altsig.Req)) || altsig.ReqSig != reqSig {
 			t.Fatalf("%q: expected alt sign addr data different than actual", test.name)
 		}
 	}

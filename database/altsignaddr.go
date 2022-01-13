@@ -26,13 +26,13 @@ type AltSignAddrData struct {
 	// AltSignAddr is the new alternate signing address. It is base 58 encoded.
 	AltSignAddr string
 	// Req is the original request to set an alternate signing address.
-	Req []byte
+	Req string
 	// ReqSig is the request's signature signed by the commitment address of the
 	// corresponding ticket. It is base 64 encoded.
 	ReqSig string
 	// Resp is the original response from the server to the alternate signing
 	// address.
-	Resp []byte
+	Resp string
 	// RespSig is the response's signature signed by the server. It is base 64
 	// encoded.
 	RespSig string
@@ -66,7 +66,7 @@ func (vdb *VspDatabase) InsertAltSignAddr(ticketHash string, data *AltSignAddrDa
 			return err
 		}
 
-		if err := bkt.Put(reqK, data.Req); err != nil {
+		if err := bkt.Put(reqK, []byte(data.Req)); err != nil {
 			return err
 		}
 
@@ -74,7 +74,7 @@ func (vdb *VspDatabase) InsertAltSignAddr(ticketHash string, data *AltSignAddrDa
 			return err
 		}
 
-		if err := bkt.Put(respK, data.Resp); err != nil {
+		if err := bkt.Put(respK, []byte(data.Resp)); err != nil {
 			return err
 		}
 		return bkt.Put(respSigK, []byte(data.RespSig))
@@ -113,9 +113,9 @@ func (vdb *VspDatabase) AltSignAddrData(ticketHash string) (*AltSignAddrData, er
 		}
 		h = &AltSignAddrData{
 			AltSignAddr: string(bkt.Get(altSignAddrK)),
-			Req:         bkt.Get(reqK),
+			Req:         string(bkt.Get(reqK)),
 			ReqSig:      string(bkt.Get(reqSigK)),
-			Resp:        bkt.Get(respK),
+			Resp:        string(bkt.Get(respK)),
 			RespSig:     string(bkt.Get(respSigK)),
 		}
 		return nil

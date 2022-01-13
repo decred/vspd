@@ -111,9 +111,9 @@ func setAltSignAddr(c *gin.Context) {
 
 	data := &database.AltSignAddrData{
 		AltSignAddr: altSignAddr,
-		Req:         reqBytes,
+		Req:         string(reqBytes),
 		ReqSig:      c.GetHeader("VSP-Client-Signature"),
-		Resp:        []byte(resp),
+		Resp:        resp,
 		RespSig:     respSig,
 	}
 

@@ -12,9 +12,9 @@ import (
 func exampleAltSignAddrData() *AltSignAddrData {
 	return &AltSignAddrData{
 		AltSignAddr: randString(35, addrCharset),
-		Req:         randBytes(1000),
+		Req:         string(randBytes(1000)),
 		ReqSig:      randString(96, sigCharset),
-		Resp:        randBytes(1000),
+		Resp:        string(randBytes(1000)),
 		RespSig:     randString(96, sigCharset),
 	}
 }
