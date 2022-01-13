@@ -38,12 +38,12 @@ type DcrdStatus struct {
 }
 
 type searchResult struct {
-	Hash           string
-	Found          bool
-	Ticket         database.Ticket
-	AltSignAddr    string
-	VoteChanges    map[uint32]database.VoteChangeRecord
-	MaxVoteChanges int
+	Hash            string
+	Found           bool
+	Ticket          database.Ticket
+	AltSignAddrData *database.AltSignAddrData
+	VoteChanges     map[uint32]database.VoteChangeRecord
+	MaxVoteChanges  int
 }
 
 func dcrdStatus(c *gin.Context) DcrdStatus {
@@ -176,19 +176,14 @@ func ticketSearch(c *gin.Context) {
 		return
 	}
 
-	altSignAddr := ""
-	if altSignAddrData != nil {
-		altSignAddr = altSignAddrData.AltSignAddr
-	}
-
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"SearchResult": searchResult{
-			Hash:           hash,
-			Found:          found,
-			Ticket:         ticket,
-			AltSignAddr:    altSignAddr,
-			VoteChanges:    voteChanges,
-			MaxVoteChanges: cfg.MaxVoteChangeRecords,
+			Hash:            hash,
+			Found:           found,
+			Ticket:          ticket,
+			AltSignAddrData: altSignAddrData,
+			VoteChanges:     voteChanges,
+			MaxVoteChanges:  cfg.MaxVoteChangeRecords,
 		},
 		"WebApiCache":  getCache(),
 		"WebApiCfg":    cfg,

@@ -40,14 +40,6 @@
                     </a>
                 </td>
             </tr>
-            <tr>
-                <th>Alternate Signing Address</th>
-                <td>
-                    <a href="{{ addressURL .AltSignAddr }}">
-                        {{ .AltSignAddr }}
-                    </a>
-                </td>
-            </tr>
         </table>
 
         <h1>Fee</h1>
@@ -133,6 +125,50 @@
                             <tr>
                                 <th>Response<br />Signature</th>
                                 <td>{{ $value.ResponseSignature }}</td>
+                            </tr>
+                        </table>
+                    </details>
+                    {{end}}
+                </td>
+            </tr>
+        </table>
+
+        <h1>Alternate Signing Address</h1>
+        
+        <table id="ticket-table" class="mt-2 mb-4 w-100">
+            <tr>
+                <th>Alternate Signing Address</th>
+                <td>
+            {{if .AltSignAddrData}}
+                    <a href="{{ addressURL .AltSignAddrData.AltSignAddr }}">
+                        {{ .AltSignAddrData.AltSignAddr }}
+                    </a>
+            {{end}}
+                </td>
+            </tr>
+              <tr>
+                <th>
+                    AltSignAddress Change 
+                </th>
+                <td>
+                    {{if .AltSignAddrData}}
+                    <details>
+                      <table class="my-2">
+                            <tr>
+                                <th>Request</th>
+                                <td>{{ indentJSON .AltSignAddrData.Req }}</td>
+                            </tr>
+                            <tr>
+                                <th>Request<br />Signature</th>
+                                <td>{{ .AltSignAddrData.ReqSig }}</td>
+                            </tr>
+                            <tr>
+                                <th>Response</th>
+                                <td>{{ indentJSON .AltSignAddrData.Resp }}</td>
+                            </tr>
+                            <tr>
+                                <th>Response<br />Signature</th>
+                                <td>{{ .AltSignAddrData.RespSig }}</td>
                             </tr>
                         </table>
                     </details>
