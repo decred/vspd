@@ -1,10 +1,11 @@
-// Copyright (c) 2021 The Decred developers
+// Copyright (c) 2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package main
 
 import (
+	"bufio"
 	"context"
 	"crypto/sha256"
 	"fmt"
@@ -61,21 +62,57 @@ func passwordPrompt(ctx context.Context, prompt string) ([]byte, error) {
 
 // passwordHashPrompt prompts the user to enter a password and returns its
 // SHA256 hash. Password must not be an empty string.
-func passwordHashPrompt(ctx context.Context, prompt string) ([sha256.Size]byte, error) {
+func passwordHashPrompt(ctx context.Context, prompt string) ([]byte, error) {
 	var passBytes []byte
 	var err error
-	var authSHA [sha256.Size]byte
 
 	// Ensure passBytes is not empty.
 	for len(passBytes) == 0 {
 		passBytes, err = passwordPrompt(ctx, prompt)
 		if err != nil {
-			return authSHA, err
+			return nil, err
 		}
 	}
 
-	authSHA = sha256.Sum256(passBytes)
+	authHash := sha256.Sum256(passBytes)
 	// Zero password bytes.
 	clearBytes(passBytes)
-	return authSHA, nil
+	return authHash[:], nil
+}
+
+// readPassHashFromFile reads admin password hash from provided file.
+func readPassHashFromFile(passwordDir string) ([]byte, error) {
+	passwordFile, err := os.Open(passwordDir)
+	if err != nil {
+		return nil, err
+	}
+	defer passwordFile.Close()
+
+	reader := bufio.NewReader(passwordFile)
+	adminAuthHash, _, err := reader.ReadLine()
+	if err != nil {
+		return nil, err
+	}
+
+	return adminAuthHash, nil
+}
+
+// createPassHashFile prompts user for password,
+// hashes the provided password and saves the hashed password to a file.
+func createPassHashFile(ctx context.Context, passwordDir string) ([]byte, error) {
+	adminAuthHash, err := passwordHashPrompt(ctx, "Enter admin Password:")
+	if err != nil {
+		return nil, err
+	}
+	passwordFile, err := os.Create(passwordDir)
+	if err != nil {
+		return nil, err
+	}
+	defer passwordFile.Close()
+	// Length of byte is ignored
+	_, err = passwordFile.Write(adminAuthHash)
+	if err != nil {
+		return nil, err
+	}
+	return adminAuthHash, nil
 }

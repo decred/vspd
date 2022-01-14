@@ -381,8 +381,8 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// User is ignored
 		_, password, ok := c.Request.BasicAuth()
-		passAuthSHA := sha256.Sum256([]byte(password))
-		if !ok || subtle.ConstantTimeCompare(passAuthSHA[:], s.cfg.AdminAuthSHA[:]) != 1 {
+		passwordHash := sha256.Sum256([]byte(password))
+		if !ok || subtle.ConstantTimeCompare(s.cfg.AdminAuthHash[:], passwordHash[:]) != 1 {
 			s.log.Warnf("Failed authentication attempt from %s", c.ClientIP())
 			// Credentials doesn't match, we return 401 and abort handlers chain.
 			c.Header("WWW-Authenticate", `Basic realm="Authorization Required"`)

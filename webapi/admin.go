@@ -198,8 +198,8 @@ func (s *Server) ticketSearch(c *gin.Context) {
 // the current session will be authenticated as an admin.
 func (s *Server) adminLogin(c *gin.Context) {
 	password := c.PostForm("password")
-	authSHA := sha256.Sum256([]byte(password))
-	if subtle.ConstantTimeCompare(s.cfg.AdminAuthSHA[:], authSHA[:]) != 1 {
+	passwordHash := sha256.Sum256([]byte(password))
+	if subtle.ConstantTimeCompare(s.cfg.AdminAuthHash[:], passwordHash[:]) != 1 {
 		s.log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"WebApiCache":       s.cache.getData(),

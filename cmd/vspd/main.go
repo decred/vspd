@@ -6,9 +6,9 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -20,11 +20,15 @@ import (
 	"github.com/decred/vspd/webapi"
 )
 
-// maxVoteChangeRecords defines how many vote change records will be stored for
-// each ticket. The limit is in place to mitigate DoS attacks on server storage
-// space. When storing a new record breaches this limit, the oldest record in
-// the database is deleted.
-const maxVoteChangeRecords = 10
+const (
+	// maxVoteChangeRecords defines how many vote change records will be stored for
+	// each ticket. The limit is in place to mitigate DoS attacks on server storage
+	// space. When storing a new record breaches this limit, the oldest record in
+	// the database is deleted.
+	maxVoteChangeRecords = 10
+	// passwordHashFileName is the name of the file containing admin password hash.
+	passwordHashFileName = "password.hash"
+)
 
 // consistencyInterval is the time period between wallet consistency checks.
 const consistencyInterval = 30 * time.Minute
@@ -57,18 +61,21 @@ func run() int {
 	shutdownCtx := withShutdownCancel(context.Background())
 	go shutdownListener(log)
 
-	// Request admin password if admin password is not set in config.
-	var adminAuthSHA [32]byte
-	if cfg.AdminPass == "" {
-		adminAuthSHA, err = passwordHashPrompt(shutdownCtx, "Admin password for accessing admin page: ")
+	// Request admin password if admin password hash file is not found.
+	var adminAuthHash []byte
+	passwordDir := filepath.Join(cfg.HomeDir, passwordHashFileName)
+	if fileExists(passwordDir) {
+		adminAuthHash, err = readPassHashFromFile(passwordDir)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "cannot use password: %v\n", err)
 			return 1
 		}
 	} else {
-		adminAuthSHA = sha256.Sum256([]byte(cfg.AdminPass))
-		// Clear password string
-		cfg.AdminPass = ""
+		adminAuthHash, err = createPassHashFile(shutdownCtx, passwordDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "cannot use password: %v\n", err)
+			return 1
+		}
 	}
 
 	// Show version at startup.
@@ -190,7 +197,7 @@ func run() int {
 		SupportEmail:         cfg.SupportEmail,
 		VspClosed:            cfg.VspClosed,
 		VspClosedMsg:         cfg.VspClosedMsg,
-		AdminAuthSHA:         adminAuthSHA,
+		AdminAuthHash:        adminAuthHash,
 		Debug:                cfg.WebServerDebug,
 		Designation:          cfg.Designation,
 		MaxVoteChangeRecords: maxVoteChangeRecords,
