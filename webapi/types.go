@@ -68,6 +68,7 @@ type ticketStatusResponse struct {
 	TicketConfirmed bool              `json:"ticketconfirmed"`
 	FeeTxStatus     string            `json:"feetxstatus"`
 	FeeTxHash       string            `json:"feetxhash"`
+	AltSignAddress  string            `json:"altsignaddress"`
 	VoteChoices     map[string]string `json:"votechoices"`
 	Request         []byte            `json:"request"`
 }
