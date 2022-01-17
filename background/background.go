@@ -63,6 +63,11 @@ func (n *NotificationHandler) Notify(method string, params json.RawMessage) erro
 	return nil
 }
 
+func (n *NotificationHandler) Close() error {
+	close(notifierClosed)
+	return nil
+}
+
 // blockConnected is called once when vspd starts up, and once each time a
 // blockconnected notification is received from dcrd.
 func blockConnected() {
@@ -304,11 +309,6 @@ func blockConnected() {
 		}
 	}
 
-}
-
-func (n *NotificationHandler) Close() error {
-	close(notifierClosed)
-	return nil
 }
 
 func connectNotifier(shutdownCtx context.Context, dcrdWithNotifs rpc.DcrdConnect) error {
