@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/decred/dcrd/blockchain/v4"
 	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
 	"github.com/decred/dcrd/wire"
@@ -138,6 +139,26 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 		return err
 	}
 	return nil
+}
+
+// DCP0010Active uses getblockchaininfo RPC to determine if the DCP-0010 agenda
+// has activated on the current network.
+func (c *DcrdRPC) DCP0010Active() (bool, error) {
+	var info dcrdtypes.GetBlockChainInfoResult
+	err := c.Call(c.ctx, "getblockchaininfo", &info)
+	if err != nil {
+		return false, err
+	}
+
+	agenda, ok := info.Deployments[chaincfg.VoteIDChangeSubsidySplit]
+	if !ok {
+		return false, fmt.Errorf("getblockchaininfo did not return agenda %q",
+			chaincfg.VoteIDChangeSubsidySplit)
+	}
+
+	activeState := blockchain.ThresholdStateTuple{State: blockchain.ThresholdActive}
+
+	return agenda.Status == activeState.String(), nil
 }
 
 // NotifyBlocks uses notifyblocks RPC to request new block notifications from dcrd.
