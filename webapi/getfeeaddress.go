@@ -19,8 +19,6 @@ import (
 // addrMtx protects getNewFeeAddress.
 var addrMtx sync.Mutex
 
-const defaultMinRelayTxFee = dcrutil.Amount(1e4)
-
 // getNewFeeAddress gets a new address from the address generator, and updates
 // the last used address index in the database. In order to maintain consistency
 // between the internal counter of address generator and the database, this func
@@ -55,14 +53,16 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 		return 0, err
 	}
 
+	// Using a hard-coded amount for relay fee is acceptable here because this
+	// amount is never actually used to construct or broadcast transactions. It
+	// is only used to calculate the fee charged for adding a ticket to the VSP.
+	const defaultMinRelayTxFee = dcrutil.Amount(1e4)
+
 	dcp0010Active, err := dcrdClient.DCP0010Active()
 	if err != nil {
 		return 0, err
 	}
 
-	// Using a hard-coded amount for relay fee is acceptable here because this
-	// amount is never actually used to construct or broadcast transactions. It
-	// is only used to calculate the fee charged for adding a ticket to the VSP.
 	fee := txrules.StakePoolTicketFee(sDiff, defaultMinRelayTxFee,
 		int32(bestBlock.Height), cfg.VSPFee, cfg.NetParams, dcp0010Active)
 	if err != nil {
