@@ -22,6 +22,8 @@ import (
 
 var (
 	requiredDcrdVersion = semver{Major: 7, Minor: 0, Patch: 0}
+
+	activeStatus = blockchain.ThresholdStateTuple{State: blockchain.ThresholdActive}.String()
 )
 
 // These error codes are defined in dcrd/dcrjson. They are copied here so we
@@ -141,9 +143,9 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 	return nil
 }
 
-// DCP0010Active uses getblockchaininfo RPC to determine if the DCP-0010 agenda
-// has activated on the current network.
-func (c *DcrdRPC) DCP0010Active() (bool, error) {
+// IsDCP0010Active uses getblockchaininfo RPC to determine if the DCP-0010
+// agenda has activated on the current network.
+func (c *DcrdRPC) IsDCP0010Active() (bool, error) {
 	var info dcrdtypes.GetBlockChainInfoResult
 	err := c.Call(c.ctx, "getblockchaininfo", &info)
 	if err != nil {
@@ -156,9 +158,7 @@ func (c *DcrdRPC) DCP0010Active() (bool, error) {
 			chaincfg.VoteIDChangeSubsidySplit)
 	}
 
-	activeState := blockchain.ThresholdStateTuple{State: blockchain.ThresholdActive}
-
-	return agenda.Status == activeState.String(), nil
+	return agenda.Status == activeStatus, nil
 }
 
 // NotifyBlocks uses notifyblocks RPC to request new block notifications from dcrd.
