@@ -3,6 +3,7 @@
 [![Build Status](https://github.com/decred/vspd/workflows/Build%20and%20Test/badge.svg)](https://github.com/decred/vspd/actions)
 [![ISC License](https://img.shields.io/badge/license-ISC-blue.svg)](http://copyfree.org)
 [![Go Report Card](https://goreportcard.com/badge/github.com/decred/vspd)](https://goreportcard.com/report/github.com/decred/vspd)
+[![Release](https://img.shields.io/github/release/decred/vspd.svg?style=flat-square)](https://github.com/decred/vspd/releases/latest)
 
 ## Overview
 

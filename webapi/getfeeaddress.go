@@ -40,11 +40,14 @@ func getNewFeeAddress(db *database.VspDatabase, addrGen *addressGenerator) (stri
 	return addr, idx, nil
 }
 
+// getCurrentFee returns the minimum fee amount a client should pay in order to
+// register a ticket with the VSP at the current block height.
 func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 	bestBlock, err := dcrdClient.GetBestBlockHeader()
 	if err != nil {
 		return 0, err
 	}
+
 	sDiff, err := dcrutil.NewAmount(bestBlock.SBits)
 	if err != nil {
 		return 0, err
@@ -53,13 +56,15 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 	// Using a hard-coded amount for relay fee is acceptable here because this
 	// amount is never actually used to construct or broadcast transactions. It
 	// is only used to calculate the fee charged for adding a ticket to the VSP.
-	relayFee, err := dcrutil.NewAmount(0.0001)
+	const defaultMinRelayTxFee = dcrutil.Amount(1e4)
+
+	isDCP0010Active, err := dcrdClient.IsDCP0010Active()
 	if err != nil {
 		return 0, err
 	}
 
-	fee := txrules.StakePoolTicketFee(sDiff, relayFee, int32(bestBlock.Height),
-		cfg.VSPFee, cfg.NetParams)
+	fee := txrules.StakePoolTicketFee(sDiff, defaultMinRelayTxFee,
+		int32(bestBlock.Height), cfg.VSPFee, cfg.NetParams, isDCP0010Active)
 	if err != nil {
 		return 0, err
 	}
