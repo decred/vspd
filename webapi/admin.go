@@ -155,6 +155,13 @@ func (s *Server) adminPage(c *gin.Context) {
 func (s *Server) ticketSearch(c *gin.Context) {
 	hash := c.PostForm("hash")
 
+	// Before hitting the db, ensure this is a valid ticket hash. Ignore bool.
+	if err := validateTicketHash(hash); err != nil {
+		s.log.Errorf("ticketSearch: Invalid ticket hash (ticketHash=%s): %v", hash, err)
+		c.String(http.StatusBadRequest, "invalid ticket hash")
+		return
+	}
+
 	ticket, found, err := s.db.GetTicketByHash(hash)
 	if err != nil {
 		s.log.Errorf("db.GetTicketByHash error (ticketHash=%s): %v", hash, err)

@@ -62,6 +62,7 @@ const (
 	ticketKey            = "Ticket"
 	knownTicketKey       = "KnownTicket"
 	commitmentAddressKey = "CommitmentAddress"
+	errorKey             = "Error"
 )
 
 type Server struct {
@@ -244,6 +245,8 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	// Website routes.
 
 	router.GET("", s.homepage)
+	router.GET("/ticket", s.ticketPage)
+	router.POST("/ticket", s.withDcrdClient(dcrd), s.ticketSearchAuth, s.manualTicketSearch)
 
 	login := router.Group("/admin").Use(
 		s.withSession(cookieStore),

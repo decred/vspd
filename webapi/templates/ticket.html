@@ -1,0 +1,39 @@
+{{ template "header" . }}
+
+<div class="vsp-overview pt-4 pb-3 mb-3">
+    <div class="container">
+
+        <div class="d-flex flex-wrap">
+            <h1>Ticket Search</h1>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="col-12 pt-2 pb-4">
+            <div class="block__content">
+                <section>
+                    <form action="/ticket" method="post">
+                        <p class="my-1 orange" style="visibility:{{ if .Error }}visible{{ else }}hidden{{ end }};">
+                            {{.Error}}</p>
+
+                        <div class="mb-3 col col-lg-8 pl-0">
+                            <label for="encodedInput" class="form-label">Encoded Base64 String</label>
+                            <input type="text" name="encoded" size="64" class="form-control shadow-none" minlength="64"
+                                maxlength="500" id="encodedInput" required placeholder="Encoded string" autocomplete="off" value="">
+                        </div>
+                        <button class="btn btn-primary d-block my-2" type="submit">Search</button>
+                    </form>
+
+                    {{ with .SearchResult }}
+                    {{ template "ticket-search-result" . }}
+                    {{ end }}
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+{{ template "footer" . }}
