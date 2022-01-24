@@ -73,8 +73,8 @@ func (e apiError) httpStatus() int {
 	}
 }
 
-// defaultMessage returns a descriptive error string for a given error code.
-func (e apiError) defaultMessage() string {
+// String returns a descriptive error string for a given error code.
+func (e apiError) String() string {
 	switch e {
 	case errBadRequest:
 		return "bad request"
@@ -115,4 +115,9 @@ func (e apiError) defaultMessage() string {
 	default:
 		return "unknown error"
 	}
+}
+
+// Error satisfies the error interface and returns a human-readable error string.
+func (e apiError) Error() string {
+	return e.String()
 }
