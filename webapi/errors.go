@@ -6,6 +6,8 @@ package webapi
 
 import "net/http"
 
+// apiError is a kind of error.  It has full support for errors.Is and
+// errors.As.
 type apiError int
 
 const (
