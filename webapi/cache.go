@@ -20,15 +20,17 @@ import (
 // apiCache is used to cache values which are commonly used by the API, so
 // repeated web requests don't repeatedly trigger DB or RPC calls.
 type apiCache struct {
-	UpdateTime        string
-	PubKey            string
-	DatabaseSize      string
-	Voting            int64
-	Voted             int64
-	Revoked           int64
-	BlockHeight       uint32
-	NetworkProportion float32
-	RevokedProportion float32
+	UpdateTime          string
+	PubKey              string
+	DatabaseSize        string
+	Voting              int64
+	Voted               int64
+	Revoked             int64
+	VotingWalletsOnline int64
+	TotalVotingWallets  int64
+	BlockHeight         uint32
+	NetworkProportion   float32
+	RevokedProportion   float32
 }
 
 var cacheMtx sync.RWMutex
@@ -55,7 +57,7 @@ func initCache() {
 // updateCache updates the dynamic values in the cache (ticket counts and best
 // block height).
 func updateCache(ctx context.Context, db *database.VspDatabase,
-	dcrd rpc.DcrdConnect, netParams *chaincfg.Params) error {
+	dcrd rpc.DcrdConnect, netParams *chaincfg.Params, wallets rpc.WalletConnect) error {
 
 	dbSize, err := db.Size()
 	if err != nil {
@@ -83,6 +85,14 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 		return errors.New("dcr node reports a network ticket pool size of zero")
 	}
 
+	clients, failedConnections := wallets.Clients(ctx, cfg.NetParams)
+	if len(clients) == 0 {
+		log.Error("Could not connect to any wallets")
+	} else if len(failedConnections) > 0 {
+		log.Errorf("Failed to connect to %d wallet(s), proceeding with only %d",
+			len(failedConnections), len(clients))
+	}
+
 	cacheMtx.Lock()
 	defer cacheMtx.Unlock()
 
@@ -90,6 +100,8 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 	cache.DatabaseSize = humanize.Bytes(dbSize)
 	cache.Voting = voting
 	cache.Voted = voted
+	cache.TotalVotingWallets = int64(len(clients) + len(failedConnections))
+	cache.VotingWalletsOnline = int64(len(clients))
 	cache.Revoked = revoked
 	cache.BlockHeight = bestBlock.Height
 	cache.NetworkProportion = float32(voting) / float32(bestBlock.PoolSize)
