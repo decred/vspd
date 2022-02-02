@@ -102,7 +102,9 @@ func setVoteChoices(c *gin.Context) {
 
 	// Update VoteChoices in the database before updating the wallets. DB is the
 	// source of truth, and also is less likely to error.
-	ticket.VoteChoices = request.VoteChoices
+	for newAgenda, newChoice := range request.VoteChoices {
+		ticket.VoteChoices[newAgenda] = newChoice
+	}
 
 	err = db.UpdateTicket(ticket)
 	if err != nil {
@@ -121,7 +123,7 @@ func setVoteChoices(c *gin.Context) {
 		for _, walletClient := range walletClients {
 
 			// Set consensus vote choices.
-			for agenda, choice := range request.VoteChoices {
+			for agenda, choice := range ticket.VoteChoices {
 				err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 				if err != nil {
 					log.Errorf("%s: dcrwallet.SetVoteChoice failed (wallet=%s, ticketHash=%s): %v",
