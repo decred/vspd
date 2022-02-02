@@ -103,13 +103,30 @@ func payFee(c *gin.Context) {
 		return
 	}
 
-	// Validate VoteChoices. Just log a warning if vote choices are not valid
-	// for the current vote version - the ticket should still be registered.
+	// Validate voting prefences. Just log a warning if anything is invalid -
+	// the ticket should still be registered.
+
 	validVoteChoices := true
 	err = validConsensusVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), request.VoteChoices)
 	if err != nil {
 		validVoteChoices = false
 		log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), ticket.Hash, err)
+	}
+
+	validTreasury := true
+	err = validTreasuryPolicy(request.TreasuryPolicy)
+	if err != nil {
+		validTreasury = false
+		log.Warnf("%s: Invalid treasury policy (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), ticket.Hash, err)
+	}
+
+	validTSpend := true
+	err = validTSpendPolicy(request.TSpendPolicy)
+	if err != nil {
+		validTSpend = false
+		log.Warnf("%s: Invalid tspend policy (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 	}
 
@@ -215,6 +232,14 @@ func payFee(c *gin.Context) {
 
 	if validVoteChoices {
 		ticket.VoteChoices = request.VoteChoices
+	}
+
+	if validTSpend {
+		ticket.TSpendPolicy = request.TSpendPolicy
+	}
+
+	if validTreasury {
+		ticket.TreasuryPolicy = request.TreasuryPolicy
 	}
 
 	err = db.UpdateTicket(ticket)

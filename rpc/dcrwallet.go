@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -218,4 +218,16 @@ func (c *WalletRPC) TicketInfo(startHeight int64) (map[string]*wallettypes.Ticke
 // from the specified block height.
 func (c *WalletRPC) RescanFrom(fromHeight int64) error {
 	return c.Call(c.ctx, "rescanwallet", nil, fromHeight)
+}
+
+// SetTreasuryPolicy sets the specified tickets voting policy for all tspends
+// published by the given treasury key.
+func (c *WalletRPC) SetTreasuryPolicy(key, policy, ticket string) error {
+	return c.Call(c.ctx, "settreasurypolicy", nil, key, policy, ticket)
+}
+
+// SetTSpendPolicy sets the specified tickets voting policy for a single tspend
+// identified by its hash.
+func (c *WalletRPC) SetTSpendPolicy(tSpend, policy, ticket string) error {
+	return c.Call(c.ctx, "settspendpolicy", nil, tSpend, policy, ticket)
 }

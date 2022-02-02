@@ -161,7 +161,9 @@ for the specified ticket.
     "tickethash":"484a68f7148e55d05f0b64a29fe7b148572cb5272d1ce2438cf15466d347f4f4",
     "feetx":"010000000125...737b266ffb9a93",
     "votingkey":"PtWUJWhSXsM9ztPkdtH8REe91z7uoidX8dsMChJUZ2spagm7YvrNm",
-    "votechoices":{"headercommitments":"yes"}
+    "votechoices":{"headercommitments":"yes"},
+    "tspendpolicy":{"<tspend tx hash>":"yes"},
+    "treasurypolicy":{"<treasury spending key>":"no"}
     }
     ```
 
@@ -212,6 +214,8 @@ its `feetxstatus` is `confirmed`.
       "feetxhash":"e1c02b04b5bbdae66cf8e3c88366c4918d458a2d27a26144df37f54a2bc956ac",
       "altsignaddress":"Tsfkn6k9AoYgVZRV6ZzcgmuVSgCdJQt9JY2",
       "votechoices":{"headercommitments":"no"},
+      "tspendpolicy":{"<tspend tx hash>":"yes"},
+      "treasurypolicy":{"<treasury spending key>":"no"},
       "request": {"<Copy of request body>"}
     }
     ```
@@ -220,6 +224,8 @@ its `feetxstatus` is `confirmed`.
 
 Clients can update the voting preferences of their ticket at any time after
 after calling `/payfee`.
+This call can be used to update consensus, treasury spend key, and tspend voting
+preferences.
 
 - `POST /api/v3/setvotechoices`
 
@@ -229,7 +235,9 @@ after calling `/payfee`.
     {
       "timestamp":1590509066,
       "tickethash":"484a68f7148e55d05f0b64a29fe7b148572cb5272d1ce2438cf15466d347f4f4",
-      "votechoices":{"headercommitments":"no"}
+      "votechoices":{"headercommitments":"no"},
+      "tspendpolicy":{"<tspend tx hash>":"yes"},
+      "treasurypolicy":{"<treasury spending key>":"no"}
     }
     ```
 

@@ -92,6 +92,8 @@ func setVoteChoices(c *gin.Context) {
 		}
 	}
 
+	// Validate vote choices (consensus, tspend policy and treasury policy).
+
 	err = validConsensusVoteChoices(cfg.NetParams, currentVoteVersion(cfg.NetParams), request.VoteChoices)
 	if err != nil {
 		log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
@@ -100,10 +102,33 @@ func setVoteChoices(c *gin.Context) {
 		return
 	}
 
-	// Update VoteChoices in the database before updating the wallets. DB is the
-	// source of truth, and also is less likely to error.
+	err = validTreasuryPolicy(request.TreasuryPolicy)
+	if err != nil {
+		log.Warnf("%s: Invalid treasury policy (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), ticket.Hash, err)
+		sendErrorWithMsg(err.Error(), errInvalidVoteChoices, c)
+	}
+
+	err = validTSpendPolicy(request.TSpendPolicy)
+	if err != nil {
+		log.Warnf("%s: Invalid tspend policy (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), ticket.Hash, err)
+		sendErrorWithMsg(err.Error(), errInvalidVoteChoices, c)
+	}
+
+	// Update voting preferences in the database before updating the wallets. DB
+	// is the source of truth, and also is less likely to error.
+
 	for newAgenda, newChoice := range request.VoteChoices {
 		ticket.VoteChoices[newAgenda] = newChoice
+	}
+
+	for newTSpend, newChoice := range request.TSpendPolicy {
+		ticket.TSpendPolicy[newTSpend] = newChoice
+	}
+
+	for newTreasuryKey, newChoice := range request.TreasuryPolicy {
+		ticket.TreasuryPolicy[newTreasuryKey] = newChoice
 	}
 
 	err = db.UpdateTicket(ticket)
@@ -131,6 +156,23 @@ func setVoteChoices(c *gin.Context) {
 				}
 			}
 
+			// Update tspend policy.
+			for tspend, policy := range ticket.TSpendPolicy {
+				err = walletClient.SetTSpendPolicy(tspend, policy, ticket.Hash)
+				if err != nil {
+					log.Errorf("%s: dcrwallet.SetTSpendPolicy failed (wallet=%s, ticketHash=%s): %v",
+						funcName, walletClient.String(), ticket.Hash, err)
+				}
+			}
+
+			// Update treasury policy.
+			for key, policy := range ticket.TreasuryPolicy {
+				err = walletClient.SetTreasuryPolicy(key, policy, ticket.Hash)
+				if err != nil {
+					log.Errorf("%s: dcrwallet.SetTreasuryPolicy failed (wallet=%s, ticketHash=%s): %v",
+						funcName, walletClient.String(), ticket.Hash, err)
+				}
+			}
 		}
 	}
 

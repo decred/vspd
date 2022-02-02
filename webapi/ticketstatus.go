@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -55,5 +55,7 @@ func ticketStatus(c *gin.Context) {
 		FeeTxHash:       ticket.FeeTxHash,
 		AltSignAddress:  altSignAddr,
 		VoteChoices:     ticket.VoteChoices,
+		TreasuryPolicy:  ticket.TreasuryPolicy,
+		TSpendPolicy:    ticket.TSpendPolicy,
 	}, c)
 }
