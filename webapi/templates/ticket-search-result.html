@@ -95,6 +95,22 @@
                 </td>
             </tr>
             <tr>
+                <th>TSpend Policy</th>
+                <td>
+                    {{ range $key, $value := .Ticket.TSpendPolicy }}
+                        {{ $key }}: {{ $value }} <br />
+                    {{ end }}
+                </td>
+            </tr>
+            <tr>
+                <th>Treasury Policy</th>
+                <td>
+                    {{ range $key, $value := .Ticket.TreasuryPolicy }}
+                        {{ $key }}: {{ $value }} <br />
+                    {{ end }}
+                </td>
+            </tr>
+            <tr>
                 <th>
                     Vote Choice Changes<br />
                     <em>({{ .MaxVoteChanges }} most recent)</em>
@@ -146,14 +162,14 @@
             {{end}}
                 </td>
             </tr>
-              <tr>
+            <tr>
                 <th>
                     AltSignAddress Change 
                 </th>
                 <td>
                     {{if .AltSignAddrData}}
                     <details>
-                      <table class="my-2">
+                        <table class="my-2">
                             <tr>
                                 <th>Request</th>
                                 <td>{{ indentJSON .AltSignAddrData.Req }}</td>

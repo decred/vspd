@@ -1,4 +1,4 @@
-// Copyright (c) 2021 The Decred developers
+// Copyright (c) 2021-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -52,7 +52,22 @@ func ticketBucketUpgrade(db *bolt.DB) error {
 				return fmt.Errorf("could not create new ticket bucket: %w", err)
 			}
 
-			err = putTicketInBucket(newBkt, Ticket(ticket))
+			err = putTicketInBucket(newBkt, Ticket{
+				Hash:              ticket.Hash,
+				PurchaseHeight:    ticket.PurchaseHeight,
+				CommitmentAddress: ticket.CommitmentAddress,
+				FeeAddressIndex:   ticket.FeeAddressIndex,
+				FeeAddress:        ticket.FeeAddress,
+				FeeAmount:         ticket.FeeAmount,
+				FeeExpiration:     ticket.FeeExpiration,
+				Confirmed:         ticket.Confirmed,
+				VotingWIF:         ticket.VotingWIF,
+				VoteChoices:       ticket.VoteChoices,
+				FeeTxHex:          ticket.FeeTxHex,
+				FeeTxHash:         ticket.FeeTxHash,
+				FeeTxStatus:       ticket.FeeTxStatus,
+				Outcome:           ticket.Outcome,
+			})
 			if err != nil {
 				return fmt.Errorf("could not put new ticket in bucket: %w", err)
 			}
