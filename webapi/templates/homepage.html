@@ -29,6 +29,14 @@
 
         {{ template "vsp-stats" . }}
     
+        {{if .WebApiCfg.LegacyURL}}
+
+        <h1>Legacy VSP</h1>
+
+        <p>Visit <a href={{.WebApiCfg.LegacyURL}} target="_blank" rel="noopener noreferrer">{{.WebApiCfg.Designation}} legacy VSP</a> to view legacy stats.</p>
+        
+        {{end}}
+    
     </div>
 </div>
 

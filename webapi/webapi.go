@@ -33,6 +33,7 @@ type Config struct {
 	SupportEmail         string
 	VspClosed            bool
 	VspClosedMsg         string
+	LegacyURL            string
 	AdminPass            string
 	Debug                bool
 	Designation          string

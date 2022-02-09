@@ -98,6 +98,7 @@ func run(ctx context.Context) error {
 		SupportEmail:         cfg.SupportEmail,
 		VspClosed:            cfg.VspClosed,
 		VspClosedMsg:         cfg.VspClosedMsg,
+		LegacyURL:            cfg.LegacyURL,
 		AdminPass:            cfg.AdminPass,
 		Debug:                cfg.WebServerDebug,
 		Designation:          cfg.Designation,

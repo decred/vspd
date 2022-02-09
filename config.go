@@ -62,6 +62,7 @@ type config struct {
 	BackupInterval  time.Duration `long:"backupinterval" ini-name:"backupinterval" description:"Time period between automatic database backups. Valid time units are {s,m,h}. Minimum 30 seconds."`
 	VspClosed       bool          `long:"vspclosed" ini-name:"vspclosed" description:"Closed prevents the VSP from accepting new tickets."`
 	VspClosedMsg    string        `long:"vspclosedmsg" ini-name:"vspclosedmsg" description:"A short message displayed on the webpage and returned by the status API endpoint if vspclosed is true."`
+	LegacyURL       string        `long:"legacyurl" ini-name:"legacyurl" description:"URL to legacy VSP."`
 	AdminPass       string        `long:"adminpass" ini-name:"adminpass" description:"Password for accessing admin page."`
 	Designation     string        `long:"designation" ini-name:"designation" description:"Short name for the VSP. Customizes the logo in the top toolbar."`
 
