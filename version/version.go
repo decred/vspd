@@ -25,7 +25,7 @@ const (
 // so it can be modified at link time (e.g.
 // `-ldflags "-X decred.org/vspd/version.PreRelease=rc1"`).
 // It must only contain characters from the semantic version alphabet.
-var PreRelease = "pre"
+var PreRelease = ""
 
 // String returns the application version as a properly formed string per the
 // semantic versioning 2.0.0 spec (https://semver.org/).
