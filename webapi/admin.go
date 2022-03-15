@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -109,7 +109,7 @@ func walletStatus(c *gin.Context) map[string]WalletStatus {
 
 // statusJSON is the handler for "GET /admin/status". It returns a JSON object
 // describing the current status of voting wallets.
-func statusJSON(c *gin.Context) {
+func (s *Server) statusJSON(c *gin.Context) {
 	httpStatus := http.StatusOK
 
 	wallets := walletStatus(c)
@@ -141,10 +141,10 @@ func statusJSON(c *gin.Context) {
 }
 
 // adminPage is the handler for "GET /admin".
-func adminPage(c *gin.Context) {
+func (s *Server) adminPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"WebApiCache":  getCache(),
-		"WebApiCfg":    cfg,
+		"WebApiCfg":    s.cfg,
 		"WalletStatus": walletStatus(c),
 		"DcrdStatus":   dcrdStatus(c),
 	})
@@ -152,24 +152,24 @@ func adminPage(c *gin.Context) {
 
 // ticketSearch is the handler for "POST /admin/ticket". The hash param will be
 // used to retrieve a ticket from the database.
-func ticketSearch(c *gin.Context) {
+func (s *Server) ticketSearch(c *gin.Context) {
 	hash := c.PostForm("hash")
 
-	ticket, found, err := db.GetTicketByHash(hash)
+	ticket, found, err := s.db.GetTicketByHash(hash)
 	if err != nil {
 		log.Errorf("db.GetTicketByHash error (ticketHash=%s): %v", hash, err)
 		c.String(http.StatusInternalServerError, "Error getting ticket from db")
 		return
 	}
 
-	voteChanges, err := db.GetVoteChanges(hash)
+	voteChanges, err := s.db.GetVoteChanges(hash)
 	if err != nil {
 		log.Errorf("db.GetVoteChanges error (ticketHash=%s): %v", hash, err)
 		c.String(http.StatusInternalServerError, "Error getting vote changes from db")
 		return
 	}
 
-	altSignAddrData, err := db.AltSignAddrData(hash)
+	altSignAddrData, err := s.db.AltSignAddrData(hash)
 	if err != nil {
 		log.Errorf("db.AltSignAddrData error (ticketHash=%s): %v", hash, err)
 		c.String(http.StatusInternalServerError, "Error getting alt sig from db")
@@ -183,10 +183,10 @@ func ticketSearch(c *gin.Context) {
 			Ticket:          ticket,
 			AltSignAddrData: altSignAddrData,
 			VoteChanges:     voteChanges,
-			MaxVoteChanges:  cfg.MaxVoteChangeRecords,
+			MaxVoteChanges:  s.cfg.MaxVoteChangeRecords,
 		},
 		"WebApiCache":  getCache(),
-		"WebApiCfg":    cfg,
+		"WebApiCfg":    s.cfg,
 		"WalletStatus": walletStatus(c),
 		"DcrdStatus":   dcrdStatus(c),
 	})
@@ -194,14 +194,14 @@ func ticketSearch(c *gin.Context) {
 
 // adminLogin is the handler for "POST /admin". If a valid password is provided,
 // the current session will be authenticated as an admin.
-func adminLogin(c *gin.Context) {
+func (s *Server) adminLogin(c *gin.Context) {
 	password := c.PostForm("password")
 
-	if password != cfg.AdminPass {
+	if password != s.cfg.AdminPass {
 		log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"WebApiCache":       getCache(),
-			"WebApiCfg":         cfg,
+			"WebApiCfg":         s.cfg,
 			"IncorrectPassword": true,
 		})
 		return
@@ -212,14 +212,14 @@ func adminLogin(c *gin.Context) {
 
 // adminLogout is the handler for "POST /admin/logout". The current session will
 // have its admin authentication removed.
-func adminLogout(c *gin.Context) {
+func (s *Server) adminLogout(c *gin.Context) {
 	setAdminStatus(nil, c)
 }
 
 // downloadDatabaseBackup is the handler for "GET /backup". A binary
 // representation of the whole database is generated and returned to the client.
-func downloadDatabaseBackup(c *gin.Context) {
-	err := db.BackupDB(c.Writer)
+func (s *Server) downloadDatabaseBackup(c *gin.Context) {
+	err := s.db.BackupDB(c.Writer)
 	if err != nil {
 		log.Errorf("Error backing up database: %v", err)
 		// Don't write any http body here because Content-Length has already

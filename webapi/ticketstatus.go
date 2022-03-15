@@ -13,7 +13,7 @@ import (
 )
 
 // ticketStatus is the handler for "POST /api/v3/ticketstatus".
-func ticketStatus(c *gin.Context) {
+func (s *Server) ticketStatus(c *gin.Context) {
 	const funcName = "ticketStatus"
 
 	// Get values which have been added to context by middleware.
@@ -23,22 +23,22 @@ func ticketStatus(c *gin.Context) {
 
 	if !knownTicket {
 		log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
-		sendError(errUnknownTicket, c)
+		s.sendError(errUnknownTicket, c)
 		return
 	}
 
 	var request ticketStatusRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		sendErrorWithMsg(err.Error(), errBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
 
 	// Get altSignAddress from database
-	altSignAddrData, err := db.AltSignAddrData(ticket.Hash)
+	altSignAddrData, err := s.db.AltSignAddrData(ticket.Hash)
 	if err != nil {
 		log.Errorf("%s: db.AltSignAddrData error (ticketHash=%s): %v", funcName, ticket.Hash, err)
-		sendError(errInternalError, c)
+		s.sendError(errInternalError, c)
 		return
 	}
 
@@ -47,7 +47,7 @@ func ticketStatus(c *gin.Context) {
 		altSignAddr = altSignAddrData.AltSignAddr
 	}
 
-	sendJSONResponse(ticketStatusResponse{
+	s.sendJSONResponse(ticketStatusResponse{
 		Timestamp:       time.Now().Unix(),
 		Request:         reqBytes,
 		TicketConfirmed: ticket.Confirmed,

@@ -15,6 +15,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 )
 
@@ -105,8 +106,10 @@ func validPolicyOption(policy string) error {
 	}
 }
 
-func validateSignature(hash, commitmentAddress, signature, message string) error {
-	firstErr := dcrutil.VerifyMessage(commitmentAddress, signature, message, cfg.NetParams)
+func validateSignature(hash, commitmentAddress, signature, message string,
+	db *database.VspDatabase, params *chaincfg.Params) error {
+
+	firstErr := dcrutil.VerifyMessage(commitmentAddress, signature, message, params)
 	if firstErr != nil {
 		// Don't return an error straight away if sig validation fails -
 		// first check if we have an alternate sign address for this ticket.
@@ -117,7 +120,8 @@ func validateSignature(hash, commitmentAddress, signature, message string) error
 
 		// If we have no alternate sign address, or if validating with the
 		// alt sign addr fails, return an error to the client.
-		if altSigData == nil || dcrutil.VerifyMessage(altSigData.AltSignAddr, signature, message, cfg.NetParams) != nil {
+		if altSigData == nil ||
+			dcrutil.VerifyMessage(altSigData.AltSignAddr, signature, message, params) != nil {
 			return fmt.Errorf("bad signature")
 		}
 
@@ -167,7 +171,7 @@ func validateTicketHash(hash string) error {
 
 // getCommitmentAddress gets the commitment address of the provided ticket hash
 // from the chain.
-func getCommitmentAddress(hash string, dcrdClient *rpc.DcrdRPC) (string, error) {
+func getCommitmentAddress(hash string, dcrdClient *rpc.DcrdRPC, params *chaincfg.Params) (string, error) {
 	var commitmentAddress string
 	resp, err := dcrdClient.GetRawTransaction(hash)
 	if err != nil {
@@ -187,7 +191,7 @@ func getCommitmentAddress(hash string, dcrdClient *rpc.DcrdRPC) (string, error) 
 
 	}
 
-	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, cfg.NetParams)
+	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, params)
 	if err != nil {
 		return commitmentAddress, fmt.Errorf("AddrFromSStxPkScrCommitment error: %v", err)
 

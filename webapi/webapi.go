@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -63,28 +63,32 @@ const (
 	commitmentAddressKey = "CommitmentAddress"
 )
 
-var cfg Config
-var db *database.VspDatabase
-var addrGen *addressGenerator
-var signPrivKey ed25519.PrivateKey
-var signPubKey ed25519.PublicKey
+type Server struct {
+	cfg         Config
+	db          *database.VspDatabase
+	addrGen     *addressGenerator
+	signPrivKey ed25519.PrivateKey
+	signPubKey  ed25519.PublicKey
+}
 
 func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup,
 	listen string, vdb *database.VspDatabase, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, config Config) error {
 
-	cfg = config
-	db = vdb
+	s := &Server{
+		cfg: config,
+		db:  vdb,
+	}
 
 	var err error
 
 	// Get keys for signing API responses from the database.
-	signPrivKey, signPubKey, err = vdb.KeyPair()
+	s.signPrivKey, s.signPubKey, err = vdb.KeyPair()
 	if err != nil {
 		return fmt.Errorf("db.Keypair error: %w", err)
 	}
 
 	// Populate cached VSP stats before starting webserver.
-	initCache()
+	initCache(base64.StdEncoding.EncodeToString(s.signPubKey))
 	err = updateCache(ctx, vdb, dcrd, config.NetParams, wallets)
 	if err != nil {
 		log.Errorf("Could not initialize VSP stats cache: %v", err)
@@ -100,7 +104,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	if err != nil {
 		return fmt.Errorf("db.GetFeeXPub error: %w", err)
 	}
-	addrGen, err = newAddressGenerator(feeXPub, config.NetParams, idx)
+	s.addrGen, err = newAddressGenerator(feeXPub, config.NetParams, idx)
 	if err != nil {
 		return fmt.Errorf("failed to initialize fee address generator: %w", err)
 	}
@@ -120,7 +124,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	log.Infof("Listening on %s", listen)
 
 	srv := http.Server{
-		Handler:      router(cfg.Debug, cookieSecret, dcrd, wallets),
+		Handler:      s.router(cookieSecret, dcrd, wallets),
 		ReadTimeout:  5 * time.Second,  // slow requests should not hold connections opened
 		WriteTimeout: 60 * time.Second, // hung responses must die
 	}
@@ -157,7 +161,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 
 	// Use a ticker to update cached VSP stats.
 	var refresh time.Duration
-	if cfg.Debug {
+	if s.cfg.Debug {
 		refresh = 1 * time.Second
 	} else {
 		refresh = 1 * time.Minute
@@ -183,10 +187,10 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	return nil
 }
 
-func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) *gin.Engine {
+func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) *gin.Engine {
 	// With release mode enabled, gin will only read template files once and cache them.
 	// With release mode disabled, templates will be reloaded on the fly.
-	if !debugMode {
+	if !s.cfg.Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -194,9 +198,9 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 
 	// Add custom functions for use in templates.
 	router.SetFuncMap(template.FuncMap{
-		"txURL":            txURL(cfg.BlockExplorerURL),
-		"addressURL":       addressURL(cfg.BlockExplorerURL),
-		"blockURL":         blockURL(cfg.BlockExplorerURL),
+		"txURL":            txURL(s.cfg.BlockExplorerURL),
+		"addressURL":       addressURL(s.cfg.BlockExplorerURL),
+		"blockURL":         blockURL(s.cfg.BlockExplorerURL),
 		"dateTime":         dateTime,
 		"stripWss":         stripWss,
 		"indentJSON":       indentJSON,
@@ -212,7 +216,7 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	// sending no response at all.
 	router.Use(Recovery())
 
-	if debugMode {
+	if s.cfg.Debug {
 		// Logger middleware outputs very detailed logging of webserver requests
 		// to the terminal. Does not get logged to file.
 		router.Use(gin.Logger())
@@ -227,37 +231,37 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 	// API routes.
 
 	api := router.Group("/api/v3")
-	api.GET("/vspinfo", vspInfo)
-	api.POST("/setaltsignaddr", withDcrdClient(dcrd), broadcastTicket(), vspAuth(), setAltSignAddr)
-	api.POST("/feeaddress", withDcrdClient(dcrd), broadcastTicket(), vspAuth(), feeAddress)
-	api.POST("/ticketstatus", withDcrdClient(dcrd), vspAuth(), ticketStatus)
-	api.POST("/payfee", withDcrdClient(dcrd), vspAuth(), payFee)
-	api.POST("/setvotechoices", withDcrdClient(dcrd), withWalletClients(wallets), vspAuth(), setVoteChoices)
+	api.GET("/vspinfo", s.vspInfo)
+	api.POST("/setaltsignaddr", withDcrdClient(dcrd, s.cfg), s.broadcastTicket, s.vspAuth, s.setAltSignAddr)
+	api.POST("/feeaddress", withDcrdClient(dcrd, s.cfg), s.broadcastTicket, s.vspAuth, s.feeAddress)
+	api.POST("/ticketstatus", withDcrdClient(dcrd, s.cfg), s.vspAuth, s.ticketStatus)
+	api.POST("/payfee", withDcrdClient(dcrd, s.cfg), s.vspAuth, s.payFee)
+	api.POST("/setvotechoices", withDcrdClient(dcrd, s.cfg), withWalletClients(wallets, s.cfg), s.vspAuth, s.setVoteChoices)
 
 	// Website routes.
 
-	router.GET("", homepage)
+	router.GET("", s.homepage)
 
 	login := router.Group("/admin").Use(
 		withSession(cookieStore),
 	)
-	login.POST("", adminLogin)
+	login.POST("", s.adminLogin)
 
 	admin := router.Group("/admin").Use(
-		withWalletClients(wallets), withSession(cookieStore), requireAdmin(),
+		withWalletClients(wallets, s.cfg), withSession(cookieStore), s.requireAdmin,
 	)
-	admin.GET("", withDcrdClient(dcrd), adminPage)
-	admin.POST("/ticket", withDcrdClient(dcrd), ticketSearch)
-	admin.GET("/backup", downloadDatabaseBackup)
-	admin.POST("/logout", adminLogout)
+	admin.GET("", withDcrdClient(dcrd, s.cfg), s.adminPage)
+	admin.POST("/ticket", withDcrdClient(dcrd, s.cfg), s.ticketSearch)
+	admin.GET("/backup", s.downloadDatabaseBackup)
+	admin.POST("/logout", s.adminLogout)
 
 	// Require Basic HTTP Auth on /admin/status endpoint.
 	basic := router.Group("/admin").Use(
-		withDcrdClient(dcrd), withWalletClients(wallets), gin.BasicAuth(gin.Accounts{
-			"admin": cfg.AdminPass,
+		withDcrdClient(dcrd, s.cfg), withWalletClients(wallets, s.cfg), gin.BasicAuth(gin.Accounts{
+			"admin": s.cfg.AdminPass,
 		}),
 	)
-	basic.GET("/status", statusJSON)
+	basic.GET("/status", s.statusJSON)
 
 	return router
 }
@@ -265,15 +269,15 @@ func router(debugMode bool, cookieSecret []byte, dcrd rpc.DcrdConnect, wallets r
 // sendJSONResponse serializes the provided response, signs it, and sends the
 // response to the client with a 200 OK status. Returns the seralized response
 // and the signature.
-func sendJSONResponse(resp interface{}, c *gin.Context) (string, string) {
+func (s *Server) sendJSONResponse(resp interface{}, c *gin.Context) (string, string) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
 		log.Errorf("JSON marshal error: %v", err)
-		sendError(errInternalError, c)
+		s.sendError(errInternalError, c)
 		return "", ""
 	}
 
-	sig := ed25519.Sign(signPrivKey, dec)
+	sig := ed25519.Sign(s.signPrivKey, dec)
 	sigStr := base64.StdEncoding.EncodeToString(sig)
 	c.Writer.Header().Set("VSP-Server-Signature", sigStr)
 
@@ -284,14 +288,14 @@ func sendJSONResponse(resp interface{}, c *gin.Context) (string, string) {
 
 // sendError sends an error response to the client using the default error
 // message.
-func sendError(e apiError, c *gin.Context) {
+func (s *Server) sendError(e apiError, c *gin.Context) {
 	msg := e.Error()
-	sendErrorWithMsg(msg, e, c)
+	s.sendErrorWithMsg(msg, e, c)
 }
 
 // sendErrorWithMsg sends an error response to the client using the provided
 // error message.
-func sendErrorWithMsg(msg string, e apiError, c *gin.Context) {
+func (s *Server) sendErrorWithMsg(msg string, e apiError, c *gin.Context) {
 	status := e.httpStatus()
 
 	resp := gin.H{
@@ -304,7 +308,7 @@ func sendErrorWithMsg(msg string, e apiError, c *gin.Context) {
 	if err != nil {
 		log.Warnf("Sending error response without signature: %v", err)
 	} else {
-		sig := ed25519.Sign(signPrivKey, dec)
+		sig := ed25519.Sign(s.signPrivKey, dec)
 		c.Writer.Header().Set("VSP-Server-Signature", base64.StdEncoding.EncodeToString(sig))
 	}
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -53,25 +53,23 @@ func withSession(store *sessions.CookieStore) gin.HandlerFunc {
 
 // requireAdmin will only allow the request to proceed if the current session is
 // authenticated as an admin, otherwise it will render the login template.
-func requireAdmin() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		session := c.MustGet(sessionKey).(*sessions.Session)
-		admin := session.Values["admin"]
+func (s *Server) requireAdmin(c *gin.Context) {
+	session := c.MustGet(sessionKey).(*sessions.Session)
+	admin := session.Values["admin"]
 
-		if admin == nil {
-			c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-				"WebApiCache": getCache(),
-				"WebApiCfg":   cfg,
-			})
-			c.Abort()
-			return
-		}
+	if admin == nil {
+		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
+			"WebApiCache": getCache(),
+			"WebApiCfg":   s.cfg,
+		})
+		c.Abort()
+		return
 	}
 }
 
 // withDcrdClient middleware adds a dcrd client to the request context for
 // downstream handlers to make use of.
-func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
+func withDcrdClient(dcrd rpc.DcrdConnect, cfg Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		client, hostname, err := dcrd.Client(c, cfg.NetParams)
 		// Don't handle the error here, add it to the context and let downstream
@@ -85,7 +83,7 @@ func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 // withWalletClients middleware attempts to add voting wallet clients to the
 // request context for downstream handlers to make use of. Downstream handlers
 // must handle the case where no wallet clients are connected.
-func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
+func withWalletClients(wallets rpc.WalletConnect, cfg Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clients, failedConnections := wallets.Clients(c, cfg.NetParams)
 		if len(clients) == 0 {
@@ -116,137 +114,135 @@ func drainAndReplaceBody(req *http.Request) ([]byte, error) {
 // Ticket hash, ticket hex, and parent hex are parsed from the request body and
 // validated. They are broadcast to the network using SendRawTransaction if dcrd
 // is not aware of them.
-func broadcastTicket() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		const funcName = "broadcastTicket"
+func (s *Server) broadcastTicket(c *gin.Context) {
+	const funcName = "broadcastTicket"
 
-		// Read request bytes.
-		reqBytes, err := drainAndReplaceBody(c.Request)
-		if err != nil {
-			log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-			sendErrorWithMsg(err.Error(), errBadRequest, c)
-			return
-		}
+	// Read request bytes.
+	reqBytes, err := drainAndReplaceBody(c.Request)
+	if err != nil {
+		log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
+		return
+	}
 
-		// Parse request to ensure ticket hash/hex and parent hex are included.
-		var request struct {
-			TicketHex  string `json:"tickethex" binding:"required"`
-			TicketHash string `json:"tickethash" binding:"required"`
-			ParentHex  string `json:"parenthex" binding:"required"`
-		}
-		if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-			log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-			sendErrorWithMsg(err.Error(), errBadRequest, c)
-			return
-		}
+	// Parse request to ensure ticket hash/hex and parent hex are included.
+	var request struct {
+		TicketHex  string `json:"tickethex" binding:"required"`
+		TicketHash string `json:"tickethash" binding:"required"`
+		ParentHex  string `json:"parenthex" binding:"required"`
+	}
+	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
+		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
+		return
+	}
 
-		// Ensure the provided ticket hex is a valid ticket.
-		msgTx, err := decodeTransaction(request.TicketHex)
-		if err != nil {
-			log.Errorf("%s: Failed to decode ticket hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
-			sendErrorWithMsg("cannot decode ticket hex", errBadRequest, c)
-			return
-		}
+	// Ensure the provided ticket hex is a valid ticket.
+	msgTx, err := decodeTransaction(request.TicketHex)
+	if err != nil {
+		log.Errorf("%s: Failed to decode ticket hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
+		s.sendErrorWithMsg("cannot decode ticket hex", errBadRequest, c)
+		return
+	}
 
-		err = isValidTicket(msgTx)
-		if err != nil {
-			log.Warnf("%s: Invalid ticket (clientIP=%s, ticketHash=%s): %v",
-				funcName, c.ClientIP(), request.TicketHash, err)
-			sendError(errInvalidTicket, c)
-			return
-		}
+	err = isValidTicket(msgTx)
+	if err != nil {
+		log.Warnf("%s: Invalid ticket (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), request.TicketHash, err)
+		s.sendError(errInvalidTicket, c)
+		return
+	}
 
-		// Ensure hex matches hash.
-		if msgTx.TxHash().String() != request.TicketHash {
-			log.Warnf("%s: Ticket hex/hash mismatch (clientIP=%s, ticketHash=%s)",
-				funcName, c.ClientIP(), request.TicketHash)
-			sendErrorWithMsg("ticket hex does not match hash", errBadRequest, c)
-			return
-		}
+	// Ensure hex matches hash.
+	if msgTx.TxHash().String() != request.TicketHash {
+		log.Warnf("%s: Ticket hex/hash mismatch (clientIP=%s, ticketHash=%s)",
+			funcName, c.ClientIP(), request.TicketHash)
+		s.sendErrorWithMsg("ticket hex does not match hash", errBadRequest, c)
+		return
+	}
 
-		// Ensure the provided parent hex is a valid tx.
-		parentTx, err := decodeTransaction(request.ParentHex)
-		if err != nil {
-			log.Errorf("%s: Failed to decode parent hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
-			sendErrorWithMsg("cannot decode parent hex", errBadRequest, c)
-			return
-		}
-		parentHash := parentTx.TxHash()
+	// Ensure the provided parent hex is a valid tx.
+	parentTx, err := decodeTransaction(request.ParentHex)
+	if err != nil {
+		log.Errorf("%s: Failed to decode parent hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
+		s.sendErrorWithMsg("cannot decode parent hex", errBadRequest, c)
+		return
+	}
+	parentHash := parentTx.TxHash()
 
-		// Check if local dcrd already knows the parent tx.
-		dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
-		dcrdErr := c.MustGet(dcrdErrorKey)
-		if dcrdErr != nil {
-			log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
-			sendError(errInternalError, c)
-			return
-		}
+	// Check if local dcrd already knows the parent tx.
+	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+	dcrdErr := c.MustGet(dcrdErrorKey)
+	if dcrdErr != nil {
+		log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+		s.sendError(errInternalError, c)
+		return
+	}
 
-		_, err = dcrdClient.GetRawTransaction(parentHash.String())
-		var e *wsrpc.Error
-		if err == nil {
-			// No error means dcrd already knows the parent tx, nothing to do.
-		} else if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
-			// ErrNoTxInfo means local dcrd is not aware of the parent. We have
-			// the hex, so we can broadcast it here.
+	_, err = dcrdClient.GetRawTransaction(parentHash.String())
+	var e *wsrpc.Error
+	if err == nil {
+		// No error means dcrd already knows the parent tx, nothing to do.
+	} else if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
+		// ErrNoTxInfo means local dcrd is not aware of the parent. We have
+		// the hex, so we can broadcast it here.
 
-			// Before broadcasting, check that the provided parent hex is
-			// actually the parent of the ticket.
-			var found bool
-			for _, txIn := range msgTx.TxIn {
-				if !txIn.PreviousOutPoint.Hash.IsEqual(&parentHash) {
-					continue
-				}
-				found = true
-				break
+		// Before broadcasting, check that the provided parent hex is
+		// actually the parent of the ticket.
+		var found bool
+		for _, txIn := range msgTx.TxIn {
+			if !txIn.PreviousOutPoint.Hash.IsEqual(&parentHash) {
+				continue
 			}
+			found = true
+			break
+		}
 
-			if !found {
-				log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
-				sendErrorWithMsg("invalid ticket parent", errBadRequest, c)
-				return
-			}
+		if !found {
+			log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
+			s.sendErrorWithMsg("invalid ticket parent", errBadRequest, c)
+			return
+		}
 
-			log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
-			err = dcrdClient.SendRawTransaction(request.ParentHex)
-			if err != nil {
-				log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
-					funcName, request.TicketHash, err)
-				sendError(errCannotBroadcastTicket, c)
-				return
-			}
-
-		} else {
-			log.Errorf("%s: dcrd.GetRawTransaction for ticket parent failed (ticketHash=%s): %v",
+		log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
+		err = dcrdClient.SendRawTransaction(request.ParentHex)
+		if err != nil {
+			log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
 				funcName, request.TicketHash, err)
-			sendError(errInternalError, c)
+			s.sendError(errCannotBroadcastTicket, c)
 			return
 		}
 
-		// Check if local dcrd already knows the ticket.
-		_, err = dcrdClient.GetRawTransaction(request.TicketHash)
-		if err == nil {
-			// No error means dcrd already knows the ticket, we are done here.
-			return
-		}
+	} else {
+		log.Errorf("%s: dcrd.GetRawTransaction for ticket parent failed (ticketHash=%s): %v",
+			funcName, request.TicketHash, err)
+		s.sendError(errInternalError, c)
+		return
+	}
 
-		// ErrNoTxInfo means local dcrd is not aware of the ticket. We have the
-		// hex, so we can broadcast it here.
-		if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
-			log.Debugf("%s: Broadcasting ticket (ticketHash=%s)", funcName, request.TicketHash)
-			err = dcrdClient.SendRawTransaction(request.TicketHex)
-			if err != nil {
-				log.Errorf("%s: dcrd.SendRawTransaction for ticket failed (ticketHash=%s): %v",
-					funcName, request.TicketHash, err)
-				sendError(errCannotBroadcastTicket, c)
-				return
-			}
-		} else {
-			log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v",
+	// Check if local dcrd already knows the ticket.
+	_, err = dcrdClient.GetRawTransaction(request.TicketHash)
+	if err == nil {
+		// No error means dcrd already knows the ticket, we are done here.
+		return
+	}
+
+	// ErrNoTxInfo means local dcrd is not aware of the ticket. We have the
+	// hex, so we can broadcast it here.
+	if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
+		log.Debugf("%s: Broadcasting ticket (ticketHash=%s)", funcName, request.TicketHash)
+		err = dcrdClient.SendRawTransaction(request.TicketHex)
+		if err != nil {
+			log.Errorf("%s: dcrd.SendRawTransaction for ticket failed (ticketHash=%s): %v",
 				funcName, request.TicketHash, err)
-			sendError(errInternalError, c)
+			s.sendError(errCannotBroadcastTicket, c)
 			return
 		}
+	} else {
+		log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v",
+			funcName, request.TicketHash, err)
+		s.sendError(errInternalError, c)
+		return
 	}
 }
 
@@ -257,97 +253,94 @@ func broadcastTicket() gin.HandlerFunc {
 // does not contain the request body signed with the commitment address.
 // Ticket information is added to the request context for downstream handlers to
 // use.
-func vspAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		const funcName = "vspAuth"
+func (s *Server) vspAuth(c *gin.Context) {
+	const funcName = "vspAuth"
 
-		// Read request bytes.
-		reqBytes, err := drainAndReplaceBody(c.Request)
-		if err != nil {
-			log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-			sendErrorWithMsg(err.Error(), errBadRequest, c)
-			return
-		}
-
-		// Add request bytes to request context for downstream handlers to reuse.
-		// Necessary because the request body reader can only be used once.
-		c.Set(requestBytesKey, reqBytes)
-
-		// Parse request and ensure there is a ticket hash included.
-		var request struct {
-			TicketHash string `json:"tickethash" binding:"required"`
-		}
-		if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-			log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-			sendErrorWithMsg(err.Error(), errBadRequest, c)
-			return
-		}
-		hash := request.TicketHash
-
-		// Before hitting the db or any RPC, ensure this is a valid ticket hash.
-		err = validateTicketHash(hash)
-		if err != nil {
-			log.Errorf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-			sendErrorWithMsg("invalid ticket hash", errBadRequest, c)
-			return
-		}
-
-		// Check if this ticket already appears in the database.
-		ticket, ticketFound, err := db.GetTicketByHash(hash)
-		if err != nil {
-			log.Errorf("%s: db.GetTicketByHash error (ticketHash=%s): %v", funcName, hash, err)
-			sendError(errInternalError, c)
-			return
-		}
-
-		// If the ticket was found in the database, we already know its
-		// commitment address. Otherwise we need to get it from the chain.
-		var commitmentAddress string
-		dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
-		dcrdErr := c.MustGet(dcrdErrorKey)
-		if dcrdErr != nil {
-			log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
-			sendError(errInternalError, c)
-			return
-		}
-
-		if ticketFound {
-			commitmentAddress = ticket.CommitmentAddress
-		} else {
-			commitmentAddress, err = getCommitmentAddress(hash, dcrdClient)
-			if err != nil {
-				var apiErr *apiError
-				if errors.Is(err, apiErr) {
-					sendError(errInvalidTicket, c)
-				} else {
-					sendError(errInternalError, c)
-				}
-				log.Errorf("%s: (clientIP: %s, ticketHash: %s): %v", funcName, c.ClientIP(), hash, err)
-				return
-			}
-		}
-
-		// Ensure a signature is provided.
-		signature := c.GetHeader("VSP-Client-Signature")
-		if signature == "" {
-			log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-			sendErrorWithMsg("no VSP-Client-Signature header", errBadRequest, c)
-			return
-		}
-
-		// Validate request signature to ensure ticket ownership.
-		err = validateSignature(hash, commitmentAddress, signature, string(reqBytes))
-		if err != nil {
-			log.Errorf("%s: Bad signature (clientIP=%s, ticketHash=%s): %v", funcName, err)
-			sendError(errBadSignature, c)
-			return
-		}
-
-		// Add ticket information to context so downstream handlers don't need
-		// to access the db for it.
-		c.Set(ticketKey, ticket)
-		c.Set(knownTicketKey, ticketFound)
-		c.Set(commitmentAddressKey, commitmentAddress)
+	// Read request bytes.
+	reqBytes, err := drainAndReplaceBody(c.Request)
+	if err != nil {
+		log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
+		return
 	}
 
+	// Add request bytes to request context for downstream handlers to reuse.
+	// Necessary because the request body reader can only be used once.
+	c.Set(requestBytesKey, reqBytes)
+
+	// Parse request and ensure there is a ticket hash included.
+	var request struct {
+		TicketHash string `json:"tickethash" binding:"required"`
+	}
+	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
+		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
+		return
+	}
+	hash := request.TicketHash
+
+	// Before hitting the db or any RPC, ensure this is a valid ticket hash.
+	err = validateTicketHash(hash)
+	if err != nil {
+		log.Errorf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.sendErrorWithMsg("invalid ticket hash", errBadRequest, c)
+		return
+	}
+
+	// Check if this ticket already appears in the database.
+	ticket, ticketFound, err := s.db.GetTicketByHash(hash)
+	if err != nil {
+		log.Errorf("%s: db.GetTicketByHash error (ticketHash=%s): %v", funcName, hash, err)
+		s.sendError(errInternalError, c)
+		return
+	}
+
+	// If the ticket was found in the database, we already know its
+	// commitment address. Otherwise we need to get it from the chain.
+	var commitmentAddress string
+	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+	dcrdErr := c.MustGet(dcrdErrorKey)
+	if dcrdErr != nil {
+		log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+		s.sendError(errInternalError, c)
+		return
+	}
+
+	if ticketFound {
+		commitmentAddress = ticket.CommitmentAddress
+	} else {
+		commitmentAddress, err = getCommitmentAddress(hash, dcrdClient, s.cfg.NetParams)
+		if err != nil {
+			var apiErr *apiError
+			if errors.Is(err, apiErr) {
+				s.sendError(errInvalidTicket, c)
+			} else {
+				s.sendError(errInternalError, c)
+			}
+			log.Errorf("%s: (clientIP: %s, ticketHash: %s): %v", funcName, c.ClientIP(), hash, err)
+			return
+		}
+	}
+
+	// Ensure a signature is provided.
+	signature := c.GetHeader("VSP-Client-Signature")
+	if signature == "" {
+		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.sendErrorWithMsg("no VSP-Client-Signature header", errBadRequest, c)
+		return
+	}
+
+	// Validate request signature to ensure ticket ownership.
+	err = validateSignature(hash, commitmentAddress, signature, string(reqBytes), s.db, s.cfg.NetParams)
+	if err != nil {
+		log.Errorf("%s: Bad signature (clientIP=%s, ticketHash=%s): %v", funcName, err)
+		s.sendError(errBadSignature, c)
+		return
+	}
+
+	// Add ticket information to context so downstream handlers don't need
+	// to access the db for it.
+	c.Set(ticketKey, ticket)
+	c.Set(knownTicketKey, ticketFound)
+	c.Set(commitmentAddressKey, commitmentAddress)
 }

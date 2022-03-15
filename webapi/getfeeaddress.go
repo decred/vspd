@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -23,16 +23,16 @@ var addrMtx sync.Mutex
 // the last used address index in the database. In order to maintain consistency
 // between the internal counter of address generator and the database, this func
 // uses a mutex to ensure it is not run concurrently.
-func getNewFeeAddress(db *database.VspDatabase, addrGen *addressGenerator) (string, uint32, error) {
+func (s *Server) getNewFeeAddress() (string, uint32, error) {
 	addrMtx.Lock()
 	defer addrMtx.Unlock()
 
-	addr, idx, err := addrGen.NextAddress()
+	addr, idx, err := s.addrGen.NextAddress()
 	if err != nil {
 		return "", 0, err
 	}
 
-	err = db.SetLastAddressIndex(idx)
+	err = s.db.SetLastAddressIndex(idx)
 	if err != nil {
 		return "", 0, err
 	}
@@ -42,7 +42,7 @@ func getNewFeeAddress(db *database.VspDatabase, addrGen *addressGenerator) (stri
 
 // getCurrentFee returns the minimum fee amount a client should pay in order to
 // register a ticket with the VSP at the current block height.
-func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
+func (s *Server) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 	bestBlock, err := dcrdClient.GetBestBlockHeader()
 	if err != nil {
 		return 0, err
@@ -64,7 +64,7 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 	}
 
 	fee := txrules.StakePoolTicketFee(sDiff, defaultMinRelayTxFee,
-		int32(bestBlock.Height), cfg.VSPFee, cfg.NetParams, isDCP0010Active)
+		int32(bestBlock.Height), s.cfg.VSPFee, s.cfg.NetParams, isDCP0010Active)
 	if err != nil {
 		return 0, err
 	}
@@ -72,7 +72,7 @@ func getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 }
 
 // feeAddress is the handler for "POST /api/v3/feeaddress".
-func feeAddress(c *gin.Context) {
+func (s *Server) feeAddress(c *gin.Context) {
 
 	const funcName = "feeAddress"
 
@@ -84,20 +84,20 @@ func feeAddress(c *gin.Context) {
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
 		log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
-		sendError(errInternalError, c)
+		s.sendError(errInternalError, c)
 		return
 	}
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
-	if cfg.VspClosed {
-		sendError(errVspClosed, c)
+	if s.cfg.VspClosed {
+		s.sendError(errVspClosed, c)
 		return
 	}
 
 	var request feeAddressRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		sendErrorWithMsg(err.Error(), errBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
 
@@ -110,7 +110,7 @@ func feeAddress(c *gin.Context) {
 			ticket.FeeTxStatus == database.FeeConfirmed) {
 		log.Warnf("%s: Fee tx already received (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
-		sendError(errFeeAlreadyReceived, c)
+		s.sendError(errFeeAlreadyReceived, c)
 		return
 	}
 
@@ -118,21 +118,21 @@ func feeAddress(c *gin.Context) {
 	rawTicket, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
 		log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
-		sendError(errInternalError, c)
+		s.sendError(errInternalError, c)
 		return
 	}
 
 	// Ensure this ticket is eligible to vote at some point in the future.
-	canVote, err := dcrdClient.CanTicketVote(rawTicket, ticketHash, cfg.NetParams)
+	canVote, err := dcrdClient.CanTicketVote(rawTicket, ticketHash, s.cfg.NetParams)
 	if err != nil {
 		log.Errorf("%s: dcrd.CanTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
-		sendError(errInternalError, c)
+		s.sendError(errInternalError, c)
 		return
 	}
 	if !canVote {
 		log.Warnf("%s: Unvotable ticket (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticketHash)
-		sendError(errTicketCannotVote, c)
+		s.sendError(errTicketCannotVote, c)
 		return
 	}
 
@@ -142,26 +142,26 @@ func feeAddress(c *gin.Context) {
 		// If the expiry period has passed we need to issue a new fee.
 		now := time.Now()
 		if ticket.FeeExpired() {
-			newFee, err := getCurrentFee(dcrdClient)
+			newFee, err := s.getCurrentFee(dcrdClient)
 			if err != nil {
 				log.Errorf("%s: getCurrentFee error (ticketHash=%s): %v", funcName, ticket.Hash, err)
-				sendError(errInternalError, c)
+				s.sendError(errInternalError, c)
 				return
 			}
 			ticket.FeeExpiration = now.Add(feeAddressExpiration).Unix()
 			ticket.FeeAmount = int64(newFee)
 
-			err = db.UpdateTicket(ticket)
+			err = s.db.UpdateTicket(ticket)
 			if err != nil {
 				log.Errorf("%s: db.UpdateTicket error, failed to update fee expiry (ticketHash=%s): %v",
 					funcName, ticket.Hash, err)
-				sendError(errInternalError, c)
+				s.sendError(errInternalError, c)
 				return
 			}
 			log.Debugf("%s: Expired fee updated (newFeeAmt=%s, ticketHash=%s)",
 				funcName, newFee, ticket.Hash)
 		}
-		sendJSONResponse(feeAddressResponse{
+		s.sendJSONResponse(feeAddressResponse{
 			Timestamp:  now.Unix(),
 			Request:    reqBytes,
 			FeeAddress: ticket.FeeAddress,
@@ -175,17 +175,17 @@ func feeAddress(c *gin.Context) {
 	// Beyond this point we are processing a new ticket which the VSP has not
 	// seen before.
 
-	fee, err := getCurrentFee(dcrdClient)
+	fee, err := s.getCurrentFee(dcrdClient)
 	if err != nil {
 		log.Errorf("%s: getCurrentFee error (ticketHash=%s): %v", funcName, ticketHash, err)
-		sendError(errInternalError, c)
+		s.sendError(errInternalError, c)
 		return
 	}
 
-	newAddress, newAddressIdx, err := getNewFeeAddress(db, addrGen)
+	newAddress, newAddressIdx, err := s.getNewFeeAddress()
 	if err != nil {
 		log.Errorf("%s: getNewFeeAddress error (ticketHash=%s): %v", funcName, ticketHash, err)
-		sendError(errInternalError, c)
+		s.sendError(errInternalError, c)
 		return
 	}
 
@@ -213,10 +213,10 @@ func feeAddress(c *gin.Context) {
 		FeeTxStatus:       database.NoFee,
 	}
 
-	err = db.InsertNewTicket(dbTicket)
+	err = s.db.InsertNewTicket(dbTicket)
 	if err != nil {
 		log.Errorf("%s: db.InsertNewTicket failed (ticketHash=%s): %v", funcName, ticketHash, err)
-		sendError(errInternalError, c)
+		s.sendError(errInternalError, c)
 		return
 	}
 
@@ -224,7 +224,7 @@ func feeAddress(c *gin.Context) {
 		"feeAddr=%s, feeAmt=%s, ticketHash=%s)",
 		funcName, confirmed, newAddressIdx, newAddress, fee, ticketHash)
 
-	sendJSONResponse(feeAddressResponse{
+	s.sendJSONResponse(feeAddressResponse{
 		Timestamp:  now.Unix(),
 		Request:    reqBytes,
 		FeeAddress: newAddress,
