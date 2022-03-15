@@ -285,7 +285,7 @@ func sendJSONResponse(resp interface{}, c *gin.Context) (string, string) {
 // sendError sends an error response to the client using the default error
 // message.
 func sendError(e apiError, c *gin.Context) {
-	msg := e.defaultMessage()
+	msg := e.Error()
 	sendErrorWithMsg(msg, e, c)
 }
 
