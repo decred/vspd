@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -12,16 +12,16 @@ import (
 )
 
 // vspInfo is the handler for "GET /api/v3/vspinfo".
-func vspInfo(c *gin.Context) {
+func (s *Server) vspInfo(c *gin.Context) {
 	cachedStats := getCache()
-	sendJSONResponse(vspInfoResponse{
+	s.sendJSONResponse(vspInfoResponse{
 		APIVersions:         []int64{3},
 		Timestamp:           time.Now().Unix(),
-		PubKey:              signPubKey,
-		FeePercentage:       cfg.VSPFee,
-		Network:             cfg.NetParams.Name,
-		VspClosed:           cfg.VspClosed,
-		VspClosedMsg:        cfg.VspClosedMsg,
+		PubKey:              s.signPubKey,
+		FeePercentage:       s.cfg.VSPFee,
+		Network:             s.cfg.NetParams.Name,
+		VspClosed:           s.cfg.VspClosed,
+		VspClosedMsg:        s.cfg.VspClosedMsg,
 		VspdVersion:         version.String(),
 		Voting:              cachedStats.Voting,
 		Voted:               cachedStats.Voted,

@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -6,7 +6,6 @@ package webapi
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"sync"
 	"time"
@@ -45,12 +44,12 @@ func getCache() apiCache {
 
 // initCache creates the struct which holds the cached VSP stats, and
 // initializes it with static values.
-func initCache() {
+func initCache(signPubKey string) {
 	cacheMtx.Lock()
 	defer cacheMtx.Unlock()
 
 	cache = apiCache{
-		PubKey: base64.StdEncoding.EncodeToString(signPubKey),
+		PubKey: signPubKey,
 	}
 }
 
@@ -85,7 +84,7 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 		return errors.New("dcr node reports a network ticket pool size of zero")
 	}
 
-	clients, failedConnections := wallets.Clients(ctx, cfg.NetParams)
+	clients, failedConnections := wallets.Clients(ctx, netParams)
 	if len(clients) == 0 {
 		log.Error("Could not connect to any wallets")
 	} else if len(failedConnections) > 0 {

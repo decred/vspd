@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -40,6 +40,7 @@ var (
 	seededRand           = rand.New(rand.NewSource(time.Now().UnixNano()))
 	feeXPub              = "feexpub"
 	maxVoteChangeRecords = 3
+	api                  *Server
 )
 
 // randBytes returns a byte slice of size n filled with random bytes.
@@ -58,8 +59,10 @@ func TestMain(m *testing.M) {
 	log.SetLevel(slog.LevelTrace)
 
 	// Set up some global params.
-	cfg.NetParams = chaincfg.MainNetParams()
-	_, signPrivKey, _ = ed25519.GenerateKey(seededRand)
+	cfg := Config{
+		NetParams: chaincfg.MainNetParams(),
+	}
+	_, signPrivKey, _ := ed25519.GenerateKey(seededRand)
 
 	// Create a database to use.
 	// Ensure we are starting with a clean environment.
@@ -74,9 +77,15 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(fmt.Errorf("error creating test database: %w", err))
 	}
-	db, err = database.Open(ctx, &wg, testDb, time.Hour, maxVoteChangeRecords)
+	db, err := database.Open(ctx, &wg, testDb, time.Hour, maxVoteChangeRecords)
 	if err != nil {
 		panic(fmt.Errorf("error opening test database: %w", err))
+	}
+
+	api = &Server{
+		cfg:         cfg,
+		signPrivKey: signPrivKey,
+		db:          db,
 	}
 
 	// Run tests.
@@ -202,12 +211,12 @@ func TestSetAltSignAddress(t *testing.T) {
 				Resp:        string(randBytes(1000)),
 				RespSig:     randString(96, sigCharset),
 			}
-			if err := db.InsertAltSignAddr(ticketHash, data); err != nil {
+			if err := api.db.InsertAltSignAddr(ticketHash, data); err != nil {
 				t.Fatalf("%q: unable to insert alt sign addr: %v", test.name, err)
 			}
 		}
 
-		cfg.VspClosed = test.vspClosed
+		api.cfg.VspClosed = test.vspClosed
 
 		tNode := &testNode{
 			canTicketVote:        !test.canTicketNotVote,
@@ -227,7 +236,7 @@ func TestSetAltSignAddress(t *testing.T) {
 			c.Set(dcrdKey, tNode)
 			c.Set(dcrdErrorKey, dcrdErr)
 			c.Set(requestBytesKey, b[test.deformReq:])
-			setAltSignAddr(c)
+			api.setAltSignAddr(c)
 		}
 
 		r.POST("/", handle)
@@ -245,7 +254,7 @@ func TestSetAltSignAddress(t *testing.T) {
 			t.Errorf("%q: expected status %d, got %d", test.name, test.wantCode, w.Code)
 		}
 
-		altsig, err := db.AltSignAddrData(ticketHash)
+		altsig, err := api.db.AltSignAddrData(ticketHash)
 		if err != nil {
 			t.Fatalf("%q: unable to get alt sign addr data: %v", test.name, err)
 		}
