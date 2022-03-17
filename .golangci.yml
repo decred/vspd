@@ -5,16 +5,29 @@ linters:
   disable-all: true
   enable:
     - asciicheck
+    - bidichk
     - deadcode
+    - durationcheck
     - errcheck
+    - errchkjson
+    - errname
+    - exhaustive
+    - exportloopref
+    - goconst
     - gofmt
     - goimports
     - gosimple
     - govet
     - ineffassign
     - misspell
+    - nilerr
     - revive
+    - staticcheck
     - structcheck
+    - tparallel
+    - typecheck
     - unconvert
     - unparam
     - unused
+    - varcheck
+    - vetshadow
