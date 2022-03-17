@@ -285,9 +285,9 @@ func vspAuth() gin.HandlerFunc {
 		hash := request.TicketHash
 
 		// Before hitting the db or any RPC, ensure this is a valid ticket hash.
-		validticket, err := validateTicketHash(c, hash)
-		if !validticket {
-			log.Errorf("%s: %v", funcName, err)
+		err = validateTicketHash(hash)
+		if err != nil {
+			log.Errorf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg("invalid ticket hash", errBadRequest, c)
 			return
 		}
@@ -303,19 +303,26 @@ func vspAuth() gin.HandlerFunc {
 		// If the ticket was found in the database, we already know its
 		// commitment address. Otherwise we need to get it from the chain.
 		var commitmentAddress string
-		var isInvalid bool
+		dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+		dcrdErr := c.MustGet(dcrdErrorKey)
+		if dcrdErr != nil {
+			log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+			sendError(errInternalError, c)
+			return
+		}
 
 		if ticketFound {
 			commitmentAddress = ticket.CommitmentAddress
 		} else {
-			commitmentAddress, isInvalid, err = getCommitmentAddress(c, hash)
+			commitmentAddress, err = getCommitmentAddress(hash, dcrdClient)
 			if err != nil {
-				if isInvalid {
+				var apiErr *apiError
+				if errors.Is(err, apiErr) {
 					sendError(errInvalidTicket, c)
 				} else {
 					sendError(errInternalError, c)
 				}
-				log.Errorf("%s: %v", funcName, err)
+				log.Errorf("%s: (clientIP: %s, ticketHash: %s): %v", funcName, c.ClientIP(), hash, err)
 				return
 			}
 		}
@@ -323,14 +330,15 @@ func vspAuth() gin.HandlerFunc {
 		// Ensure a signature is provided.
 		signature := c.GetHeader("VSP-Client-Signature")
 		if signature == "" {
+			log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg("no VSP-Client-Signature header", errBadRequest, c)
 			return
 		}
 
 		// Validate request signature to ensure ticket ownership.
-		err = validateSignature(hash, commitmentAddress, signature, string(reqBytes), c)
+		err = validateSignature(hash, commitmentAddress, signature, string(reqBytes))
 		if err != nil {
-			log.Errorf("%s: %v", funcName, err)
+			log.Errorf("%s: Bad signature (clientIP=%s, ticketHash=%s): %v", funcName, err)
 			sendError(errBadSignature, c)
 			return
 		}
