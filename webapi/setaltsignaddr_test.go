@@ -72,11 +72,11 @@ func TestMain(m *testing.M) {
 	ctx, cancel := context.WithCancel(context.Background())
 	err = database.CreateNew(testDb, feeXPub)
 	if err != nil {
-		panic(fmt.Errorf("error creating test database: %v", err))
+		panic(fmt.Errorf("error creating test database: %w", err))
 	}
 	db, err = database.Open(ctx, &wg, testDb, time.Hour, maxVoteChangeRecords)
 	if err != nil {
-		panic(fmt.Errorf("error opening test database: %v", err))
+		panic(fmt.Errorf("error opening test database: %w", err))
 	}
 
 	// Run tests.
