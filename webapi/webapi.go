@@ -85,7 +85,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 
 	// Populate cached VSP stats before starting webserver.
 	initCache()
-	err = updateCache(ctx, vdb, dcrd, config.NetParams)
+	err = updateCache(ctx, vdb, dcrd, config.NetParams, wallets)
 	if err != nil {
 		log.Errorf("Could not initialize VSP stats cache: %v", err)
 	}
@@ -172,7 +172,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 				shutdownWg.Done()
 				return
 			case <-ticker.C:
-				err := updateCache(ctx, vdb, dcrd, config.NetParams)
+				err := updateCache(ctx, vdb, dcrd, config.NetParams, wallets)
 				if err != nil {
 					log.Errorf("Failed to update cached VSP stats: %v", err)
 				}

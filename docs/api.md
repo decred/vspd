@@ -54,6 +54,8 @@ when a VSP is closed will result in an error.
         "vspdversion":"1.0.0-pre",
         "voting":10,
         "voted":25,
+        "totalvotingwallets": 3,
+        "votingwalletsonline":3,
         "revoked":3,
         "blockheight":623212,
         "estimatednetworkproportion":0.048478414
