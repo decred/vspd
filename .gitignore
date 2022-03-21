@@ -1,3 +1,4 @@
+*.exe
 vspd
 /database/test.db
 /database/test.db-backup
