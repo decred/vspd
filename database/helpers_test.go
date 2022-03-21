@@ -31,6 +31,12 @@ func TestBytesToStringMap(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name:      "Empty map on null",
+			input:     []byte("null"),
+			expect:    map[string]string{},
+			expectErr: false,
+		},
+		{
 			name:      "Correct values with valid json",
 			input:     []byte("{\"key\":\"value\"}"),
 			expect:    map[string]string{"key": "value"},

@@ -15,5 +15,14 @@ func bytesToStringMap(bytes []byte) (map[string]string, error) {
 
 	var stringMap map[string]string
 	err := json.Unmarshal(bytes, &stringMap)
-	return stringMap, err
+	if err != nil {
+		return nil, err
+	}
+
+	// stringMap can still be nil here, eg. if bytes == "null".
+	if stringMap == nil {
+		stringMap = make(map[string]string)
+	}
+
+	return stringMap, nil
 }
