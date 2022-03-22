@@ -223,29 +223,19 @@ func getTicketFromBkt(bkt *bolt.Bucket) (Ticket, error) {
 	ticket.Confirmed = bytesToBool(bkt.Get(confirmedK))
 
 	var err error
-
-	voteChoicesB := bkt.Get(voteChoicesK)
-	if voteChoicesB != nil {
-		err = json.Unmarshal(voteChoicesB, &ticket.VoteChoices)
-		if err != nil {
-			return ticket, fmt.Errorf("unmarshal VoteChoices err: %w", err)
-		}
+	ticket.VoteChoices, err = bytesToStringMap(bkt.Get(voteChoicesK))
+	if err != nil {
+		return ticket, fmt.Errorf("unmarshal VoteChoices err: %w", err)
 	}
 
-	tSpendPolicyB := bkt.Get(tSpendPolicyK)
-	if tSpendPolicyB != nil {
-		err = json.Unmarshal(tSpendPolicyB, &ticket.TSpendPolicy)
-		if err != nil {
-			return ticket, fmt.Errorf("unmarshal TSpendPolicy err: %w", err)
-		}
+	ticket.TSpendPolicy, err = bytesToStringMap(bkt.Get(tSpendPolicyK))
+	if err != nil {
+		return ticket, fmt.Errorf("unmarshal TSpendPolicy err: %w", err)
 	}
 
-	treasuryPolicyB := bkt.Get(treasuryPolicyK)
-	if treasuryPolicyB != nil {
-		err = json.Unmarshal(treasuryPolicyB, &ticket.TreasuryPolicy)
-		if err != nil {
-			return ticket, fmt.Errorf("unmarshal TreasuryPolicy err: %w", err)
-		}
+	ticket.TreasuryPolicy, err = bytesToStringMap(bkt.Get(treasuryPolicyK))
+	if err != nil {
+		return ticket, fmt.Errorf("unmarshal TreasuryPolicy err: %w", err)
 	}
 
 	return ticket, nil
