@@ -379,14 +379,12 @@ func Start(shutdownCtx context.Context, wg *sync.WaitGroup, vdb *database.VspDat
 	// Run voting wallet consistency check periodically.
 	wg.Add(1)
 	go func() {
-		ticker := time.NewTicker(consistencyInterval)
 	consistencyLoop:
 		for {
 			select {
 			case <-shutdownCtx.Done():
-				ticker.Stop()
 				break consistencyLoop
-			case <-ticker.C:
+			case <-time.After(consistencyInterval):
 				checkWalletConsistency()
 			}
 		}
