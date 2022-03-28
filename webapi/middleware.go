@@ -140,7 +140,8 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	// Ensure the provided ticket hex is a valid ticket.
 	msgTx, err := decodeTransaction(request.TicketHex)
 	if err != nil {
-		log.Errorf("%s: Failed to decode ticket hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
+		log.Errorf("%s: Failed to decode ticket hex (ticketHash=%s): %v",
+			funcName, request.TicketHash, err)
 		s.sendErrorWithMsg("cannot decode ticket hex", errBadRequest, c)
 		return
 	}
@@ -297,7 +298,6 @@ func (s *Server) vspAuth(c *gin.Context) {
 
 	// If the ticket was found in the database, we already know its
 	// commitment address. Otherwise we need to get it from the chain.
-	var commitmentAddress string
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
@@ -306,18 +306,22 @@ func (s *Server) vspAuth(c *gin.Context) {
 		return
 	}
 
+	var commitmentAddress string
 	if ticketFound {
 		commitmentAddress = ticket.CommitmentAddress
 	} else {
 		commitmentAddress, err = getCommitmentAddress(hash, dcrdClient, s.cfg.NetParams)
 		if err != nil {
+			log.Errorf("%s: Failed to get commitment address (clientIP=%s, ticketHash=%s): %v",
+				funcName, c.ClientIP(), hash, err)
+
 			var apiErr *apiError
 			if errors.Is(err, apiErr) {
 				s.sendError(errInvalidTicket, c)
 			} else {
 				s.sendError(errInternalError, c)
 			}
-			log.Errorf("%s: (clientIP: %s, ticketHash: %s): %v", funcName, c.ClientIP(), hash, err)
+
 			return
 		}
 	}
@@ -325,7 +329,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	// Ensure a signature is provided.
 	signature := c.GetHeader("VSP-Client-Signature")
 	if signature == "" {
-		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		log.Warnf("%s: No VSP-Client-Signature header (clientIP=%s)", funcName, c.ClientIP())
 		s.sendErrorWithMsg("no VSP-Client-Signature header", errBadRequest, c)
 		return
 	}
@@ -333,7 +337,8 @@ func (s *Server) vspAuth(c *gin.Context) {
 	// Validate request signature to ensure ticket ownership.
 	err = validateSignature(hash, commitmentAddress, signature, string(reqBytes), s.db, s.cfg.NetParams)
 	if err != nil {
-		log.Errorf("%s: Bad signature (clientIP=%s, ticketHash=%s): %v", funcName, err)
+		log.Errorf("%s: Couldn't validate signature (clientIP=%s, ticketHash=%s): %v",
+			funcName, c.ClientIP(), hash, err)
 		s.sendError(errBadSignature, c)
 		return
 	}

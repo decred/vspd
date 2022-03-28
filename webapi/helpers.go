@@ -115,7 +115,7 @@ func validateSignature(hash, commitmentAddress, signature, message string,
 		// first check if we have an alternate sign address for this ticket.
 		altSigData, err := db.AltSignAddrData(hash)
 		if err != nil {
-			return fmt.Errorf("db.AltSignAddrData failed: %v", err)
+			return fmt.Errorf("db.AltSignAddrData failed: %w", err)
 		}
 
 		// If we have no alternate sign address, or if validating with the
@@ -162,7 +162,7 @@ func validateTicketHash(hash string) error {
 	}
 	_, err := chainhash.NewHashFromStr(hash)
 	if err != nil {
-		return fmt.Errorf("invalid hash: %v", err)
+		return fmt.Errorf("invalid hash: %w", err)
 
 	}
 
@@ -172,31 +172,25 @@ func validateTicketHash(hash string) error {
 // getCommitmentAddress gets the commitment address of the provided ticket hash
 // from the chain.
 func getCommitmentAddress(hash string, dcrdClient *rpc.DcrdRPC, params *chaincfg.Params) (string, error) {
-	var commitmentAddress string
 	resp, err := dcrdClient.GetRawTransaction(hash)
 	if err != nil {
-		return commitmentAddress, fmt.Errorf("dcrd.GetRawTransaction for ticket failed: %v", err)
-
+		return "", fmt.Errorf("dcrd.GetRawTransaction for ticket failed: %w", err)
 	}
 
 	msgTx, err := decodeTransaction(resp.Hex)
 	if err != nil {
-		return commitmentAddress, fmt.Errorf("Failed to decode ticket hex: %v", err)
-
+		return "", fmt.Errorf("failed to decode ticket hex: %w", err)
 	}
 
 	err = isValidTicket(msgTx)
 	if err != nil {
-		return commitmentAddress, fmt.Errorf("Invalid ticket: %w", errInvalidTicket)
-
+		return "", fmt.Errorf("invalid ticket: %w", errInvalidTicket)
 	}
 
 	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, params)
 	if err != nil {
-		return commitmentAddress, fmt.Errorf("AddrFromSStxPkScrCommitment error: %v", err)
-
+		return "", fmt.Errorf("AddrFromSStxPkScrCommitment error: %w", err)
 	}
 
-	commitmentAddress = addr.String()
-	return commitmentAddress, nil
+	return addr.String(), nil
 }
