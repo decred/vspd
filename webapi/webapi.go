@@ -159,7 +159,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 		}
 	}()
 
-	// Use a ticker to update cached VSP stats.
+	// Periodically update cached VSP stats.
 	var refresh time.Duration
 	if s.cfg.Debug {
 		refresh = 1 * time.Second
@@ -168,14 +168,12 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	}
 	shutdownWg.Add(1)
 	go func() {
-		ticker := time.NewTicker(refresh)
 		for {
 			select {
 			case <-ctx.Done():
-				ticker.Stop()
 				shutdownWg.Done()
 				return
-			case <-ticker.C:
+			case <-time.After(refresh):
 				err := updateCache(ctx, vdb, dcrd, config.NetParams, wallets)
 				if err != nil {
 					log.Errorf("Failed to update cached VSP stats: %v", err)
