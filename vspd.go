@@ -52,7 +52,7 @@ func run(ctx context.Context) error {
 	}
 
 	// Show version at startup.
-	log.Infof("Version %s (Go version %s %s/%s)", version.String(), runtime.Version(),
+	log.Criticalf("Version %s (Go version %s %s/%s)", version.String(), runtime.Version(),
 		runtime.GOOS, runtime.GOARCH)
 
 	if cfg.netParams == &mainNetParams &&
@@ -70,7 +70,7 @@ func run(ctx context.Context) error {
 
 	// WaitGroup for services to signal when they have shutdown cleanly.
 	var shutdownWg sync.WaitGroup
-	defer log.Info("Shutdown complete")
+	defer log.Criticalf("Shutdown complete")
 
 	// Open database.
 	db, err := database.Open(ctx, &shutdownWg, cfg.dbPath, cfg.BackupInterval, maxVoteChangeRecords)
