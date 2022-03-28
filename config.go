@@ -18,20 +18,25 @@ import (
 	"decred.org/dcrwallet/v2/wallet/txrules"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/hdkeychain/v3"
+	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/version"
 	flags "github.com/jessevdk/go-flags"
 )
 
+const appName = "vspd"
+
 var (
 	defaultListen         = ":8800"
-	defaultLogLevel       = "debug"
+	defaultLogLevel       = slog.LevelDebug.String()
 	defaultMaxLogSize     = int64(10)
 	defaultLogsToKeep     = 20
 	defaultVSPFee         = 3.0
 	defaultNetwork        = "testnet"
-	defaultHomeDir        = dcrutil.AppDataDir("vspd", false)
-	defaultConfigFilename = "vspd.conf"
+	defaultHomeDir        = dcrutil.AppDataDir(appName, false)
+	defaultConfigFilename = fmt.Sprintf("%s.conf", appName)
+	defaultLogFilename    = fmt.Sprintf("%s.log", appName)
+	defaultDBFilename     = fmt.Sprintf("%s.db", appName)
 	defaultConfigFile     = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultDcrdHost       = "127.0.0.1"
 	defaultWalletHost     = "127.0.0.1"
@@ -403,11 +408,11 @@ func loadConfig() (*config, error) {
 
 	// Initialize loggers and log rotation.
 	logDir := filepath.Join(cfg.HomeDir, "logs", cfg.netParams.Name)
-	initLogRotator(filepath.Join(logDir, "vspd.log"), cfg.MaxLogSize, cfg.LogsToKeep)
+	initLogRotator(filepath.Join(logDir, defaultLogFilename), cfg.MaxLogSize, cfg.LogsToKeep)
 	setLogLevels(cfg.LogLevel)
 
 	// Set the database path
-	cfg.dbPath = filepath.Join(dataDir, "vspd.db")
+	cfg.dbPath = filepath.Join(dataDir, defaultDBFilename)
 
 	// If xpub has been provided, create a new database and exit.
 	if cfg.FeeXPub != "" {
