@@ -15,7 +15,7 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/wire"
-	"github.com/gin-gonic/gin"
+	"github.com/decred/vspd/rpc"
 )
 
 func currentVoteVersion(params *chaincfg.Params) uint32 {
@@ -105,16 +105,22 @@ func validPolicyOption(policy string) error {
 	}
 }
 
-func validateSignature(reqBytes []byte, commitmentAddress string, c *gin.Context) error {
-	// Ensure a signature is provided.
-	signature := c.GetHeader("VSP-Client-Signature")
-	if signature == "" {
-		return errors.New("no VSP-Client-Signature header")
-	}
+func validateSignature(hash, commitmentAddress, signature, message string) error {
+	firstErr := dcrutil.VerifyMessage(commitmentAddress, signature, message, cfg.NetParams)
+	if firstErr != nil {
+		// Don't return an error straight away if sig validation fails -
+		// first check if we have an alternate sign address for this ticket.
+		altSigData, err := db.AltSignAddrData(hash)
+		if err != nil {
+			return fmt.Errorf("db.AltSignAddrData failed: %v", err)
+		}
 
-	err := dcrutil.VerifyMessage(commitmentAddress, signature, string(reqBytes), cfg.NetParams)
-	if err != nil {
-		return err
+		// If we have no alternate sign address, or if validating with the
+		// alt sign addr fails, return an error to the client.
+		if altSigData == nil || dcrutil.VerifyMessage(altSigData.AltSignAddr, signature, message, cfg.NetParams) != nil {
+			return fmt.Errorf("bad signature")
+		}
+
 	}
 	return nil
 }
@@ -140,4 +146,53 @@ func isValidTicket(tx *wire.MsgTx) error {
 	}
 
 	return nil
+}
+
+// validateTicketHash ensures the provided ticket hash is a valid ticket hash.
+// A ticket hash should be 64 chars (MaxHashStringSize) and should parse into
+// a chainhash.Hash without error.
+func validateTicketHash(hash string) error {
+	if len(hash) != chainhash.MaxHashStringSize {
+		return fmt.Errorf("incorrect hash length: got %d, expected %d", len(hash), chainhash.MaxHashStringSize)
+
+	}
+	_, err := chainhash.NewHashFromStr(hash)
+	if err != nil {
+		return fmt.Errorf("invalid hash: %v", err)
+
+	}
+
+	return nil
+}
+
+// getCommitmentAddress gets the commitment address of the provided ticket hash
+// from the chain.
+func getCommitmentAddress(hash string, dcrdClient *rpc.DcrdRPC) (string, error) {
+	var commitmentAddress string
+	resp, err := dcrdClient.GetRawTransaction(hash)
+	if err != nil {
+		return commitmentAddress, fmt.Errorf("dcrd.GetRawTransaction for ticket failed: %v", err)
+
+	}
+
+	msgTx, err := decodeTransaction(resp.Hex)
+	if err != nil {
+		return commitmentAddress, fmt.Errorf("Failed to decode ticket hex: %v", err)
+
+	}
+
+	err = isValidTicket(msgTx)
+	if err != nil {
+		return commitmentAddress, fmt.Errorf("Invalid ticket: %w", errInvalidTicket)
+
+	}
+
+	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, cfg.NetParams)
+	if err != nil {
+		return commitmentAddress, fmt.Errorf("AddrFromSStxPkScrCommitment error: %v", err)
+
+	}
+
+	commitmentAddress = addr.String()
+	return commitmentAddress, nil
 }

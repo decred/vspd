@@ -11,8 +11,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/decred/dcrd/blockchain/stake/v4"
-	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -287,17 +285,9 @@ func vspAuth() gin.HandlerFunc {
 		hash := request.TicketHash
 
 		// Before hitting the db or any RPC, ensure this is a valid ticket hash.
-		// A ticket hash should be 64 chars (MaxHashStringSize) and should parse
-		// into a chainhash.Hash without error.
-		if len(hash) != chainhash.MaxHashStringSize {
-			log.Errorf("%s: Incorrect hash length (clientIP=%s): got %d, expected %d",
-				funcName, c.ClientIP(), len(hash), chainhash.MaxHashStringSize)
-			sendErrorWithMsg("invalid ticket hash", errBadRequest, c)
-			return
-		}
-		_, err = chainhash.NewHashFromStr(hash)
+		err = validateTicketHash(hash)
 		if err != nil {
-			log.Errorf("%s: Invalid hash (clientIP=%s): %v", funcName, c.ClientIP(), err)
+			log.Errorf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 			sendErrorWithMsg("invalid ticket hash", errBadRequest, c)
 			return
 		}
@@ -313,67 +303,44 @@ func vspAuth() gin.HandlerFunc {
 		// If the ticket was found in the database, we already know its
 		// commitment address. Otherwise we need to get it from the chain.
 		var commitmentAddress string
+		dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+		dcrdErr := c.MustGet(dcrdErrorKey)
+		if dcrdErr != nil {
+			log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+			sendError(errInternalError, c)
+			return
+		}
+
 		if ticketFound {
 			commitmentAddress = ticket.CommitmentAddress
 		} else {
-			dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
-			dcrdErr := c.MustGet(dcrdErrorKey)
-			if dcrdErr != nil {
-				log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
-				sendError(errInternalError, c)
-				return
-			}
-
-			resp, err := dcrdClient.GetRawTransaction(hash)
+			commitmentAddress, err = getCommitmentAddress(hash, dcrdClient)
 			if err != nil {
-				log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, hash, err)
-				sendError(errInternalError, c)
+				var apiErr *apiError
+				if errors.Is(err, apiErr) {
+					sendError(errInvalidTicket, c)
+				} else {
+					sendError(errInternalError, c)
+				}
+				log.Errorf("%s: (clientIP: %s, ticketHash: %s): %v", funcName, c.ClientIP(), hash, err)
 				return
 			}
+		}
 
-			msgTx, err := decodeTransaction(resp.Hex)
-			if err != nil {
-				log.Errorf("%s: Failed to decode ticket hex (ticketHash=%s): %v", funcName, ticket.Hash, err)
-				sendError(errInternalError, c)
-				return
-			}
-
-			err = isValidTicket(msgTx)
-			if err != nil {
-				log.Warnf("%s: Invalid ticket (clientIP=%s, ticketHash=%s): %v", funcName, c.ClientIP(), hash, err)
-				sendError(errInvalidTicket, c)
-				return
-			}
-
-			addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, cfg.NetParams)
-			if err != nil {
-				log.Errorf("%s: AddrFromSStxPkScrCommitment error (ticketHash=%s): %v", funcName, hash, err)
-				sendError(errInternalError, c)
-				return
-			}
-
-			commitmentAddress = addr.String()
+		// Ensure a signature is provided.
+		signature := c.GetHeader("VSP-Client-Signature")
+		if signature == "" {
+			log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+			sendErrorWithMsg("no VSP-Client-Signature header", errBadRequest, c)
+			return
 		}
 
 		// Validate request signature to ensure ticket ownership.
-		err = validateSignature(reqBytes, commitmentAddress, c)
+		err = validateSignature(hash, commitmentAddress, signature, string(reqBytes))
 		if err != nil {
-			// Don't return an error straight away if sig validation fails -
-			// first check if we have an alternate sign address for this ticket.
-			altSigData, err := db.AltSignAddrData(hash)
-			if err != nil {
-				log.Errorf("%s: db.AltSignAddrData failed (ticketHash=%s): %v", funcName, hash, err)
-				sendError(errInternalError, c)
-				return
-			}
-
-			// If we have no alternate sign address, or if validating with the
-			// alt sign addr fails, return an error to the client.
-			if altSigData == nil || validateSignature(reqBytes, altSigData.AltSignAddr, c) != nil {
-				log.Warnf("%s: Bad signature (clientIP=%s, ticketHash=%s)", funcName, c.ClientIP(), hash)
-				sendError(errBadSignature, c)
-				return
-			}
+			log.Errorf("%s: Bad signature (clientIP=%s, ticketHash=%s): %v", funcName, err)
+			sendError(errBadSignature, c)
+			return
 		}
 
 		// Add ticket information to context so downstream handlers don't need
