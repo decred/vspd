@@ -55,9 +55,17 @@ func run(ctx context.Context) error {
 	log.Infof("Version %s (Go version %s %s/%s)", version.String(), runtime.Version(),
 		runtime.GOOS, runtime.GOARCH)
 
+	if cfg.netParams == &mainNetParams &&
+		version.PreRelease != "" {
+		log.Warnf("")
+		log.Warnf("\tWARNING: This is a pre-release version of vspd which should not be used on mainnet.")
+		log.Warnf("")
+	}
+
 	if cfg.VspClosed {
-		log.Warnf("Config --vspclosed is set. This will prevent vspd from " +
-			"accepting new tickets.")
+		log.Warnf("")
+		log.Warnf("\tWARNING: Config --vspclosed is set. This will prevent vspd from accepting new tickets.")
+		log.Warnf("")
 	}
 
 	// WaitGroup for services to signal when they have shutdown cleanly.
