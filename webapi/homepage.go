@@ -12,7 +12,7 @@ import (
 
 func (s *Server) homepage(c *gin.Context) {
 	c.HTML(http.StatusOK, "homepage.html", gin.H{
-		"WebApiCache": getCache(),
+		"WebApiCache": s.cache.getData(),
 		"WebApiCfg":   s.cfg,
 	})
 }

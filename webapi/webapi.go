@@ -67,6 +67,7 @@ type Server struct {
 	cfg         Config
 	db          *database.VspDatabase
 	addrGen     *addressGenerator
+	cache       *cache
 	signPrivKey ed25519.PrivateKey
 	signPubKey  ed25519.PublicKey
 }
@@ -88,8 +89,8 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	}
 
 	// Populate cached VSP stats before starting webserver.
-	initCache(base64.StdEncoding.EncodeToString(s.signPubKey))
-	err = updateCache(ctx, vdb, dcrd, config.NetParams, wallets)
+	s.cache = newCache(base64.StdEncoding.EncodeToString(s.signPubKey))
+	err = s.cache.update(ctx, vdb, dcrd, wallets, config.NetParams)
 	if err != nil {
 		log.Errorf("Could not initialize VSP stats cache: %v", err)
 	}
@@ -174,7 +175,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 				shutdownWg.Done()
 				return
 			case <-time.After(refresh):
-				err := updateCache(ctx, vdb, dcrd, config.NetParams, wallets)
+				err := s.cache.update(ctx, vdb, dcrd, wallets, config.NetParams)
 				if err != nil {
 					log.Errorf("Failed to update cached VSP stats: %v", err)
 				}

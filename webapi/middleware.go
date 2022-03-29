@@ -59,7 +59,7 @@ func (s *Server) requireAdmin(c *gin.Context) {
 
 	if admin == nil {
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"WebApiCache": getCache(),
+			"WebApiCache": s.cache.getData(),
 			"WebApiCfg":   s.cfg,
 		})
 		c.Abort()

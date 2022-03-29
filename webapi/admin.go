@@ -143,7 +143,7 @@ func (s *Server) statusJSON(c *gin.Context) {
 // adminPage is the handler for "GET /admin".
 func (s *Server) adminPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin.html", gin.H{
-		"WebApiCache":  getCache(),
+		"WebApiCache":  s.cache.getData(),
 		"WebApiCfg":    s.cfg,
 		"WalletStatus": walletStatus(c),
 		"DcrdStatus":   dcrdStatus(c),
@@ -185,7 +185,7 @@ func (s *Server) ticketSearch(c *gin.Context) {
 			VoteChanges:     voteChanges,
 			MaxVoteChanges:  s.cfg.MaxVoteChangeRecords,
 		},
-		"WebApiCache":  getCache(),
+		"WebApiCache":  s.cache.getData(),
 		"WebApiCfg":    s.cfg,
 		"WalletStatus": walletStatus(c),
 		"DcrdStatus":   dcrdStatus(c),
@@ -200,7 +200,7 @@ func (s *Server) adminLogin(c *gin.Context) {
 	if password != s.cfg.AdminPass {
 		log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"WebApiCache":       getCache(),
+			"WebApiCache":       s.cache.getData(),
 			"WebApiCfg":         s.cfg,
 			"IncorrectPassword": true,
 		})
