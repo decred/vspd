@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/vspd/rpc"
 	bolt "go.etcd.io/bbolt"
 )
@@ -386,7 +385,7 @@ func (vdb *VspDatabase) BackupDB(w http.ResponseWriter) error {
 
 // CheckIntegrity will ensure that all data in the database is present and up to
 // date.
-func (vdb *VspDatabase) CheckIntegrity(ctx context.Context, params *chaincfg.Params, dcrd rpc.DcrdConnect) error {
+func (vdb *VspDatabase) CheckIntegrity(ctx context.Context, dcrd rpc.DcrdConnect) error {
 
 	// Ensure all confirmed tickets have a purchase height.
 	// This is necessary because of an old bug which, in some circumstances,
@@ -401,7 +400,7 @@ func (vdb *VspDatabase) CheckIntegrity(ctx context.Context, params *chaincfg.Par
 		return nil
 	}
 
-	dcrdClient, _, err := dcrd.Client(ctx, params)
+	dcrdClient, _, err := dcrd.Client(ctx)
 	if err != nil {
 		return err
 	}

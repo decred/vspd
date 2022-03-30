@@ -67,6 +67,7 @@ type Server struct {
 	cfg         Config
 	db          *database.VspDatabase
 	addrGen     *addressGenerator
+	cache       *cache
 	signPrivKey ed25519.PrivateKey
 	signPubKey  ed25519.PublicKey
 }
@@ -88,8 +89,8 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	}
 
 	// Populate cached VSP stats before starting webserver.
-	initCache(base64.StdEncoding.EncodeToString(s.signPubKey))
-	err = updateCache(ctx, vdb, dcrd, config.NetParams, wallets)
+	s.cache = newCache(base64.StdEncoding.EncodeToString(s.signPubKey))
+	err = s.cache.update(ctx, vdb, dcrd, wallets)
 	if err != nil {
 		log.Errorf("Could not initialize VSP stats cache: %v", err)
 	}
@@ -174,7 +175,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 				shutdownWg.Done()
 				return
 			case <-time.After(refresh):
-				err := updateCache(ctx, vdb, dcrd, config.NetParams, wallets)
+				err := s.cache.update(ctx, vdb, dcrd, wallets)
 				if err != nil {
 					log.Errorf("Failed to update cached VSP stats: %v", err)
 				}
@@ -230,11 +231,11 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 
 	api := router.Group("/api/v3")
 	api.GET("/vspinfo", s.vspInfo)
-	api.POST("/setaltsignaddr", withDcrdClient(dcrd, s.cfg), s.broadcastTicket, s.vspAuth, s.setAltSignAddr)
-	api.POST("/feeaddress", withDcrdClient(dcrd, s.cfg), s.broadcastTicket, s.vspAuth, s.feeAddress)
-	api.POST("/ticketstatus", withDcrdClient(dcrd, s.cfg), s.vspAuth, s.ticketStatus)
-	api.POST("/payfee", withDcrdClient(dcrd, s.cfg), s.vspAuth, s.payFee)
-	api.POST("/setvotechoices", withDcrdClient(dcrd, s.cfg), withWalletClients(wallets, s.cfg), s.vspAuth, s.setVoteChoices)
+	api.POST("/setaltsignaddr", withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.setAltSignAddr)
+	api.POST("/feeaddress", withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.feeAddress)
+	api.POST("/ticketstatus", withDcrdClient(dcrd), s.vspAuth, s.ticketStatus)
+	api.POST("/payfee", withDcrdClient(dcrd), s.vspAuth, s.payFee)
+	api.POST("/setvotechoices", withDcrdClient(dcrd), withWalletClients(wallets), s.vspAuth, s.setVoteChoices)
 
 	// Website routes.
 
@@ -246,16 +247,16 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	login.POST("", s.adminLogin)
 
 	admin := router.Group("/admin").Use(
-		withWalletClients(wallets, s.cfg), withSession(cookieStore), s.requireAdmin,
+		withWalletClients(wallets), withSession(cookieStore), s.requireAdmin,
 	)
-	admin.GET("", withDcrdClient(dcrd, s.cfg), s.adminPage)
-	admin.POST("/ticket", withDcrdClient(dcrd, s.cfg), s.ticketSearch)
+	admin.GET("", withDcrdClient(dcrd), s.adminPage)
+	admin.POST("/ticket", withDcrdClient(dcrd), s.ticketSearch)
 	admin.GET("/backup", s.downloadDatabaseBackup)
 	admin.POST("/logout", s.adminLogout)
 
 	// Require Basic HTTP Auth on /admin/status endpoint.
 	basic := router.Group("/admin").Use(
-		withDcrdClient(dcrd, s.cfg), withWalletClients(wallets, s.cfg), gin.BasicAuth(gin.Accounts{
+		withDcrdClient(dcrd), withWalletClients(wallets), gin.BasicAuth(gin.Accounts{
 			"admin": s.cfg.AdminPass,
 		}),
 	)

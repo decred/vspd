@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -84,15 +84,15 @@ func run(ctx context.Context) error {
 
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
-	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, nil)
+	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, nil, cfg.netParams.Params)
 	defer dcrd.Close()
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
-	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts)
+	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.netParams.Params)
 	defer wallets.Close()
 
 	// Ensure all data in database is present and up-to-date.
-	err = db.CheckIntegrity(ctx, cfg.netParams.Params, dcrd)
+	err = db.CheckIntegrity(ctx, dcrd)
 	if err != nil {
 		// vspd should still start if this fails, so just log an error.
 		log.Errorf("Could not check database integrity: %v", err)
@@ -124,12 +124,12 @@ func run(ctx context.Context) error {
 	// Create a dcrd client with a blockconnected notification handler.
 	notifHandler := background.NotificationHandler{ShutdownWg: &shutdownWg}
 	dcrdWithNotifs := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass,
-		cfg.DcrdHost, cfg.dcrdCert, &notifHandler)
+		cfg.DcrdHost, cfg.dcrdCert, &notifHandler, cfg.netParams.Params)
 	defer dcrdWithNotifs.Close()
 
 	// Start background process which will continually attempt to reconnect to
 	// dcrd if the connection drops.
-	background.Start(ctx, &shutdownWg, db, dcrd, dcrdWithNotifs, wallets, cfg.netParams.Params)
+	background.Start(ctx, &shutdownWg, db, dcrd, dcrdWithNotifs, wallets)
 
 	// Wait for shutdown tasks to complete before running deferred tasks and
 	// returning.

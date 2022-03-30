@@ -10,15 +10,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/dustin/go-humanize"
 )
 
-// apiCache is used to cache values which are commonly used by the API, so
+// cache is used to store values which are commonly used by the API, so
 // repeated web requests don't repeatedly trigger DB or RPC calls.
-type apiCache struct {
+type cache struct {
+	// data is the cached data.
+	data cacheData
+	// mtx must be held to read/write cache data.
+	mtx sync.RWMutex
+}
+
+type cacheData struct {
 	UpdateTime          string
 	PubKey              string
 	DatabaseSize        string
@@ -32,31 +38,26 @@ type apiCache struct {
 	RevokedProportion   float32
 }
 
-var cacheMtx sync.RWMutex
-var cache apiCache
+func (c *cache) getData() cacheData {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
 
-func getCache() apiCache {
-	cacheMtx.RLock()
-	defer cacheMtx.RUnlock()
-
-	return cache
+	return c.data
 }
 
-// initCache creates the struct which holds the cached VSP stats, and
-// initializes it with static values.
-func initCache(signPubKey string) {
-	cacheMtx.Lock()
-	defer cacheMtx.Unlock()
-
-	cache = apiCache{
-		PubKey: signPubKey,
+// newCache creates a new cache and initializes it with static values.
+func newCache(signPubKey string) *cache {
+	return &cache{
+		data: cacheData{
+			PubKey: signPubKey,
+		},
 	}
 }
 
-// updateCache updates the dynamic values in the cache (ticket counts and best
-// block height).
-func updateCache(ctx context.Context, db *database.VspDatabase,
-	dcrd rpc.DcrdConnect, netParams *chaincfg.Params, wallets rpc.WalletConnect) error {
+// update will use the provided database and RPC connections to update the
+// dynamic values in the cache.
+func (c *cache) update(ctx context.Context, db *database.VspDatabase,
+	dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) error {
 
 	dbSize, err := db.Size()
 	if err != nil {
@@ -70,7 +71,7 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 	}
 
 	// Get latest best block height.
-	dcrdClient, _, err := dcrd.Client(ctx, netParams)
+	dcrdClient, _, err := dcrd.Client(ctx)
 	if err != nil {
 		return err
 	}
@@ -84,7 +85,7 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 		return errors.New("dcr node reports a network ticket pool size of zero")
 	}
 
-	clients, failedConnections := wallets.Clients(ctx, netParams)
+	clients, failedConnections := wallets.Clients(ctx)
 	if len(clients) == 0 {
 		log.Error("Could not connect to any wallets")
 	} else if len(failedConnections) > 0 {
@@ -92,29 +93,29 @@ func updateCache(ctx context.Context, db *database.VspDatabase,
 			len(failedConnections), len(clients))
 	}
 
-	cacheMtx.Lock()
-	defer cacheMtx.Unlock()
+	c.mtx.Lock()
+	defer c.mtx.Unlock()
 
-	cache.UpdateTime = dateTime(time.Now().Unix())
-	cache.DatabaseSize = humanize.Bytes(dbSize)
-	cache.Voting = voting
-	cache.Voted = voted
-	cache.TotalVotingWallets = int64(len(clients) + len(failedConnections))
-	cache.VotingWalletsOnline = int64(len(clients))
-	cache.Revoked = revoked
-	cache.BlockHeight = bestBlock.Height
-	cache.NetworkProportion = float32(voting) / float32(bestBlock.PoolSize)
+	c.data.UpdateTime = dateTime(time.Now().Unix())
+	c.data.DatabaseSize = humanize.Bytes(dbSize)
+	c.data.Voting = voting
+	c.data.Voted = voted
+	c.data.TotalVotingWallets = int64(len(clients) + len(failedConnections))
+	c.data.VotingWalletsOnline = int64(len(clients))
+	c.data.Revoked = revoked
+	c.data.BlockHeight = bestBlock.Height
+	c.data.NetworkProportion = float32(voting) / float32(bestBlock.PoolSize)
 
 	// Prevent dividing by zero when pool has no voted tickets.
 	switch voted {
 	case 0:
 		if revoked == 0 {
-			cache.RevokedProportion = 0
+			c.data.RevokedProportion = 0
 		} else {
-			cache.RevokedProportion = 1
+			c.data.RevokedProportion = 1
 		}
 	default:
-		cache.RevokedProportion = float32(revoked) / float32(voted)
+		c.data.RevokedProportion = float32(revoked) / float32(voted)
 	}
 
 	return nil

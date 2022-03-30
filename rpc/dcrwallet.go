@@ -25,32 +25,38 @@ type WalletRPC struct {
 	ctx context.Context
 }
 
-type WalletConnect []*client
+type WalletConnect struct {
+	clients []*client
+	params  *chaincfg.Params
+}
 
-func SetupWallet(user, pass, addrs []string, cert [][]byte) WalletConnect {
-	walletConnect := make(WalletConnect, len(addrs))
+func SetupWallet(user, pass, addrs []string, cert [][]byte, params *chaincfg.Params) WalletConnect {
+	clients := make([]*client, len(addrs))
 
 	for i := 0; i < len(addrs); i++ {
-		walletConnect[i] = setup(user[i], pass[i], addrs[i], cert[i], nil)
+		clients[i] = setup(user[i], pass[i], addrs[i], cert[i], nil)
 	}
 
-	return walletConnect
+	return WalletConnect{
+		clients: clients,
+		params:  params,
+	}
 }
 
 func (w *WalletConnect) Close() {
-	for _, connect := range []*client(*w) {
-		connect.Close()
+	for _, client := range w.clients {
+		client.Close()
 	}
 }
 
 // Clients loops over each wallet and tries to establish a connection. It
 // increments a count of failed connections if a connection cannot be
 // established, or if the wallet is misconfigured.
-func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params) ([]*WalletRPC, []string) {
+func (w *WalletConnect) Clients(ctx context.Context) ([]*WalletRPC, []string) {
 	walletClients := make([]*WalletRPC, 0)
 	failedConnections := make([]string, 0)
 
-	for _, connect := range []*client(*w) {
+	for _, connect := range w.clients {
 
 		c, newConnection, err := connect.dial(ctx)
 		if err != nil {
@@ -103,9 +109,9 @@ func (w *WalletConnect) Clients(ctx context.Context, netParams *chaincfg.Params)
 			connect.Close()
 			continue
 		}
-		if netID != netParams.Net {
+		if netID != w.params.Net {
 			log.Errorf("dcrwallet on wrong network (wallet=%s): running on %s, expected %s",
-				c.String(), netID, netParams.Net)
+				c.String(), netID, w.params.Net)
 			failedConnections = append(failedConnections, connect.addr)
 			connect.Close()
 			continue
