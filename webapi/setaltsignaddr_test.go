@@ -189,7 +189,7 @@ func TestSetAltSignAddress(t *testing.T) {
 		},
 		wantCode: http.StatusBadRequest,
 	}, {
-		name:                  "hist at max",
+		name:                  "only one alt sign addr allowed",
 		addr:                  testAddr,
 		isExistingAltSignAddr: true,
 		wantCode:              http.StatusBadRequest,
