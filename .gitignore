@@ -5,6 +5,7 @@ vspd
 cov.out
 *cpu.out
 *mem.out
+/webapi/test.db
 /database/test.db
 /database/test.db-backup
 
