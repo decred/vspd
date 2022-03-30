@@ -21,7 +21,7 @@ var _ Node = (*rpc.DcrdRPC)(nil)
 
 // Node is satisfied by *rpc.DcrdRPC and retrieves data from the blockchain.
 type Node interface {
-	CanTicketVote(rawTx *dcrdtypes.TxRawResult, ticketHash string, netParams *chaincfg.Params) (bool, error)
+	CanTicketVote(rawTx *dcrdtypes.TxRawResult, netParams *chaincfg.Params) (bool, error)
 	GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, error)
 }
 
@@ -90,7 +90,7 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	}
 
 	// Ensure this ticket is eligible to vote at some point in the future.
-	canVote, err := dcrdClient.CanTicketVote(rawTicket, ticketHash, s.cfg.NetParams)
+	canVote, err := dcrdClient.CanTicketVote(rawTicket, s.cfg.NetParams)
 	if err != nil {
 		log.Errorf("%s: dcrd.CanTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
 		s.sendError(errInternalError, c)

@@ -120,7 +120,7 @@ type testNode struct {
 	getRawTransactionErr error
 }
 
-func (n *testNode) CanTicketVote(_ *dcrdtypes.TxRawResult, _ string, _ *chaincfg.Params) (bool, error) {
+func (n *testNode) CanTicketVote(_ *dcrdtypes.TxRawResult, _ *chaincfg.Params) (bool, error) {
 	return n.canTicketVote, n.canTicketVoteErr
 }
 
