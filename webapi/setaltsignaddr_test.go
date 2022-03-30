@@ -136,14 +136,15 @@ func TestSetAltSignAddress(t *testing.T) {
 		vspClosed             bool
 		deformReq             int
 		addr                  string
-		getRawTransactionErr  error
-		canTicketNotVote      bool
+		node                  *testNode
 		isExistingAltSignAddr bool
-		canTicketVoteErr      error
 		wantCode              int
 	}{{
-		name:     "ok",
-		addr:     testAddr,
+		name: "ok",
+		addr: testAddr,
+		node: &testNode{
+			canTicketVote: true,
+		},
 		wantCode: http.StatusOK,
 	}, {
 		name:      "vsp closed",
@@ -167,20 +168,26 @@ func TestSetAltSignAddress(t *testing.T) {
 		addr:     "DkM3ZigNyiwHrsXRjkDQ8t8tW6uKGW9g61qEkG3bMqQPQWYEf5X3J",
 		wantCode: http.StatusBadRequest,
 	}, {
-		name:                 "error getting raw tx from dcrd client",
-		addr:                 testAddr,
-		getRawTransactionErr: errors.New("get raw transaction error"),
-		wantCode:             http.StatusInternalServerError,
+		name: "error getting raw tx from dcrd client",
+		addr: testAddr,
+		node: &testNode{
+			getRawTransactionErr: errors.New("get raw transaction error"),
+		},
+		wantCode: http.StatusInternalServerError,
 	}, {
-		name:             "error getting can vote from dcrd client",
-		addr:             testAddr,
-		canTicketVoteErr: errors.New("can ticket vote error"),
-		wantCode:         http.StatusInternalServerError,
+		name: "error getting can vote from dcrd client",
+		addr: testAddr,
+		node: &testNode{
+			canTicketVoteErr: errors.New("can ticket vote error"),
+		},
+		wantCode: http.StatusInternalServerError,
 	}, {
-		name:             "ticket can't vote",
-		addr:             testAddr,
-		canTicketNotVote: true,
-		wantCode:         http.StatusBadRequest,
+		name: "ticket can't vote",
+		addr: testAddr,
+		node: &testNode{
+			canTicketVote: false,
+		},
+		wantCode: http.StatusBadRequest,
 	}, {
 		name:                  "hist at max",
 		addr:                  testAddr,
@@ -219,22 +226,16 @@ func TestSetAltSignAddress(t *testing.T) {
 
 			api.cfg.VspClosed = test.vspClosed
 
-			tNode := &testNode{
-				canTicketVote:        !test.canTicketNotVote,
-				canTicketVoteErr:     test.canTicketVoteErr,
-				getRawTransactionErr: test.getRawTransactionErr,
-			}
 			w := httptest.NewRecorder()
 			c, r := gin.CreateTestContext(w)
 
 			var dcrdErr error
 			if test.dcrdClientErr {
-				tNode = nil
 				dcrdErr = errors.New("error")
 			}
 
 			handle := func(c *gin.Context) {
-				c.Set(dcrdKey, tNode)
+				c.Set(dcrdKey, test.node)
 				c.Set(dcrdErrorKey, dcrdErr)
 				c.Set(requestBytesKey, b[test.deformReq:])
 				api.setAltSignAddr(c)
