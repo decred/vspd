@@ -189,85 +189,87 @@ func TestSetAltSignAddress(t *testing.T) {
 	}}
 
 	for _, test := range tests {
-		ticketHash := randString(64, hexCharset)
-		req := &setAltSignAddrRequest{
-			Timestamp:      time.Now().Unix(),
-			TicketHash:     ticketHash,
-			TicketHex:      randString(504, hexCharset),
-			ParentHex:      randString(504, hexCharset),
-			AltSignAddress: test.addr,
-		}
-		reqSig := randString(504, hexCharset)
-		b, err := json.Marshal(req)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if test.isExistingAltSignAddr {
-			data := &database.AltSignAddrData{
-				AltSignAddr: test.addr,
-				Req:         string(b),
-				ReqSig:      reqSig,
-				Resp:        string(randBytes(1000)),
-				RespSig:     randString(96, sigCharset),
+		t.Run(test.name, func(t *testing.T) {
+			ticketHash := randString(64, hexCharset)
+			req := &setAltSignAddrRequest{
+				Timestamp:      time.Now().Unix(),
+				TicketHash:     ticketHash,
+				TicketHex:      randString(504, hexCharset),
+				ParentHex:      randString(504, hexCharset),
+				AltSignAddress: test.addr,
 			}
-			if err := api.db.InsertAltSignAddr(ticketHash, data); err != nil {
-				t.Fatalf("%q: unable to insert alt sign addr: %v", test.name, err)
+			reqSig := randString(504, hexCharset)
+			b, err := json.Marshal(req)
+			if err != nil {
+				t.Fatal(err)
 			}
-		}
 
-		api.cfg.VspClosed = test.vspClosed
-
-		tNode := &testNode{
-			canTicketVote:        !test.canTicketNotVote,
-			canTicketVoteErr:     test.canTicketVoteErr,
-			getRawTransactionErr: test.getRawTransactionErr,
-		}
-		w := httptest.NewRecorder()
-		c, r := gin.CreateTestContext(w)
-
-		var dcrdErr error
-		if test.dcrdClientErr {
-			tNode = nil
-			dcrdErr = errors.New("error")
-		}
-
-		handle := func(c *gin.Context) {
-			c.Set(dcrdKey, tNode)
-			c.Set(dcrdErrorKey, dcrdErr)
-			c.Set(requestBytesKey, b[test.deformReq:])
-			api.setAltSignAddr(c)
-		}
-
-		r.POST("/", handle)
-
-		c.Request, err = http.NewRequest(http.MethodPost, "/", nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		c.Request.Header.Set("VSP-Client-Signature", reqSig)
-
-		r.ServeHTTP(w, c.Request)
-
-		if test.wantCode != w.Code {
-			t.Errorf("%q: expected status %d, got %d", test.name, test.wantCode, w.Code)
-		}
-
-		altsig, err := api.db.AltSignAddrData(ticketHash)
-		if err != nil {
-			t.Fatalf("%q: unable to get alt sign addr data: %v", test.name, err)
-		}
-
-		if test.wantCode != http.StatusOK && !test.isExistingAltSignAddr {
-			if altsig != nil {
-				t.Fatalf("%q: expected no alt sign addr saved for errored state", test.name)
+			if test.isExistingAltSignAddr {
+				data := &database.AltSignAddrData{
+					AltSignAddr: test.addr,
+					Req:         string(b),
+					ReqSig:      reqSig,
+					Resp:        string(randBytes(1000)),
+					RespSig:     randString(96, sigCharset),
+				}
+				if err := api.db.InsertAltSignAddr(ticketHash, data); err != nil {
+					t.Fatalf("unable to insert alt sign addr: %v", err)
+				}
 			}
-			continue
-		}
 
-		if !bytes.Equal(b, []byte(altsig.Req)) || altsig.ReqSig != reqSig {
-			t.Fatalf("%q: expected alt sign addr data different than actual", test.name)
-		}
+			api.cfg.VspClosed = test.vspClosed
+
+			tNode := &testNode{
+				canTicketVote:        !test.canTicketNotVote,
+				canTicketVoteErr:     test.canTicketVoteErr,
+				getRawTransactionErr: test.getRawTransactionErr,
+			}
+			w := httptest.NewRecorder()
+			c, r := gin.CreateTestContext(w)
+
+			var dcrdErr error
+			if test.dcrdClientErr {
+				tNode = nil
+				dcrdErr = errors.New("error")
+			}
+
+			handle := func(c *gin.Context) {
+				c.Set(dcrdKey, tNode)
+				c.Set(dcrdErrorKey, dcrdErr)
+				c.Set(requestBytesKey, b[test.deformReq:])
+				api.setAltSignAddr(c)
+			}
+
+			r.POST("/", handle)
+
+			c.Request, err = http.NewRequest(http.MethodPost, "/", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c.Request.Header.Set("VSP-Client-Signature", reqSig)
+
+			r.ServeHTTP(w, c.Request)
+
+			if test.wantCode != w.Code {
+				t.Errorf("expected status %d, got %d", test.wantCode, w.Code)
+			}
+
+			altsig, err := api.db.AltSignAddrData(ticketHash)
+			if err != nil {
+				t.Fatalf("unable to get alt sign addr data: %v", err)
+			}
+
+			if test.wantCode != http.StatusOK && !test.isExistingAltSignAddr {
+				if altsig != nil {
+					t.Fatalf("expected no alt sign addr saved for errored state")
+				}
+				return
+			}
+
+			if !bytes.Equal(b, []byte(altsig.Req)) || altsig.ReqSig != reqSig {
+				t.Fatalf("expected alt sign addr data different than actual")
+			}
+		})
 	}
 }
