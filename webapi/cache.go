@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/dustin/go-humanize"
@@ -58,7 +57,7 @@ func newCache(signPubKey string) *cache {
 // update will use the provided database and RPC connections to update the
 // dynamic values in the cache.
 func (c *cache) update(ctx context.Context, db *database.VspDatabase,
-	dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, netParams *chaincfg.Params) error {
+	dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) error {
 
 	dbSize, err := db.Size()
 	if err != nil {
@@ -72,7 +71,7 @@ func (c *cache) update(ctx context.Context, db *database.VspDatabase,
 	}
 
 	// Get latest best block height.
-	dcrdClient, _, err := dcrd.Client(ctx, netParams)
+	dcrdClient, _, err := dcrd.Client(ctx)
 	if err != nil {
 		return err
 	}
@@ -86,7 +85,7 @@ func (c *cache) update(ctx context.Context, db *database.VspDatabase,
 		return errors.New("dcr node reports a network ticket pool size of zero")
 	}
 
-	clients, failedConnections := wallets.Clients(ctx, netParams)
+	clients, failedConnections := wallets.Clients(ctx)
 	if len(clients) == 0 {
 		log.Error("Could not connect to any wallets")
 	} else if len(failedConnections) > 0 {

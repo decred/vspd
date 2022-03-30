@@ -69,9 +69,9 @@ func (s *Server) requireAdmin(c *gin.Context) {
 
 // withDcrdClient middleware adds a dcrd client to the request context for
 // downstream handlers to make use of.
-func withDcrdClient(dcrd rpc.DcrdConnect, cfg Config) gin.HandlerFunc {
+func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		client, hostname, err := dcrd.Client(c, cfg.NetParams)
+		client, hostname, err := dcrd.Client(c)
 		// Don't handle the error here, add it to the context and let downstream
 		// handlers decide what to do with it.
 		c.Set(dcrdKey, client)
@@ -83,9 +83,9 @@ func withDcrdClient(dcrd rpc.DcrdConnect, cfg Config) gin.HandlerFunc {
 // withWalletClients middleware attempts to add voting wallet clients to the
 // request context for downstream handlers to make use of. Downstream handlers
 // must handle the case where no wallet clients are connected.
-func withWalletClients(wallets rpc.WalletConnect, cfg Config) gin.HandlerFunc {
+func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		clients, failedConnections := wallets.Clients(c, cfg.NetParams)
+		clients, failedConnections := wallets.Clients(c)
 		if len(clients) == 0 {
 			log.Error("Could not connect to any wallets")
 		} else if len(failedConnections) > 0 {

@@ -12,7 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/jrick/wsrpc/v2"
@@ -22,7 +21,6 @@ var (
 	db             *database.VspDatabase
 	dcrdRPC        rpc.DcrdConnect
 	walletRPC      rpc.WalletConnect
-	netParams      *chaincfg.Params
 	notifierClosed chan struct{}
 )
 
@@ -76,7 +74,7 @@ func blockConnected() {
 
 	ctx := context.Background()
 
-	dcrdClient, _, err := dcrdRPC.Client(ctx, netParams)
+	dcrdClient, _, err := dcrdRPC.Client(ctx)
 	if err != nil {
 		log.Errorf("%s: %v", funcName, err)
 		return
@@ -170,7 +168,7 @@ func blockConnected() {
 		log.Errorf("%s: db.GetUnconfirmedFees error: %v", funcName, err)
 	}
 
-	walletClients, failedConnections := walletRPC.Clients(ctx, netParams)
+	walletClients, failedConnections := walletRPC.Clients(ctx)
 	if len(walletClients) == 0 {
 		log.Errorf("%s: Could not connect to any wallets", funcName)
 		return
@@ -333,7 +331,7 @@ func blockConnected() {
 func connectNotifier(shutdownCtx context.Context, dcrdWithNotifs rpc.DcrdConnect) error {
 	notifierClosed = make(chan struct{})
 
-	dcrdClient, _, err := dcrdWithNotifs.Client(shutdownCtx, netParams)
+	dcrdClient, _, err := dcrdWithNotifs.Client(shutdownCtx)
 	if err != nil {
 		return err
 	}
@@ -361,12 +359,11 @@ func connectNotifier(shutdownCtx context.Context, dcrdWithNotifs rpc.DcrdConnect
 }
 
 func Start(shutdownCtx context.Context, wg *sync.WaitGroup, vdb *database.VspDatabase, drpc rpc.DcrdConnect,
-	dcrdWithNotif rpc.DcrdConnect, wrpc rpc.WalletConnect, p *chaincfg.Params) {
+	dcrdWithNotif rpc.DcrdConnect, wrpc rpc.WalletConnect) {
 
 	db = vdb
 	dcrdRPC = drpc
 	walletRPC = wrpc
-	netParams = p
 
 	// Run the block connected handler now to catch up with any blocks mined
 	// while vspd was shut down.
@@ -428,13 +425,13 @@ func checkWalletConsistency() {
 
 	ctx := context.Background()
 
-	dcrdClient, _, err := dcrdRPC.Client(ctx, netParams)
+	dcrdClient, _, err := dcrdRPC.Client(ctx)
 	if err != nil {
 		log.Errorf("%s: %v", funcName, err)
 		return
 	}
 
-	walletClients, failedConnections := walletRPC.Clients(ctx, netParams)
+	walletClients, failedConnections := walletRPC.Clients(ctx)
 	if len(walletClients) == 0 {
 		log.Errorf("%s: Could not connect to any wallets", funcName)
 		return
