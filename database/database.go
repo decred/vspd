@@ -62,15 +62,15 @@ var backupMtx sync.Mutex
 
 // writeHotBackupFile writes a backup of the database file while the database
 // is still open.
-func writeHotBackupFile(db *bolt.DB) error {
+func (vdb *VspDatabase) writeHotBackupFile() error {
 	backupMtx.Lock()
 	defer backupMtx.Unlock()
 
-	backupPath := db.Path() + "-backup"
+	backupPath := vdb.db.Path() + "-backup"
 	tempPath := backupPath + "~"
 
 	// Write backup to temporary file.
-	err := db.View(func(tx *bolt.Tx) error {
+	err := vdb.db.View(func(tx *bolt.Tx) error {
 		return tx.CopyFile(tempPath, backupFileMode)
 	})
 	if err != nil {
@@ -207,7 +207,7 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 		for {
 			select {
 			case <-time.After(backupInterval):
-				err := writeHotBackupFile(db)
+				err := vdb.writeHotBackupFile()
 				if err != nil {
 					log.Errorf("Failed to write database backup: %v", err)
 				}
