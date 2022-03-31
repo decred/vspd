@@ -6,7 +6,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -31,24 +30,22 @@ func main() {
 	shutdownCtx := withShutdownCancel(context.Background())
 	go shutdownListener()
 
-	// Run until error is returned, or shutdown is requested.
-	if err := run(shutdownCtx); err != nil && !errors.Is(err, context.Canceled) {
-		os.Exit(1)
-	}
+	// Run until an exit code is returned.
+	os.Exit(run(shutdownCtx))
 }
 
 // run is the main startup and teardown logic performed by the main package. It
-// is responsible for parsing the config, creating a dcrwallet RPC client,
+// is responsible for parsing the config, creating dcrd and dcrwallet RPC clients,
 // opening the database, starting the webserver, and stopping all started
-// services when the context is cancelled.
-func run(shutdownCtx context.Context) error {
+// services when the provided context is cancelled.
+func run(shutdownCtx context.Context) int {
 
 	// Load config file and parse CLI args.
 	cfg, err := loadConfig()
 	if err != nil {
 		// Don't use logger here because it may not be initialized.
 		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
-		return err
+		return 1
 	}
 
 	// Show version at startup.
@@ -78,7 +75,7 @@ func run(shutdownCtx context.Context) error {
 		log.Errorf("Database error: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
-		return err
+		return 1
 	}
 	defer db.Close()
 
@@ -118,7 +115,7 @@ func run(shutdownCtx context.Context) error {
 		log.Errorf("Failed to initialize webapi: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
-		return err
+		return 1
 	}
 
 	// Create a dcrd client with a blockconnected notification handler.
@@ -135,5 +132,5 @@ func run(shutdownCtx context.Context) error {
 	// returning.
 	shutdownWg.Wait()
 
-	return shutdownCtx.Err()
+	return 0
 }
