@@ -71,7 +71,7 @@ func (s *Server) requireAdmin(c *gin.Context) {
 // downstream handlers to make use of.
 func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		client, hostname, err := dcrd.Client(c)
+		client, hostname, err := dcrd.Client()
 		// Don't handle the error here, add it to the context and let downstream
 		// handlers decide what to do with it.
 		c.Set(dcrdKey, client)
@@ -85,7 +85,7 @@ func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 // must handle the case where no wallet clients are connected.
 func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		clients, failedConnections := wallets.Clients(c)
+		clients, failedConnections := wallets.Clients()
 		if len(clients) == 0 {
 			log.Error("Could not connect to any wallets")
 		} else if len(failedConnections) > 0 {

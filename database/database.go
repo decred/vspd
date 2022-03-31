@@ -172,7 +172,8 @@ func CreateNew(dbFile, feeXPub string) error {
 
 // Open initializes and returns an open database. An error is returned if no
 // database file is found at the provided path.
-func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backupInterval time.Duration, maxVoteChangeRecords int) (*VspDatabase, error) {
+func Open(shutdownCtx context.Context, shutdownWg *sync.WaitGroup, dbFile string,
+	backupInterval time.Duration, maxVoteChangeRecords int) (*VspDatabase, error) {
 
 	// Error if db file does not exist. This is needed because bolt.Open will
 	// silently create a new empty database if the file does not exist. A new
@@ -211,7 +212,7 @@ func Open(ctx context.Context, shutdownWg *sync.WaitGroup, dbFile string, backup
 				if err != nil {
 					log.Errorf("Failed to write database backup: %v", err)
 				}
-			case <-ctx.Done():
+			case <-shutdownCtx.Done():
 				shutdownWg.Done()
 				return
 			}
@@ -385,7 +386,7 @@ func (vdb *VspDatabase) BackupDB(w http.ResponseWriter) error {
 
 // CheckIntegrity will ensure that all data in the database is present and up to
 // date.
-func (vdb *VspDatabase) CheckIntegrity(ctx context.Context, dcrd rpc.DcrdConnect) error {
+func (vdb *VspDatabase) CheckIntegrity(dcrd rpc.DcrdConnect) error {
 
 	// Ensure all confirmed tickets have a purchase height.
 	// This is necessary because of an old bug which, in some circumstances,
@@ -400,7 +401,7 @@ func (vdb *VspDatabase) CheckIntegrity(ctx context.Context, dcrd rpc.DcrdConnect
 		return nil
 	}
 
-	dcrdClient, _, err := dcrd.Client(ctx)
+	dcrdClient, _, err := dcrd.Client()
 	if err != nil {
 		return err
 	}

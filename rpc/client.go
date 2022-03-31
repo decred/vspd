@@ -83,9 +83,8 @@ func (c *client) Close() {
 }
 
 // dial will return a connect rpc client if one exists, or attempt to create a
-// new one if not. A
-// boolean indicates whether this connection is new (true), or if it is an
-// existing connection which is being reused (false).
+// new one if not. A boolean indicates whether this connection is new (true), or
+// if it is an existing connection which is being reused (false).
 func (c *client) dial(ctx context.Context) (Caller, bool, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
