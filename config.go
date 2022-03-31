@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -276,13 +276,11 @@ func loadConfig() (*config, error) {
 	}
 
 	// Set the active network.
-	minRequired := 1
 	switch cfg.Network {
 	case "testnet":
 		cfg.netParams = &testNet3Params
 	case "mainnet":
 		cfg.netParams = &mainNetParams
-		minRequired = 3
 	case "simnet":
 		cfg.netParams = &simNetParams
 	}
@@ -388,9 +386,9 @@ func loadConfig() (*config, error) {
 	}
 
 	// Verify minimum number of voting wallets are configured.
-	if numHost < minRequired {
+	if numHost < cfg.netParams.MinWallets {
 		return nil, fmt.Errorf("minimum required voting wallets has not been met: %d < %d",
-			numHost, minRequired)
+			numHost, cfg.netParams.MinWallets)
 	}
 
 	// Add default port for the active network if there is no port specified.
