@@ -72,9 +72,7 @@ func blockConnected() {
 
 	const funcName = "blockConnected"
 
-	ctx := context.Background()
-
-	dcrdClient, _, err := dcrdRPC.Client(ctx)
+	dcrdClient, _, err := dcrdRPC.Client()
 	if err != nil {
 		log.Errorf("%s: %v", funcName, err)
 		return
@@ -168,7 +166,7 @@ func blockConnected() {
 		log.Errorf("%s: db.GetUnconfirmedFees error: %v", funcName, err)
 	}
 
-	walletClients, failedConnections := walletRPC.Clients(ctx)
+	walletClients, failedConnections := walletRPC.Clients()
 	if len(walletClients) == 0 {
 		log.Errorf("%s: Could not connect to any wallets", funcName)
 		return
@@ -331,7 +329,7 @@ func blockConnected() {
 func connectNotifier(shutdownCtx context.Context, dcrdWithNotifs rpc.DcrdConnect) error {
 	notifierClosed = make(chan struct{})
 
-	dcrdClient, _, err := dcrdWithNotifs.Client(shutdownCtx)
+	dcrdClient, _, err := dcrdWithNotifs.Client()
 	if err != nil {
 		return err
 	}
@@ -423,15 +421,13 @@ func checkWalletConsistency() {
 
 	log.Info("Checking voting wallet consistency")
 
-	ctx := context.Background()
-
-	dcrdClient, _, err := dcrdRPC.Client(ctx)
+	dcrdClient, _, err := dcrdRPC.Client()
 	if err != nil {
 		log.Errorf("%s: %v", funcName, err)
 		return
 	}
 
-	walletClients, failedConnections := walletRPC.Clients(ctx)
+	walletClients, failedConnections := walletRPC.Clients()
 	if len(walletClients) == 0 {
 		log.Errorf("%s: Could not connect to any wallets", funcName)
 		return

@@ -72,7 +72,7 @@ type Server struct {
 	signPubKey  ed25519.PublicKey
 }
 
-func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup,
+func Start(shutdownCtx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup,
 	listen string, vdb *database.VspDatabase, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, config Config) error {
 
 	s := &Server{
@@ -90,7 +90,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 
 	// Populate cached VSP stats before starting webserver.
 	s.cache = newCache(base64.StdEncoding.EncodeToString(s.signPubKey))
-	err = s.cache.update(ctx, vdb, dcrd, wallets)
+	err = s.cache.update(vdb, dcrd, wallets)
 	if err != nil {
 		log.Errorf("Could not initialize VSP stats cache: %v", err)
 	}
@@ -118,7 +118,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 
 	// Create TCP listener.
 	var listenConfig net.ListenConfig
-	listener, err := listenConfig.Listen(ctx, "tcp", listen)
+	listener, err := listenConfig.Listen(shutdownCtx, "tcp", listen)
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	shutdownWg.Add(1)
 	go func() {
 		// Wait until shutdown is signaled before shutting down.
-		<-ctx.Done()
+		<-shutdownCtx.Done()
 
 		log.Debug("Stopping webserver...")
 		// Give the webserver 5 seconds to finish what it is doing.
@@ -171,11 +171,11 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-shutdownCtx.Done():
 				shutdownWg.Done()
 				return
 			case <-time.After(refresh):
-				err := s.cache.update(ctx, vdb, dcrd, wallets)
+				err := s.cache.update(vdb, dcrd, wallets)
 				if err != nil {
 					log.Errorf("Failed to update cached VSP stats: %v", err)
 				}

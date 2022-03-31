@@ -52,7 +52,8 @@ func (w *WalletConnect) Close() {
 // Clients loops over each wallet and tries to establish a connection. It
 // increments a count of failed connections if a connection cannot be
 // established, or if the wallet is misconfigured.
-func (w *WalletConnect) Clients(ctx context.Context) ([]*WalletRPC, []string) {
+func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
+	ctx := context.Background()
 	walletClients := make([]*WalletRPC, 0)
 	failedConnections := make([]string, 0)
 

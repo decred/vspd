@@ -58,7 +58,8 @@ func (d *DcrdConnect) Close() {
 
 // Client creates a new DcrdRPC client instance. Returns an error if dialing
 // dcrd fails or if dcrd is misconfigured.
-func (d *DcrdConnect) Client(ctx context.Context) (*DcrdRPC, string, error) {
+func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
+	ctx := context.Background()
 	c, newConnection, err := d.client.dial(ctx)
 	if err != nil {
 		return nil, d.client.addr, fmt.Errorf("dcrd connection error: %w", err)

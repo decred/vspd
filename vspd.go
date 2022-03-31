@@ -28,11 +28,11 @@ const maxVoteChangeRecords = 10
 func main() {
 	// Create a context that is cancelled when a shutdown request is received
 	// through an interrupt signal.
-	ctx := withShutdownCancel(context.Background())
+	shutdownCtx := withShutdownCancel(context.Background())
 	go shutdownListener()
 
 	// Run until error is returned, or shutdown is requested.
-	if err := run(ctx); err != nil && !errors.Is(err, context.Canceled) {
+	if err := run(shutdownCtx); err != nil && !errors.Is(err, context.Canceled) {
 		os.Exit(1)
 	}
 }
@@ -41,7 +41,7 @@ func main() {
 // is responsible for parsing the config, creating a dcrwallet RPC client,
 // opening the database, starting the webserver, and stopping all started
 // services when the context is cancelled.
-func run(ctx context.Context) error {
+func run(shutdownCtx context.Context) error {
 
 	// Load config file and parse CLI args.
 	cfg, err := loadConfig()
@@ -73,7 +73,7 @@ func run(ctx context.Context) error {
 	defer log.Criticalf("Shutdown complete")
 
 	// Open database.
-	db, err := database.Open(ctx, &shutdownWg, cfg.dbPath, cfg.BackupInterval, maxVoteChangeRecords)
+	db, err := database.Open(shutdownCtx, &shutdownWg, cfg.dbPath, cfg.BackupInterval, maxVoteChangeRecords)
 	if err != nil {
 		log.Errorf("Database error: %v", err)
 		requestShutdown()
@@ -92,7 +92,7 @@ func run(ctx context.Context) error {
 	defer wallets.Close()
 
 	// Ensure all data in database is present and up-to-date.
-	err = db.CheckIntegrity(ctx, dcrd)
+	err = db.CheckIntegrity(dcrd)
 	if err != nil {
 		// vspd should still start if this fails, so just log an error.
 		log.Errorf("Could not check database integrity: %v", err)
@@ -112,7 +112,7 @@ func run(ctx context.Context) error {
 		MaxVoteChangeRecords: maxVoteChangeRecords,
 		VspdVersion:          version.String(),
 	}
-	err = webapi.Start(ctx, requestShutdown, &shutdownWg, cfg.Listen, db,
+	err = webapi.Start(shutdownCtx, requestShutdown, &shutdownWg, cfg.Listen, db,
 		dcrd, wallets, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialize webapi: %v", err)
@@ -129,11 +129,11 @@ func run(ctx context.Context) error {
 
 	// Start background process which will continually attempt to reconnect to
 	// dcrd if the connection drops.
-	background.Start(ctx, &shutdownWg, db, dcrd, dcrdWithNotifs, wallets)
+	background.Start(shutdownCtx, &shutdownWg, db, dcrd, dcrdWithNotifs, wallets)
 
 	// Wait for shutdown tasks to complete before running deferred tasks and
 	// returning.
 	shutdownWg.Wait()
 
-	return ctx.Err()
+	return shutdownCtx.Err()
 }
