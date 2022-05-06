@@ -210,30 +210,6 @@ func (c *DcrdRPC) ExistsLiveTicket(ticketHash string) (bool, error) {
 	return bitset.Bytes(existsBytes).Get(0), nil
 }
 
-// CanTicketVote checks determines whether a ticket is able to vote at some
-// point in the future by checking that it is currently either immature or live.
-func (c *DcrdRPC) CanTicketVote(rawTx *dcrdtypes.TxRawResult, netParams *chaincfg.Params) (bool, error) {
-
-	// Tickets which have more than (TicketMaturity+TicketExpiry+1)
-	// confirmations are too old to vote.
-	if rawTx.Confirmations > int64(uint32(netParams.TicketMaturity)+netParams.TicketExpiry)+1 {
-		return false, nil
-	}
-
-	// If ticket is currently immature, it will be able to vote in future.
-	if rawTx.Confirmations <= int64(netParams.TicketMaturity) {
-		return true, nil
-	}
-
-	// If ticket is currently live, it will be able to vote in future.
-	live, err := c.ExistsLiveTicket(rawTx.Txid)
-	if err != nil {
-		return false, err
-	}
-
-	return live, nil
-}
-
 // ParseBlockConnectedNotification extracts the block header from a
 // blockconnected JSON-RPC notification.
 func ParseBlockConnectedNotification(params json.RawMessage) (*wire.BlockHeader, error) {

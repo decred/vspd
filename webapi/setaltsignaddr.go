@@ -7,7 +7,6 @@ package webapi
 import (
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/vspd/database"
@@ -21,7 +20,7 @@ var _ Node = (*rpc.DcrdRPC)(nil)
 
 // Node is satisfied by *rpc.DcrdRPC and retrieves data from the blockchain.
 type Node interface {
-	CanTicketVote(rawTx *dcrdtypes.TxRawResult, netParams *chaincfg.Params) (bool, error)
+	ExistsLiveTicket(ticketHash string) (bool, error)
 	GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, error)
 }
 
@@ -90,9 +89,9 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	}
 
 	// Ensure this ticket is eligible to vote at some point in the future.
-	canVote, err := dcrdClient.CanTicketVote(rawTicket, s.cfg.NetParams)
+	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.NetParams)
 	if err != nil {
-		log.Errorf("%s: dcrd.CanTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
+		log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
 		s.sendError(errInternalError, c)
 		return
 	}

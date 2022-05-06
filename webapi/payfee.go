@@ -72,9 +72,9 @@ func (s *Server) payFee(c *gin.Context) {
 	}
 
 	// Ensure this ticket is eligible to vote at some point in the future.
-	canVote, err := dcrdClient.CanTicketVote(rawTicket, s.cfg.NetParams)
+	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.NetParams)
 	if err != nil {
-		log.Errorf("%s: dcrd.CanTicketVote error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+		log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		s.sendError(errInternalError, c)
 		return
 	}
