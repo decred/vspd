@@ -115,17 +115,18 @@ func randString(length int, charset string) string {
 var _ Node = (*testNode)(nil)
 
 type testNode struct {
-	canTicketVote        bool
-	canTicketVoteErr     error
+	getRawTransaction    *dcrdtypes.TxRawResult
 	getRawTransactionErr error
+	existsLiveTicket     bool
+	existsLiveTicketErr  error
 }
 
-func (n *testNode) CanTicketVote(_ *dcrdtypes.TxRawResult, _ *chaincfg.Params) (bool, error) {
-	return n.canTicketVote, n.canTicketVoteErr
+func (n *testNode) ExistsLiveTicket(ticketHash string) (bool, error) {
+	return n.existsLiveTicket, n.existsLiveTicketErr
 }
 
 func (n *testNode) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, error) {
-	return nil, n.getRawTransactionErr
+	return n.getRawTransaction, n.getRawTransactionErr
 }
 
 func TestSetAltSignAddress(t *testing.T) {
@@ -143,7 +144,11 @@ func TestSetAltSignAddress(t *testing.T) {
 		name: "ok",
 		addr: testAddr,
 		node: &testNode{
-			canTicketVote: true,
+			getRawTransaction: &dcrdtypes.TxRawResult{
+				Confirmations: 1000,
+			},
+			getRawTransactionErr: nil,
+			existsLiveTicket:     true,
 		},
 		wantCode: http.StatusOK,
 	}, {
@@ -168,29 +173,39 @@ func TestSetAltSignAddress(t *testing.T) {
 		addr:     "DkM3ZigNyiwHrsXRjkDQ8t8tW6uKGW9g61qEkG3bMqQPQWYEf5X3J",
 		wantCode: http.StatusBadRequest,
 	}, {
-		name: "error getting raw tx from dcrd client",
+		name: "getRawTransaction error from dcrd client",
 		addr: testAddr,
 		node: &testNode{
-			getRawTransactionErr: errors.New("get raw transaction error"),
+			getRawTransactionErr: errors.New("getRawTransaction error"),
 		},
 		wantCode: http.StatusInternalServerError,
 	}, {
-		name: "error getting can vote from dcrd client",
+		name: "existsLiveTicket error from dcrd client",
 		addr: testAddr,
 		node: &testNode{
-			canTicketVoteErr: errors.New("can ticket vote error"),
+			getRawTransaction: &dcrdtypes.TxRawResult{
+				Confirmations: 1000,
+			},
+			existsLiveTicketErr: errors.New("existsLiveTicket error"),
 		},
 		wantCode: http.StatusInternalServerError,
 	}, {
 		name: "ticket can't vote",
 		addr: testAddr,
 		node: &testNode{
-			canTicketVote: false,
+			getRawTransaction: &dcrdtypes.TxRawResult{
+				Confirmations: 1000,
+			},
+			existsLiveTicket: false,
 		},
 		wantCode: http.StatusBadRequest,
 	}, {
-		name:                  "only one alt sign addr allowed",
-		addr:                  testAddr,
+		name: "only one alt sign addr allowed",
+		addr: testAddr,
+		node: &testNode{
+			getRawTransaction: &dcrdtypes.TxRawResult{},
+			existsLiveTicket:  true,
+		},
 		isExistingAltSignAddr: true,
 		wantCode:              http.StatusBadRequest,
 	}}
@@ -253,7 +268,7 @@ func TestSetAltSignAddress(t *testing.T) {
 			r.ServeHTTP(w, c.Request)
 
 			if test.wantCode != w.Code {
-				t.Errorf("expected status %d, got %d", test.wantCode, w.Code)
+				t.Fatalf("expected status %d, got %d", test.wantCode, w.Code)
 			}
 
 			altsig, err := api.db.AltSignAddrData(ticketHash)

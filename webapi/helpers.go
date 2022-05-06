@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrutil/v4"
+	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
@@ -193,4 +194,28 @@ func getCommitmentAddress(hash string, dcrdClient *rpc.DcrdRPC, params *chaincfg
 	}
 
 	return addr.String(), nil
+}
+
+// canTicketVote checks determines whether a ticket is able to vote at some
+// point in the future by checking that it is currently either immature or live.
+func canTicketVote(rawTx *dcrdtypes.TxRawResult, dcrdClient Node, netParams *chaincfg.Params) (bool, error) {
+
+	// Tickets which have more than (TicketMaturity+TicketExpiry+1)
+	// confirmations are too old to vote.
+	if rawTx.Confirmations > int64(uint32(netParams.TicketMaturity)+netParams.TicketExpiry)+1 {
+		return false, nil
+	}
+
+	// If ticket is currently immature, it will be able to vote in future.
+	if rawTx.Confirmations <= int64(netParams.TicketMaturity) {
+		return true, nil
+	}
+
+	// If ticket is currently live, it will be able to vote in future.
+	live, err := dcrdClient.ExistsLiveTicket(rawTx.Txid)
+	if err != nil {
+		return false, fmt.Errorf("dcrd.ExistsLiveTicket error: %w", err)
+	}
+
+	return live, nil
 }
