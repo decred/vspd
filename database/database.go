@@ -192,6 +192,10 @@ func Open(shutdownCtx context.Context, shutdownWg *sync.WaitGroup, dbFile string
 
 	dbVersion, err := vdb.Version()
 	if err != nil {
+		closeErr := vdb.db.Close()
+		if closeErr != nil {
+			log.Errorf("Error closing database: %v", closeErr)
+		}
 		return nil, fmt.Errorf("unable to get db version: %w", err)
 	}
 
@@ -199,6 +203,10 @@ func Open(shutdownCtx context.Context, shutdownWg *sync.WaitGroup, dbFile string
 
 	err = vdb.Upgrade(dbVersion)
 	if err != nil {
+		closeErr := vdb.db.Close()
+		if closeErr != nil {
+			log.Errorf("Error closing database: %v", closeErr)
+		}
 		return nil, fmt.Errorf("upgrade failed: %w", err)
 	}
 
