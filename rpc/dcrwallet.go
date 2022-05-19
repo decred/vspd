@@ -53,7 +53,7 @@ func (w *WalletConnect) Close() {
 // increments a count of failed connections if a connection cannot be
 // established, or if the wallet is misconfigured.
 func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
-	ctx := context.Background()
+	ctx := context.TODO()
 	walletClients := make([]*WalletRPC, 0)
 	failedConnections := make([]string, 0)
 
