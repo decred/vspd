@@ -1,4 +1,4 @@
-// Copyright (c) 2021 The Decred developers
+// Copyright (c) 2021-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,6 +7,7 @@ package database
 import (
 	"fmt"
 
+	"github.com/decred/slog"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -37,7 +38,7 @@ const (
 
 // upgrades maps between old database versions and the upgrade function to
 // upgrade the database to the next version.
-var upgrades = []func(tx *bolt.DB) error{
+var upgrades = []func(tx *bolt.DB, log slog.Logger) error{
 	initialVersion:        removeOldFeeTxUpgrade,
 	removeOldFeeTxVersion: ticketBucketUpgrade,
 	ticketBucketVersion:   altSignAddrUpgrade,
@@ -77,7 +78,7 @@ func (vdb *VspDatabase) Upgrade(currentVersion uint32) error {
 
 	// Execute all necessary upgrades in order.
 	for _, upgrade := range upgrades[currentVersion:] {
-		err := upgrade(vdb.db)
+		err := upgrade(vdb.db, log)
 		if err != nil {
 			return err
 		}

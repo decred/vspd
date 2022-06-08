@@ -8,10 +8,11 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/decred/slog"
 	bolt "go.etcd.io/bbolt"
 )
 
-func ticketBucketUpgrade(db *bolt.DB) error {
+func ticketBucketUpgrade(db *bolt.DB, log slog.Logger) error {
 	log.Infof("Upgrading database to version %d", ticketBucketVersion)
 
 	// Run the upgrade in a single database transaction so it can be safely

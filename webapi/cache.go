@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/dustin/go-humanize"
@@ -21,6 +22,7 @@ type cache struct {
 	data cacheData
 	// mtx must be held to read/write cache data.
 	mtx sync.RWMutex
+	log slog.Logger
 }
 
 type cacheData struct {
@@ -45,11 +47,12 @@ func (c *cache) getData() cacheData {
 }
 
 // newCache creates a new cache and initializes it with static values.
-func newCache(signPubKey string) *cache {
+func newCache(signPubKey string, log slog.Logger) *cache {
 	return &cache{
 		data: cacheData{
 			PubKey: signPubKey,
 		},
+		log: log,
 	}
 }
 
@@ -86,9 +89,9 @@ func (c *cache) update(db *database.VspDatabase, dcrd rpc.DcrdConnect,
 
 	clients, failedConnections := wallets.Clients()
 	if len(clients) == 0 {
-		log.Error("Could not connect to any wallets")
+		c.log.Error("Could not connect to any wallets")
 	} else if len(failedConnections) > 0 {
-		log.Errorf("Failed to connect to %d wallet(s), proceeding with only %d",
+		c.log.Errorf("Failed to connect to %d wallet(s), proceeding with only %d",
 			len(failedConnections), len(clients))
 	}
 

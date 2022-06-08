@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,15 +10,17 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/hdkeychain/v3"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
+	"github.com/decred/slog"
 )
 
 type addressGenerator struct {
 	external      *hdkeychain.ExtendedKey
 	netParams     *chaincfg.Params
 	lastUsedIndex uint32
+	log           slog.Logger
 }
 
-func newAddressGenerator(xPub string, netParams *chaincfg.Params, lastUsedIdx uint32) (*addressGenerator, error) {
+func newAddressGenerator(xPub string, netParams *chaincfg.Params, lastUsedIdx uint32, log slog.Logger) (*addressGenerator, error) {
 	xPubKey, err := hdkeychain.NewKeyFromString(xPub, netParams)
 	if err != nil {
 		return nil, err
@@ -38,6 +40,7 @@ func newAddressGenerator(xPub string, netParams *chaincfg.Params, lastUsedIdx ui
 		external:      external,
 		netParams:     netParams,
 		lastUsedIndex: lastUsedIdx,
+		log:           log,
 	}, nil
 }
 
@@ -58,7 +61,7 @@ func (m *addressGenerator) NextAddress() (string, uint32, error) {
 		if err != nil {
 			if errors.Is(err, hdkeychain.ErrInvalidChild) {
 				invalidChildren++
-				log.Warnf("Generating address for index %d failed: %v", m.lastUsedIndex, err)
+				m.log.Warnf("Generating address for index %d failed: %v", m.lastUsedIndex, err)
 				// If this happens 3 times, something is seriously wrong, so
 				// return an error.
 				if invalidChildren > 2 {
