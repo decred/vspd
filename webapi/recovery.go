@@ -1,3 +1,7 @@
+// Copyright (c) 2020-2022 The Decred developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package webapi
 
 import (
@@ -10,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/decred/slog"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,7 +22,7 @@ import (
 // request handlers. It logs the panic, a stack trace, and the full request
 // details. It also ensure the client receives a 500 response rather than no
 // response at all.
-func Recovery() gin.HandlerFunc {
+func Recovery(log slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {

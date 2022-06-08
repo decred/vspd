@@ -1,4 +1,4 @@
-// Copyright (c) 2021 The Decred developers
+// Copyright (c) 2021-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,10 +7,11 @@ package database
 import (
 	"fmt"
 
+	"github.com/decred/slog"
 	bolt "go.etcd.io/bbolt"
 )
 
-func altSignAddrUpgrade(db *bolt.DB) error {
+func altSignAddrUpgrade(db *bolt.DB, log slog.Logger) error {
 	log.Infof("Upgrading database to version %d", altSignAddrVersion)
 
 	// Run the upgrade in a single database transaction so it can be safely

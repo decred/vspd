@@ -89,7 +89,7 @@ func Start(shutdownCtx context.Context, requestShutdown func(), shutdownWg *sync
 	}
 
 	// Populate cached VSP stats before starting webserver.
-	s.cache = newCache(base64.StdEncoding.EncodeToString(s.signPubKey))
+	s.cache = newCache(base64.StdEncoding.EncodeToString(s.signPubKey), log)
 	err = s.cache.update(vdb, dcrd, wallets)
 	if err != nil {
 		log.Errorf("Could not initialize VSP stats cache: %v", err)
@@ -105,7 +105,7 @@ func Start(shutdownCtx context.Context, requestShutdown func(), shutdownWg *sync
 	if err != nil {
 		return fmt.Errorf("db.GetFeeXPub error: %w", err)
 	}
-	s.addrGen, err = newAddressGenerator(feeXPub, config.NetParams, idx)
+	s.addrGen, err = newAddressGenerator(feeXPub, config.NetParams, idx, log)
 	if err != nil {
 		return fmt.Errorf("failed to initialize fee address generator: %w", err)
 	}
@@ -213,7 +213,7 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	// Recovery middleware handles any go panics generated while processing web
 	// requests. Ensures a 500 response is sent to the client rather than
 	// sending no response at all.
-	router.Use(Recovery())
+	router.Use(Recovery(log))
 
 	if s.cfg.Debug {
 		// Logger middleware outputs very detailed logging of webserver requests
