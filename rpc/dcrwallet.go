@@ -34,7 +34,7 @@ func SetupWallet(user, pass, addrs []string, cert [][]byte, params *chaincfg.Par
 	clients := make([]*client, len(addrs))
 
 	for i := 0; i < len(addrs); i++ {
-		clients[i] = setup(user[i], pass[i], addrs[i], cert[i], nil)
+		clients[i] = setup(user[i], pass[i], addrs[i], cert[i])
 	}
 
 	return WalletConnect{
@@ -47,6 +47,7 @@ func (w *WalletConnect) Close() {
 	for _, client := range w.clients {
 		client.Close()
 	}
+	log.Debug("dcrwallet clients closed")
 }
 
 // Clients loops over each wallet and tries to establish a connection. It
@@ -61,7 +62,7 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 
 		c, newConnection, err := connect.dial(ctx)
 		if err != nil {
-			log.Errorf("dcrwallet connection error: %v", err)
+			log.Errorf("dcrwallet dial error: %v", err)
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}

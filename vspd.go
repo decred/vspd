@@ -10,7 +10,9 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"time"
 
+	"github.com/decred/dcrd/wire"
 	"github.com/decred/vspd/background"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
@@ -23,6 +25,9 @@ import (
 // space. When storing a new record breaches this limit, the oldest record in
 // the database is deleted.
 const maxVoteChangeRecords = 10
+
+// consistencyInterval is the time period between wallet consistency checks.
+const consistencyInterval = 30 * time.Minute
 
 func main() {
 	// Create a context that is cancelled when a shutdown request is received
@@ -81,12 +86,50 @@ func run(shutdownCtx context.Context) int {
 
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
-	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, nil, cfg.netParams.Params)
+	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, cfg.netParams.Params)
 	defer dcrd.Close()
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
 	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.netParams.Params)
 	defer wallets.Close()
+
+	// Create a channel to receive blockConnected notifications from dcrd.
+	notifChan := make(chan *wire.BlockHeader)
+	shutdownWg.Add(1)
+	go func() {
+		for {
+			select {
+			case <-shutdownCtx.Done():
+				shutdownWg.Done()
+				return
+			case header := <-notifChan:
+				log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
+				background.BlockConnected(dcrd, wallets, db)
+			}
+		}
+	}()
+
+	// Attach notification listener to dcrd client.
+	dcrd.BlockConnectedHandler(notifChan)
+
+	// Loop forever attempting ensuring a dcrd connection is available, so
+	// notifications are received.
+	shutdownWg.Add(1)
+	go func() {
+		for {
+			select {
+			case <-shutdownCtx.Done():
+				shutdownWg.Done()
+				return
+			case <-time.After(time.Second * 15):
+				// Ensure dcrd client is still connected.
+				_, _, err := dcrd.Client()
+				if err != nil {
+					log.Errorf("dcrd connect error: %v", err)
+				}
+			}
+		}
+	}()
 
 	// Ensure all data in database is present and up-to-date.
 	err = db.CheckIntegrity(dcrd)
@@ -94,6 +137,28 @@ func run(shutdownCtx context.Context) int {
 		// vspd should still start if this fails, so just log an error.
 		log.Errorf("Could not check database integrity: %v", err)
 	}
+
+	// Run the block connected handler now to catch up with any blocks mined
+	// while vspd was shut down.
+	background.BlockConnected(dcrd, wallets, db)
+
+	// Run voting wallet consistency check now to ensure all wallets are up to
+	// date.
+	background.CheckWalletConsistency(dcrd, wallets, db)
+
+	// Run voting wallet consistency check periodically.
+	shutdownWg.Add(1)
+	go func() {
+		for {
+			select {
+			case <-shutdownCtx.Done():
+				shutdownWg.Done()
+				return
+			case <-time.After(consistencyInterval):
+				background.CheckWalletConsistency(dcrd, wallets, db)
+			}
+		}
+	}()
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
@@ -117,16 +182,6 @@ func run(shutdownCtx context.Context) int {
 		shutdownWg.Wait()
 		return 1
 	}
-
-	// Create a dcrd client with a blockconnected notification handler.
-	notifHandler := background.NotificationHandler{ShutdownWg: &shutdownWg}
-	dcrdWithNotifs := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass,
-		cfg.DcrdHost, cfg.dcrdCert, &notifHandler, cfg.netParams.Params)
-	defer dcrdWithNotifs.Close()
-
-	// Start background process which will continually attempt to reconnect to
-	// dcrd if the connection drops.
-	background.Start(shutdownCtx, &shutdownWg, db, dcrd, dcrdWithNotifs, wallets)
 
 	// Wait for shutdown tasks to complete before running deferred tasks and
 	// returning.
