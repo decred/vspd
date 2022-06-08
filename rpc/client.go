@@ -37,7 +37,7 @@ type client struct {
 	notifier wsrpc.Notifier
 }
 
-func setup(user, pass, addr string, cert []byte, n wsrpc.Notifier) *client {
+func setup(user, pass, addr string, cert []byte) *client {
 
 	// Create TLS options.
 	pool := x509.NewCertPool()
@@ -63,7 +63,7 @@ func setup(user, pass, addr string, cert []byte, n wsrpc.Notifier) *client {
 	var mu sync.Mutex
 	var c *wsrpc.Client
 	fullAddr := "wss://" + addr + "/ws"
-	return &client{&mu, c, fullAddr, tlsOpt, authOpt, n}
+	return &client{&mu, c, fullAddr, tlsOpt, authOpt, nil}
 }
 
 func (c *client) Close() {

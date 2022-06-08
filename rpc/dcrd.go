@@ -5,10 +5,8 @@
 package rpc
 
 import (
-	"bytes"
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -45,15 +43,25 @@ type DcrdConnect struct {
 	params *chaincfg.Params
 }
 
-func SetupDcrd(user, pass, addr string, cert []byte, n wsrpc.Notifier, params *chaincfg.Params) DcrdConnect {
+func SetupDcrd(user, pass, addr string, cert []byte, params *chaincfg.Params) DcrdConnect {
 	return DcrdConnect{
-		client: setup(user, pass, addr, cert, n),
+		client: setup(user, pass, addr, cert),
 		params: params,
+	}
+}
+
+// BlockConnectedHandler attaches a blockconnected notification handler to the
+// dcrd client. Every time a notification is received, the header of the
+// connected block is sent to the provided channel.
+func (d *DcrdConnect) BlockConnectedHandler(blockConnected chan *wire.BlockHeader) {
+	d.client.notifier = &blockConnectedHandler{
+		blockConnected: blockConnected,
 	}
 }
 
 func (d *DcrdConnect) Close() {
 	d.client.Close()
+	log.Debug("dcrd client closed")
 }
 
 // Client creates a new DcrdRPC client instance. Returns an error if dialing
@@ -62,7 +70,7 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 	ctx := context.TODO()
 	c, newConnection, err := d.client.dial(ctx)
 	if err != nil {
-		return nil, d.client.addr, fmt.Errorf("dcrd connection error: %w", err)
+		return nil, d.client.addr, fmt.Errorf("dcrd dial error: %w", err)
 	}
 
 	// If this is a reused connection, we don't need to validate the dcrd config
@@ -115,6 +123,16 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 		d.client.Close()
 		return nil, d.client.addr, errors.New("dcrd does not have transaction index enabled (--txindex)")
 	}
+
+	// Request blockconnected notifications.
+	if d.client.notifier != nil {
+		err = c.Call(ctx, "notifyblocks", nil)
+		if err != nil {
+			return nil, d.client.addr, fmt.Errorf("notifyblocks failed: %w", err)
+		}
+	}
+
+	log.Debugf("Connected to dcrd")
 
 	return &DcrdRPC{c, ctx}, d.client.addr, nil
 }
@@ -209,27 +227,4 @@ func (c *DcrdRPC) ExistsLiveTicket(ticketHash string) (bool, error) {
 	}
 
 	return bitset.Bytes(existsBytes).Get(0), nil
-}
-
-// ParseBlockConnectedNotification extracts the block header from a
-// blockconnected JSON-RPC notification.
-func ParseBlockConnectedNotification(params json.RawMessage) (*wire.BlockHeader, error) {
-	var notif []string
-	err := json.Unmarshal(params, &notif)
-	if err != nil {
-		return nil, fmt.Errorf("json unmarshal error: %w", err)
-	}
-
-	if len(notif) == 0 {
-		return nil, errors.New("notification is empty")
-	}
-
-	rawHeader := notif[0]
-	var header wire.BlockHeader
-	err = header.Deserialize(hex.NewDecoder(bytes.NewReader([]byte(rawHeader))))
-	if err != nil {
-		return nil, fmt.Errorf("error creating block header from bytes: %w", err)
-	}
-
-	return &header, nil
 }

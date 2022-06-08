@@ -5,72 +5,26 @@
 package background
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"strings"
-	"sync"
-	"time"
 
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/jrick/wsrpc/v2"
 )
 
-var (
-	db             *database.VspDatabase
-	dcrdRPC        rpc.DcrdConnect
-	walletRPC      rpc.WalletConnect
-	notifierClosed chan struct{}
-)
-
-type NotificationHandler struct {
-	ShutdownWg *sync.WaitGroup
-}
-
 const (
-	// consistencyInterval is the time period between wallet consistency checks.
-	consistencyInterval = 30 * time.Minute
+
 	// requiredConfs is the number of confirmations required to consider a
 	// ticket purchase or a fee transaction to be final.
 	requiredConfs = 6
 )
 
-// Notify is called every time a block notification is received from dcrd.
-// Notify is never called concurrently. Notify should not return an error
-// because that will cause the client to close and no further notifications will
-// be received until a new connection is established.
-func (n *NotificationHandler) Notify(method string, params json.RawMessage) error {
-	n.ShutdownWg.Add(1)
-	defer n.ShutdownWg.Done()
-
-	if method != "blockconnected" {
-		return nil
-	}
-
-	header, err := rpc.ParseBlockConnectedNotification(params)
-	if err != nil {
-		log.Errorf("Failed to parse dcrd block notification: %v", err)
-		return nil
-	}
-
-	log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
-
-	blockConnected()
-
-	return nil
-}
-
-func (n *NotificationHandler) Close() error {
-	close(notifierClosed)
-	return nil
-}
-
-// blockConnected is called once when vspd starts up, and once each time a
+// BlockConnected is called once when vspd starts up, and once each time a
 // blockconnected notification is received from dcrd.
-func blockConnected() {
+func BlockConnected(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *database.VspDatabase) {
 
-	const funcName = "blockConnected"
+	const funcName = "BlockConnected"
 
 	dcrdClient, _, err := dcrdRPC.Client()
 	if err != nil {
@@ -326,98 +280,12 @@ func blockConnected() {
 
 }
 
-func connectNotifier(shutdownCtx context.Context, dcrdWithNotifs rpc.DcrdConnect) error {
-	notifierClosed = make(chan struct{})
-
-	dcrdClient, _, err := dcrdWithNotifs.Client()
-	if err != nil {
-		return err
-	}
-
-	err = dcrdClient.NotifyBlocks()
-	if err != nil {
-		return err
-	}
-
-	log.Info("Subscribed for dcrd block notifications")
-
-	// Wait until context is done (vspd is shutting down), or until the
-	// notifier is closed.
-	select {
-	case <-shutdownCtx.Done():
-		// A shutdown signal has been received - close the client with the
-		// notification handler to prevent further notifications from being
-		// received.
-		dcrdWithNotifs.Close()
-		return nil
-	case <-notifierClosed:
-		log.Warnf("dcrd notifier closed")
-		return nil
-	}
-}
-
-func Start(shutdownCtx context.Context, wg *sync.WaitGroup, vdb *database.VspDatabase, drpc rpc.DcrdConnect,
-	dcrdWithNotif rpc.DcrdConnect, wrpc rpc.WalletConnect) {
-
-	db = vdb
-	dcrdRPC = drpc
-	walletRPC = wrpc
-
-	// Run the block connected handler now to catch up with any blocks mined
-	// while vspd was shut down.
-	blockConnected()
-
-	// Run voting wallet consistency check now to ensure all wallets are up to
-	// date.
-	checkWalletConsistency()
-
-	// Run voting wallet consistency check periodically.
-	wg.Add(1)
-	go func() {
-	consistencyLoop:
-		for {
-			select {
-			case <-shutdownCtx.Done():
-				break consistencyLoop
-			case <-time.After(consistencyInterval):
-				checkWalletConsistency()
-			}
-		}
-		log.Debugf("Consistency checker stopped")
-		wg.Done()
-	}()
-
-	// Loop forever attempting to create a connection to the dcrd server for
-	// notifications.
-	wg.Add(1)
-	go func() {
-	notifierLoop:
-		for {
-			err := connectNotifier(shutdownCtx, dcrdWithNotif)
-			if err != nil {
-				log.Errorf("dcrd connect error: %v", err)
-			}
-
-			// If context is done (vspd is shutting down), return,
-			// otherwise wait 15 seconds and try to reconnect.
-			select {
-			case <-shutdownCtx.Done():
-				break notifierLoop
-			case <-time.After(15 * time.Second):
-			}
-
-		}
-		log.Debugf("Notification connector stopped")
-		wg.Done()
-	}()
-}
-
-// checkWalletConsistency will retrieve all votable tickets from the database
+// CheckWalletConsistency will retrieve all votable tickets from the database
 // and ensure they are all added to voting wallets with the correct vote
 // choices.
-func checkWalletConsistency() {
+func CheckWalletConsistency(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *database.VspDatabase) {
 
-	const funcName = "checkWalletConsistency"
+	const funcName = "CheckWalletConsistency"
 
 	log.Info("Checking voting wallet consistency")
 
