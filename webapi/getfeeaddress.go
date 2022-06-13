@@ -83,7 +83,7 @@ func (s *Server) feeAddress(c *gin.Context) {
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
-		log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
 		s.sendError(errInternalError, c)
 		return
 	}
@@ -96,7 +96,7 @@ func (s *Server) feeAddress(c *gin.Context) {
 
 	var request feeAddressRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
@@ -108,7 +108,7 @@ func (s *Server) feeAddress(c *gin.Context) {
 		(ticket.FeeTxStatus == database.FeeReceieved ||
 			ticket.FeeTxStatus == database.FeeBroadcast ||
 			ticket.FeeTxStatus == database.FeeConfirmed) {
-		log.Warnf("%s: Fee tx already received (clientIP=%s, ticketHash=%s)",
+		s.log.Warnf("%s: Fee tx already received (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
 		s.sendError(errFeeAlreadyReceived, c)
 		return
@@ -117,7 +117,7 @@ func (s *Server) feeAddress(c *gin.Context) {
 	// Get ticket details.
 	rawTicket, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
-		log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
+		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
 		s.sendError(errInternalError, c)
 		return
 	}
@@ -125,12 +125,12 @@ func (s *Server) feeAddress(c *gin.Context) {
 	// Ensure this ticket is eligible to vote at some point in the future.
 	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.NetParams)
 	if err != nil {
-		log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
+		s.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
 		s.sendError(errInternalError, c)
 		return
 	}
 	if !canVote {
-		log.Warnf("%s: Unvotable ticket (clientIP=%s, ticketHash=%s)",
+		s.log.Warnf("%s: Unvotable ticket (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticketHash)
 		s.sendError(errTicketCannotVote, c)
 		return
@@ -144,7 +144,7 @@ func (s *Server) feeAddress(c *gin.Context) {
 		if ticket.FeeExpired() {
 			newFee, err := s.getCurrentFee(dcrdClient)
 			if err != nil {
-				log.Errorf("%s: getCurrentFee error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+				s.log.Errorf("%s: getCurrentFee error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 				s.sendError(errInternalError, c)
 				return
 			}
@@ -153,12 +153,12 @@ func (s *Server) feeAddress(c *gin.Context) {
 
 			err = s.db.UpdateTicket(ticket)
 			if err != nil {
-				log.Errorf("%s: db.UpdateTicket error, failed to update fee expiry (ticketHash=%s): %v",
+				s.log.Errorf("%s: db.UpdateTicket error, failed to update fee expiry (ticketHash=%s): %v",
 					funcName, ticket.Hash, err)
 				s.sendError(errInternalError, c)
 				return
 			}
-			log.Debugf("%s: Expired fee updated (newFeeAmt=%s, ticketHash=%s)",
+			s.log.Debugf("%s: Expired fee updated (newFeeAmt=%s, ticketHash=%s)",
 				funcName, newFee, ticket.Hash)
 		}
 		s.sendJSONResponse(feeAddressResponse{
@@ -177,14 +177,14 @@ func (s *Server) feeAddress(c *gin.Context) {
 
 	fee, err := s.getCurrentFee(dcrdClient)
 	if err != nil {
-		log.Errorf("%s: getCurrentFee error (ticketHash=%s): %v", funcName, ticketHash, err)
+		s.log.Errorf("%s: getCurrentFee error (ticketHash=%s): %v", funcName, ticketHash, err)
 		s.sendError(errInternalError, c)
 		return
 	}
 
 	newAddress, newAddressIdx, err := s.getNewFeeAddress()
 	if err != nil {
-		log.Errorf("%s: getNewFeeAddress error (ticketHash=%s): %v", funcName, ticketHash, err)
+		s.log.Errorf("%s: getNewFeeAddress error (ticketHash=%s): %v", funcName, ticketHash, err)
 		s.sendError(errInternalError, c)
 		return
 	}
@@ -215,12 +215,12 @@ func (s *Server) feeAddress(c *gin.Context) {
 
 	err = s.db.InsertNewTicket(dbTicket)
 	if err != nil {
-		log.Errorf("%s: db.InsertNewTicket failed (ticketHash=%s): %v", funcName, ticketHash, err)
+		s.log.Errorf("%s: db.InsertNewTicket failed (ticketHash=%s): %v", funcName, ticketHash, err)
 		s.sendError(errInternalError, c)
 		return
 	}
 
-	log.Debugf("%s: Fee address created for new ticket: (tktConfirmed=%t, feeAddrIdx=%d, "+
+	s.log.Debugf("%s: Fee address created for new ticket: (tktConfirmed=%t, feeAddrIdx=%d, "+
 		"feeAddr=%s, feeAmt=%s, ticketHash=%s)",
 		funcName, confirmed, newAddressIdx, newAddress, fee, ticketHash)
 

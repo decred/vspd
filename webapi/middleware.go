@@ -21,7 +21,7 @@ import (
 // withSession middleware adds a gorilla session to the request context for
 // downstream handlers to make use of. Sessions are used by admin pages to
 // maintain authentication status.
-func withSession(store *sessions.CookieStore) gin.HandlerFunc {
+func (s *Server) withSession(store *sessions.CookieStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session, err := store.Get(c.Request, "vspd-session")
 		if err != nil {
@@ -29,18 +29,18 @@ func withSession(store *sessions.CookieStore) gin.HandlerFunc {
 			// common during development (eg. when using the test harness) but
 			// it should not occur in production.
 			if strings.Contains(err.Error(), "securecookie: the value is not valid") {
-				log.Warn("Cookie secret has changed. Generating new session.")
+				s.log.Warn("Cookie secret has changed. Generating new session.")
 
 				// Persist the newly generated session.
 				err = store.Save(c.Request, c.Writer, session)
 				if err != nil {
-					log.Errorf("Error saving session: %v", err)
+					s.log.Errorf("Error saving session: %v", err)
 					c.String(http.StatusInternalServerError, "Error saving session")
 					c.Abort()
 					return
 				}
 			} else {
-				log.Errorf("Session error: %v", err)
+				s.log.Errorf("Session error: %v", err)
 				c.String(http.StatusInternalServerError, "Error getting session")
 				c.Abort()
 				return
@@ -69,7 +69,7 @@ func (s *Server) requireAdmin(c *gin.Context) {
 
 // withDcrdClient middleware adds a dcrd client to the request context for
 // downstream handlers to make use of.
-func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
+func (s *Server) withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		client, hostname, err := dcrd.Client()
 		// Don't handle the error here, add it to the context and let downstream
@@ -83,13 +83,13 @@ func withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 // withWalletClients middleware attempts to add voting wallet clients to the
 // request context for downstream handlers to make use of. Downstream handlers
 // must handle the case where no wallet clients are connected.
-func withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
+func (s *Server) withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clients, failedConnections := wallets.Clients()
 		if len(clients) == 0 {
-			log.Error("Could not connect to any wallets")
+			s.log.Error("Could not connect to any wallets")
 		} else if len(failedConnections) > 0 {
-			log.Errorf("Failed to connect to %d wallet(s), proceeding with only %d",
+			s.log.Errorf("Failed to connect to %d wallet(s), proceeding with only %d",
 				len(failedConnections), len(clients))
 		}
 		c.Set(walletsKey, clients)
@@ -120,7 +120,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	// Read request bytes.
 	reqBytes, err := drainAndReplaceBody(c.Request)
 	if err != nil {
-		log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
@@ -132,7 +132,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 		ParentHex  string `json:"parenthex" binding:"required"`
 	}
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
@@ -140,7 +140,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	// Ensure the provided ticket hex is a valid ticket.
 	msgTx, err := decodeTransaction(request.TicketHex)
 	if err != nil {
-		log.Errorf("%s: Failed to decode ticket hex (ticketHash=%s): %v",
+		s.log.Errorf("%s: Failed to decode ticket hex (ticketHash=%s): %v",
 			funcName, request.TicketHash, err)
 		s.sendErrorWithMsg("cannot decode ticket hex", errBadRequest, c)
 		return
@@ -148,7 +148,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 
 	err = isValidTicket(msgTx)
 	if err != nil {
-		log.Warnf("%s: Invalid ticket (clientIP=%s, ticketHash=%s): %v",
+		s.log.Warnf("%s: Invalid ticket (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), request.TicketHash, err)
 		s.sendError(errInvalidTicket, c)
 		return
@@ -156,7 +156,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 
 	// Ensure hex matches hash.
 	if msgTx.TxHash().String() != request.TicketHash {
-		log.Warnf("%s: Ticket hex/hash mismatch (clientIP=%s, ticketHash=%s)",
+		s.log.Warnf("%s: Ticket hex/hash mismatch (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), request.TicketHash)
 		s.sendErrorWithMsg("ticket hex does not match hash", errBadRequest, c)
 		return
@@ -165,7 +165,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	// Ensure the provided parent hex is a valid tx.
 	parentTx, err := decodeTransaction(request.ParentHex)
 	if err != nil {
-		log.Errorf("%s: Failed to decode parent hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
+		s.log.Errorf("%s: Failed to decode parent hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
 		s.sendErrorWithMsg("cannot decode parent hex", errBadRequest, c)
 		return
 	}
@@ -175,7 +175,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
-		log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
 		s.sendError(errInternalError, c)
 		return
 	}
@@ -200,22 +200,22 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 		}
 
 		if !found {
-			log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
+			s.log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
 			s.sendErrorWithMsg("invalid ticket parent", errBadRequest, c)
 			return
 		}
 
-		log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
+		s.log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
 		err = dcrdClient.SendRawTransaction(request.ParentHex)
 		if err != nil {
-			log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
+			s.log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
 				funcName, request.TicketHash, err)
 			s.sendError(errCannotBroadcastTicket, c)
 			return
 		}
 
 	} else {
-		log.Errorf("%s: dcrd.GetRawTransaction for ticket parent failed (ticketHash=%s): %v",
+		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket parent failed (ticketHash=%s): %v",
 			funcName, request.TicketHash, err)
 		s.sendError(errInternalError, c)
 		return
@@ -231,16 +231,16 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	// ErrNoTxInfo means local dcrd is not aware of the ticket. We have the
 	// hex, so we can broadcast it here.
 	if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
-		log.Debugf("%s: Broadcasting ticket (ticketHash=%s)", funcName, request.TicketHash)
+		s.log.Debugf("%s: Broadcasting ticket (ticketHash=%s)", funcName, request.TicketHash)
 		err = dcrdClient.SendRawTransaction(request.TicketHex)
 		if err != nil {
-			log.Errorf("%s: dcrd.SendRawTransaction for ticket failed (ticketHash=%s): %v",
+			s.log.Errorf("%s: dcrd.SendRawTransaction for ticket failed (ticketHash=%s): %v",
 				funcName, request.TicketHash, err)
 			s.sendError(errCannotBroadcastTicket, c)
 			return
 		}
 	} else {
-		log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v",
+		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v",
 			funcName, request.TicketHash, err)
 		s.sendError(errInternalError, c)
 		return
@@ -260,7 +260,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	// Read request bytes.
 	reqBytes, err := drainAndReplaceBody(c.Request)
 	if err != nil {
-		log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
@@ -274,7 +274,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 		TicketHash string `json:"tickethash" binding:"required"`
 	}
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
@@ -283,7 +283,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	// Before hitting the db or any RPC, ensure this is a valid ticket hash.
 	err = validateTicketHash(hash)
 	if err != nil {
-		log.Errorf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.log.Errorf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg("invalid ticket hash", errBadRequest, c)
 		return
 	}
@@ -291,7 +291,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	// Check if this ticket already appears in the database.
 	ticket, ticketFound, err := s.db.GetTicketByHash(hash)
 	if err != nil {
-		log.Errorf("%s: db.GetTicketByHash error (ticketHash=%s): %v", funcName, hash, err)
+		s.log.Errorf("%s: db.GetTicketByHash error (ticketHash=%s): %v", funcName, hash, err)
 		s.sendError(errInternalError, c)
 		return
 	}
@@ -301,7 +301,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
-		log.Errorf("%s: could not get dcrd client: %v", funcName, dcrdErr.(error))
+		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
 		s.sendError(errInternalError, c)
 		return
 	}
@@ -329,7 +329,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	// Ensure a signature is provided.
 	signature := c.GetHeader("VSP-Client-Signature")
 	if signature == "" {
-		log.Warnf("%s: No VSP-Client-Signature header (clientIP=%s)", funcName, c.ClientIP())
+		s.log.Warnf("%s: No VSP-Client-Signature header (clientIP=%s)", funcName, c.ClientIP())
 		s.sendErrorWithMsg("no VSP-Client-Signature header", errBadRequest, c)
 		return
 	}
@@ -337,7 +337,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	// Validate request signature to ensure ticket ownership.
 	err = validateSignature(hash, commitmentAddress, signature, string(reqBytes), s.db, s.cfg.NetParams)
 	if err != nil {
-		log.Errorf("%s: Couldn't validate signature (clientIP=%s, ticketHash=%s): %v",
+		s.log.Errorf("%s: Couldn't validate signature (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), hash, err)
 		s.sendError(errBadSignature, c)
 		return
