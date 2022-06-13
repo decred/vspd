@@ -33,13 +33,13 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 	}
 
 	if !knownTicket {
-		log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
+		s.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
 		s.sendError(errUnknownTicket, c)
 		return
 	}
 
 	if ticket.FeeTxStatus == database.NoFee {
-		log.Warnf("%s: No fee tx for ticket (clientIP=%s, ticketHash=%s)",
+		s.log.Warnf("%s: No fee tx for ticket (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
 		s.sendError(errFeeNotReceived, c)
 		return
@@ -47,7 +47,7 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 
 	// Only allow vote choices to be updated for live/immature tickets.
 	if ticket.Outcome != "" {
-		log.Warnf("%s: Ticket not eligible to vote (clientIP=%s, ticketHash=%s)",
+		s.log.Warnf("%s: Ticket not eligible to vote (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
 		s.sendErrorWithMsg(fmt.Sprintf("ticket not eligible to vote (status=%s)", ticket.Outcome),
 			errTicketCannotVote, c)
@@ -56,7 +56,7 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 
 	var request setVoteChoicesRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
@@ -65,7 +65,7 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 	// vote change requests. This is to prevent requests from being replayed.
 	previousChanges, err := s.db.GetVoteChanges(ticket.Hash)
 	if err != nil {
-		log.Errorf("%s: db.GetVoteChanges error (ticketHash=%s): %v",
+		s.log.Errorf("%s: db.GetVoteChanges error (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
 		s.sendError(errInternalError, c)
 		return
@@ -77,14 +77,14 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 		}
 		err := json.Unmarshal([]byte(change.Request), &prevReq)
 		if err != nil {
-			log.Errorf("%s: Could not unmarshal vote change record (ticketHash=%s): %v",
+			s.log.Errorf("%s: Could not unmarshal vote change record (ticketHash=%s): %v",
 				funcName, ticket.Hash, err)
 			s.sendError(errInternalError, c)
 			return
 		}
 
 		if request.Timestamp <= prevReq.Timestamp {
-			log.Warnf("%s: Request uses invalid timestamp, %d is not greater "+
+			s.log.Warnf("%s: Request uses invalid timestamp, %d is not greater "+
 				"than %d (ticketHash=%s)",
 				funcName, request.Timestamp, prevReq.Timestamp, ticket.Hash)
 			s.sendError(errInvalidTimestamp, c)
@@ -96,7 +96,7 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 
 	err = validConsensusVoteChoices(s.cfg.NetParams, currentVoteVersion(s.cfg.NetParams), request.VoteChoices)
 	if err != nil {
-		log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
+		s.log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 		s.sendErrorWithMsg(err.Error(), errInvalidVoteChoices, c)
 		return
@@ -104,14 +104,14 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 
 	err = validTreasuryPolicy(request.TreasuryPolicy)
 	if err != nil {
-		log.Warnf("%s: Invalid treasury policy (clientIP=%s, ticketHash=%s): %v",
+		s.log.Warnf("%s: Invalid treasury policy (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 		s.sendErrorWithMsg(err.Error(), errInvalidVoteChoices, c)
 	}
 
 	err = validTSpendPolicy(request.TSpendPolicy)
 	if err != nil {
-		log.Warnf("%s: Invalid tspend policy (clientIP=%s, ticketHash=%s): %v",
+		s.log.Warnf("%s: Invalid tspend policy (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 		s.sendErrorWithMsg(err.Error(), errInvalidVoteChoices, c)
 	}
@@ -133,7 +133,7 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 
 	err = s.db.UpdateTicket(ticket)
 	if err != nil {
-		log.Errorf("%s: db.UpdateTicket error, failed to set consensus vote choices (ticketHash=%s): %v",
+		s.log.Errorf("%s: db.UpdateTicket error, failed to set consensus vote choices (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
 		s.sendError(errInternalError, c)
 		return
@@ -151,7 +151,7 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 			for agenda, choice := range ticket.VoteChoices {
 				err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 				if err != nil {
-					log.Errorf("%s: dcrwallet.SetVoteChoice failed (wallet=%s, ticketHash=%s): %v",
+					s.log.Errorf("%s: dcrwallet.SetVoteChoice failed (wallet=%s, ticketHash=%s): %v",
 						funcName, walletClient.String(), ticket.Hash, err)
 				}
 			}
@@ -160,7 +160,7 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 			for tspend, policy := range ticket.TSpendPolicy {
 				err = walletClient.SetTSpendPolicy(tspend, policy, ticket.Hash)
 				if err != nil {
-					log.Errorf("%s: dcrwallet.SetTSpendPolicy failed (wallet=%s, ticketHash=%s): %v",
+					s.log.Errorf("%s: dcrwallet.SetTSpendPolicy failed (wallet=%s, ticketHash=%s): %v",
 						funcName, walletClient.String(), ticket.Hash, err)
 				}
 			}
@@ -169,14 +169,14 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 			for key, policy := range ticket.TreasuryPolicy {
 				err = walletClient.SetTreasuryPolicy(key, policy, ticket.Hash)
 				if err != nil {
-					log.Errorf("%s: dcrwallet.SetTreasuryPolicy failed (wallet=%s, ticketHash=%s): %v",
+					s.log.Errorf("%s: dcrwallet.SetTreasuryPolicy failed (wallet=%s, ticketHash=%s): %v",
 						funcName, walletClient.String(), ticket.Hash, err)
 				}
 			}
 		}
 	}
 
-	log.Debugf("%s: Vote choices updated (ticketHash=%s)", funcName, ticket.Hash)
+	s.log.Debugf("%s: Vote choices updated (ticketHash=%s)", funcName, ticket.Hash)
 
 	// Send success response to client.
 	resp, respSig := s.sendJSONResponse(setVoteChoicesResponse{
@@ -194,6 +194,6 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 			ResponseSignature: respSig,
 		})
 	if err != nil {
-		log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
+		s.log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
 	}
 }

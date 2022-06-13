@@ -22,14 +22,14 @@ func (s *Server) ticketStatus(c *gin.Context) {
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	if !knownTicket {
-		log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
+		s.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
 		s.sendError(errUnknownTicket, c)
 		return
 	}
 
 	var request ticketStatusRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-		log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
 		return
 	}
@@ -37,7 +37,7 @@ func (s *Server) ticketStatus(c *gin.Context) {
 	// Get altSignAddress from database
 	altSignAddrData, err := s.db.AltSignAddrData(ticket.Hash)
 	if err != nil {
-		log.Errorf("%s: db.AltSignAddrData error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+		s.log.Errorf("%s: db.AltSignAddrData error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		s.sendError(errInternalError, c)
 		return
 	}

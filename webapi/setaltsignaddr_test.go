@@ -86,6 +86,7 @@ func TestMain(m *testing.M) {
 		cfg:         cfg,
 		signPrivKey: signPrivKey,
 		db:          db,
+		log:         log,
 	}
 
 	// Run tests.

@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/dustin/go-humanize"
@@ -66,6 +67,7 @@ const (
 type Server struct {
 	cfg         Config
 	db          *database.VspDatabase
+	log         slog.Logger
 	addrGen     *addressGenerator
 	cache       *cache
 	signPrivKey ed25519.PrivateKey
@@ -78,6 +80,7 @@ func Start(shutdownCtx context.Context, requestShutdown func(), shutdownWg *sync
 	s := &Server{
 		cfg: config,
 		db:  vdb,
+		log: log,
 	}
 
 	var err error
@@ -202,7 +205,7 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 		"blockURL":         blockURL(s.cfg.BlockExplorerURL),
 		"dateTime":         dateTime,
 		"stripWss":         stripWss,
-		"indentJSON":       indentJSON,
+		"indentJSON":       indentJSON(s.log),
 		"atomsToDCR":       atomsToDCR,
 		"float32ToPercent": float32ToPercent,
 		"comma":            humanize.Comma,
@@ -231,32 +234,32 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 
 	api := router.Group("/api/v3")
 	api.GET("/vspinfo", s.vspInfo)
-	api.POST("/setaltsignaddr", withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.setAltSignAddr)
-	api.POST("/feeaddress", withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.feeAddress)
-	api.POST("/ticketstatus", withDcrdClient(dcrd), s.vspAuth, s.ticketStatus)
-	api.POST("/payfee", withDcrdClient(dcrd), s.vspAuth, s.payFee)
-	api.POST("/setvotechoices", withDcrdClient(dcrd), withWalletClients(wallets), s.vspAuth, s.setVoteChoices)
+	api.POST("/setaltsignaddr", s.withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.setAltSignAddr)
+	api.POST("/feeaddress", s.withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.feeAddress)
+	api.POST("/ticketstatus", s.withDcrdClient(dcrd), s.vspAuth, s.ticketStatus)
+	api.POST("/payfee", s.withDcrdClient(dcrd), s.vspAuth, s.payFee)
+	api.POST("/setvotechoices", s.withDcrdClient(dcrd), s.withWalletClients(wallets), s.vspAuth, s.setVoteChoices)
 
 	// Website routes.
 
 	router.GET("", s.homepage)
 
 	login := router.Group("/admin").Use(
-		withSession(cookieStore),
+		s.withSession(cookieStore),
 	)
 	login.POST("", s.adminLogin)
 
 	admin := router.Group("/admin").Use(
-		withWalletClients(wallets), withSession(cookieStore), s.requireAdmin,
+		s.withWalletClients(wallets), s.withSession(cookieStore), s.requireAdmin,
 	)
-	admin.GET("", withDcrdClient(dcrd), s.adminPage)
-	admin.POST("/ticket", withDcrdClient(dcrd), s.ticketSearch)
+	admin.GET("", s.withDcrdClient(dcrd), s.adminPage)
+	admin.POST("/ticket", s.withDcrdClient(dcrd), s.ticketSearch)
 	admin.GET("/backup", s.downloadDatabaseBackup)
 	admin.POST("/logout", s.adminLogout)
 
 	// Require Basic HTTP Auth on /admin/status endpoint.
 	basic := router.Group("/admin").Use(
-		withDcrdClient(dcrd), withWalletClients(wallets), gin.BasicAuth(gin.Accounts{
+		s.withDcrdClient(dcrd), s.withWalletClients(wallets), gin.BasicAuth(gin.Accounts{
 			"admin": s.cfg.AdminPass,
 		}),
 	)
@@ -271,7 +274,7 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 func (s *Server) sendJSONResponse(resp interface{}, c *gin.Context) (string, string) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
-		log.Errorf("JSON marshal error: %v", err)
+		s.log.Errorf("JSON marshal error: %v", err)
 		s.sendError(errInternalError, c)
 		return "", ""
 	}
@@ -305,7 +308,7 @@ func (s *Server) sendErrorWithMsg(msg string, e apiError, c *gin.Context) {
 	// Try to sign the error response. If it fails, send it without a signature.
 	dec, err := json.Marshal(resp)
 	if err != nil {
-		log.Warnf("Sending error response without signature: %v", err)
+		s.log.Warnf("Sending error response without signature: %v", err)
 	} else {
 		sig := ed25519.Sign(s.signPrivKey, dec)
 		c.Writer.Header().Set("VSP-Server-Signature", base64.StdEncoding.EncodeToString(sig))

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/dcrutil/v4"
+	"github.com/decred/slog"
 )
 
 func addressURL(blockExplorerURL string) func(string) string {
@@ -39,15 +40,17 @@ func stripWss(input string) string {
 	return input
 }
 
-func indentJSON(input string) template.HTML {
-	var indented bytes.Buffer
-	err := json.Indent(&indented, []byte(input), "<br/>", "&nbsp;&nbsp;&nbsp;&nbsp;")
-	if err != nil {
-		log.Errorf("Failed to indent JSON: %w", err)
-		return template.HTML(input)
-	}
+func indentJSON(log slog.Logger) func(string) template.HTML {
+	return func(input string) template.HTML {
+		var indented bytes.Buffer
+		err := json.Indent(&indented, []byte(input), "<br/>", "&nbsp;&nbsp;&nbsp;&nbsp;")
+		if err != nil {
+			log.Errorf("Failed to indent JSON: %w", err)
+			return template.HTML(input)
+		}
 
-	return template.HTML(indented.String())
+		return template.HTML(indented.String())
+	}
 }
 
 func atomsToDCR(atoms int64) string {

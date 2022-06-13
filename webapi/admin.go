@@ -46,14 +46,14 @@ type searchResult struct {
 	MaxVoteChanges  int
 }
 
-func dcrdStatus(c *gin.Context) DcrdStatus {
+func (s *Server) dcrdStatus(c *gin.Context) DcrdStatus {
 	hostname := c.MustGet(dcrdHostKey).(string)
 	status := DcrdStatus{Host: hostname}
 
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
-		log.Errorf("could not get dcrd client: %v", dcrdErr.(error))
+		s.log.Errorf("Could not get dcrd client: %v", dcrdErr.(error))
 		return status
 	}
 
@@ -61,7 +61,7 @@ func dcrdStatus(c *gin.Context) DcrdStatus {
 
 	bestBlock, err := dcrdClient.GetBestBlockHeader()
 	if err != nil {
-		log.Errorf("could not get dcrd best block header: %v", err)
+		s.log.Errorf("Could not get dcrd best block header: %v", err)
 		status.BestBlockError = true
 		return status
 	}
@@ -71,7 +71,7 @@ func dcrdStatus(c *gin.Context) DcrdStatus {
 	return status
 }
 
-func walletStatus(c *gin.Context) map[string]WalletStatus {
+func (s *Server) walletStatus(c *gin.Context) map[string]WalletStatus {
 	walletClients := c.MustGet(walletsKey).([]*rpc.WalletRPC)
 	failedWalletClients := c.MustGet(failedWalletsKey).([]string)
 
@@ -81,7 +81,7 @@ func walletStatus(c *gin.Context) map[string]WalletStatus {
 
 		walletInfo, err := v.WalletInfo()
 		if err != nil {
-			log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", v.String(), err)
+			s.log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", v.String(), err)
 			ws.InfoError = true
 		} else {
 			ws.DaemonConnected = walletInfo.DaemonConnected
@@ -92,7 +92,7 @@ func walletStatus(c *gin.Context) map[string]WalletStatus {
 
 		height, err := v.GetBestBlockHeight()
 		if err != nil {
-			log.Errorf("dcrwallet.GetBestBlockHeight error (wallet=%s): %v", v.String(), err)
+			s.log.Errorf("dcrwallet.GetBestBlockHeight error (wallet=%s): %v", v.String(), err)
 			ws.BestBlockError = true
 		} else {
 			ws.BestBlockHeight = height
@@ -112,7 +112,7 @@ func walletStatus(c *gin.Context) map[string]WalletStatus {
 func (s *Server) statusJSON(c *gin.Context) {
 	httpStatus := http.StatusOK
 
-	wallets := walletStatus(c)
+	wallets := s.walletStatus(c)
 
 	// Respond with HTTP status 500 if any voting wallets have issues.
 	for _, wallet := range wallets {
@@ -127,7 +127,7 @@ func (s *Server) statusJSON(c *gin.Context) {
 		}
 	}
 
-	dcrd := dcrdStatus(c)
+	dcrd := s.dcrdStatus(c)
 
 	// Respond with HTTP status 500 if dcrd has issues.
 	if !dcrd.Connected || dcrd.BestBlockError {
@@ -145,8 +145,8 @@ func (s *Server) adminPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"WebApiCache":  s.cache.getData(),
 		"WebApiCfg":    s.cfg,
-		"WalletStatus": walletStatus(c),
-		"DcrdStatus":   dcrdStatus(c),
+		"WalletStatus": s.walletStatus(c),
+		"DcrdStatus":   s.dcrdStatus(c),
 	})
 }
 
@@ -157,21 +157,21 @@ func (s *Server) ticketSearch(c *gin.Context) {
 
 	ticket, found, err := s.db.GetTicketByHash(hash)
 	if err != nil {
-		log.Errorf("db.GetTicketByHash error (ticketHash=%s): %v", hash, err)
+		s.log.Errorf("db.GetTicketByHash error (ticketHash=%s): %v", hash, err)
 		c.String(http.StatusInternalServerError, "Error getting ticket from db")
 		return
 	}
 
 	voteChanges, err := s.db.GetVoteChanges(hash)
 	if err != nil {
-		log.Errorf("db.GetVoteChanges error (ticketHash=%s): %v", hash, err)
+		s.log.Errorf("db.GetVoteChanges error (ticketHash=%s): %v", hash, err)
 		c.String(http.StatusInternalServerError, "Error getting vote changes from db")
 		return
 	}
 
 	altSignAddrData, err := s.db.AltSignAddrData(hash)
 	if err != nil {
-		log.Errorf("db.AltSignAddrData error (ticketHash=%s): %v", hash, err)
+		s.log.Errorf("db.AltSignAddrData error (ticketHash=%s): %v", hash, err)
 		c.String(http.StatusInternalServerError, "Error getting alt sig from db")
 		return
 	}
@@ -187,8 +187,8 @@ func (s *Server) ticketSearch(c *gin.Context) {
 		},
 		"WebApiCache":  s.cache.getData(),
 		"WebApiCfg":    s.cfg,
-		"WalletStatus": walletStatus(c),
-		"DcrdStatus":   dcrdStatus(c),
+		"WalletStatus": s.walletStatus(c),
+		"DcrdStatus":   s.dcrdStatus(c),
 	})
 }
 
@@ -198,7 +198,7 @@ func (s *Server) adminLogin(c *gin.Context) {
 	password := c.PostForm("password")
 
 	if password != s.cfg.AdminPass {
-		log.Warnf("Failed login attempt from %s", c.ClientIP())
+		s.log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"WebApiCache":       s.cache.getData(),
 			"WebApiCfg":         s.cfg,
@@ -207,13 +207,13 @@ func (s *Server) adminLogin(c *gin.Context) {
 		return
 	}
 
-	setAdminStatus(true, c)
+	s.setAdminStatus(true, c)
 }
 
 // adminLogout is the handler for "POST /admin/logout". The current session will
 // have its admin authentication removed.
 func (s *Server) adminLogout(c *gin.Context) {
-	setAdminStatus(nil, c)
+	s.setAdminStatus(nil, c)
 }
 
 // downloadDatabaseBackup is the handler for "GET /backup". A binary
@@ -221,7 +221,7 @@ func (s *Server) adminLogout(c *gin.Context) {
 func (s *Server) downloadDatabaseBackup(c *gin.Context) {
 	err := s.db.BackupDB(c.Writer)
 	if err != nil {
-		log.Errorf("Error backing up database: %v", err)
+		s.log.Errorf("Error backing up database: %v", err)
 		// Don't write any http body here because Content-Length has already
 		// been set in db.BackupDB. Status is enough to indicate an error.
 		c.Status(http.StatusInternalServerError)
@@ -230,12 +230,12 @@ func (s *Server) downloadDatabaseBackup(c *gin.Context) {
 
 // setAdminStatus stores the authentication status of the current session and
 // redirects the client to GET /admin.
-func setAdminStatus(admin interface{}, c *gin.Context) {
+func (s *Server) setAdminStatus(admin interface{}, c *gin.Context) {
 	session := c.MustGet(sessionKey).(*sessions.Session)
 	session.Values["admin"] = admin
 	err := session.Save(c.Request, c.Writer)
 	if err != nil {
-		log.Errorf("Error saving session: %v", err)
+		s.log.Errorf("Error saving session: %v", err)
 		c.String(http.StatusInternalServerError, "Error saving session")
 		return
 	}
