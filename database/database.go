@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/decred/slog"
 	"github.com/decred/vspd/rpc"
 	bolt "go.etcd.io/bbolt"
 )
@@ -25,6 +26,7 @@ import (
 type VspDatabase struct {
 	db                   *bolt.DB
 	maxVoteChangeRecords int
+	log                  slog.Logger
 
 	ticketsMtx sync.RWMutex
 }
@@ -83,7 +85,8 @@ func (vdb *VspDatabase) writeHotBackupFile() error {
 		return fmt.Errorf("os.Rename: %w", err)
 	}
 
-	log.Tracef("Database backup written to %s", backupPath)
+	vdb.log.Tracef("Database backup written to %s", backupPath)
+
 	return err
 }
 
@@ -92,7 +95,7 @@ func (vdb *VspDatabase) writeHotBackupFile() error {
 // - the provided extended pubkey (to be used for deriving fee addresses).
 // - an ed25519 keypair to sign API responses.
 // - a secret key to use for initializing a HTTP cookie store.
-func CreateNew(dbFile, feeXPub string) error {
+func CreateNew(dbFile, feeXPub string, log slog.Logger) error {
 	log.Infof("Initializing new database at %s", dbFile)
 
 	db, err := bolt.Open(dbFile, 0600, &bolt.Options{Timeout: 1 * time.Second})
@@ -172,7 +175,7 @@ func CreateNew(dbFile, feeXPub string) error {
 
 // Open initializes and returns an open database. An error is returned if no
 // database file is found at the provided path.
-func Open(shutdownCtx context.Context, shutdownWg *sync.WaitGroup, dbFile string,
+func Open(shutdownCtx context.Context, shutdownWg *sync.WaitGroup, log slog.Logger, dbFile string,
 	backupInterval time.Duration, maxVoteChangeRecords int) (*VspDatabase, error) {
 
 	// Error if db file does not exist. This is needed because bolt.Open will
@@ -188,7 +191,10 @@ func Open(shutdownCtx context.Context, shutdownWg *sync.WaitGroup, dbFile string
 		return nil, fmt.Errorf("unable to open db file: %w", err)
 	}
 
-	vdb := &VspDatabase{db: db, maxVoteChangeRecords: maxVoteChangeRecords}
+	vdb := &VspDatabase{
+		db:                   db,
+		log:                  log,
+		maxVoteChangeRecords: maxVoteChangeRecords}
 
 	dbVersion, err := vdb.Version()
 	if err != nil {
@@ -242,14 +248,14 @@ func (vdb *VspDatabase) Close() {
 	// closing the db and writing the file to disk.
 	err := vdb.db.Close()
 	if err != nil {
-		log.Errorf("Error closing database: %v", err)
+		vdb.log.Errorf("Error closing database: %v", err)
 		// Return here because if there is an issue with the database, we
 		// probably don't want to overwrite the backup file and potentially
 		// break that too.
 		return
 	}
 
-	log.Debug("Database closed")
+	vdb.log.Debug("Database closed")
 
 	// Ensure the database backup file is up-to-date.
 	backupPath := dbPath + "-backup"
@@ -260,32 +266,32 @@ func (vdb *VspDatabase) Close() {
 
 	from, err := os.Open(dbPath)
 	if err != nil {
-		log.Errorf("Failed to write a database backup (os.Open): %v", err)
+		vdb.log.Errorf("Failed to write a database backup (os.Open): %v", err)
 		return
 	}
 	defer from.Close()
 
 	to, err := os.OpenFile(tempPath, os.O_RDWR|os.O_CREATE, backupFileMode)
 	if err != nil {
-		log.Errorf("Failed to write a database backup (os.OpenFile): %v", err)
+		vdb.log.Errorf("Failed to write a database backup (os.OpenFile): %v", err)
 		return
 	}
 	defer to.Close()
 
 	_, err = io.Copy(to, from)
 	if err != nil {
-		log.Errorf("Failed to write a database backup (io.Copy): %v", err)
+		vdb.log.Errorf("Failed to write a database backup (io.Copy): %v", err)
 		return
 	}
 
 	// Rename temporary file to actual backup file.
 	err = os.Rename(tempPath, backupPath)
 	if err != nil {
-		log.Errorf("Failed to write a database backup (os.Rename): %v", err)
+		vdb.log.Errorf("Failed to write a database backup (os.Rename): %v", err)
 		return
 	}
 
-	log.Tracef("Database backup written to %s", backupPath)
+	vdb.log.Tracef("Database backup written to %s", backupPath)
 }
 
 // KeyPair retrieves the keypair used to sign API responses from the database.
@@ -426,7 +432,7 @@ func (vdb *VspDatabase) CheckIntegrity(dcrd rpc.DcrdConnect) error {
 		}
 	}
 
-	log.Infof("Added missing purchase height to %d tickets", len(missing))
+	vdb.log.Infof("Added missing purchase height to %d tickets", len(missing))
 
 	return nil
 }

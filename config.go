@@ -35,7 +35,6 @@ var (
 	defaultNetwork        = "testnet"
 	defaultHomeDir        = dcrutil.AppDataDir(appName, false)
 	defaultConfigFilename = fmt.Sprintf("%s.conf", appName)
-	defaultLogFilename    = fmt.Sprintf("%s.log", appName)
 	defaultDBFilename     = fmt.Sprintf("%s.db", appName)
 	defaultConfigFile     = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultDcrdHost       = "127.0.0.1"
@@ -75,6 +74,9 @@ type config struct {
 	FeeXPub     string `long:"feexpub" no-ini:"true" description:"Cold wallet xpub used for collecting fees. Should be provided once to initialize a vspd database."`
 	HomeDir     string `long:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile  string `long:"configfile" no-ini:"true" description:"Path to configuration file."`
+
+	logBackend *slog.Backend
+	logLevel   slog.Level
 
 	dbPath                                    string
 	netParams                                 *netParams
@@ -406,8 +408,16 @@ func loadConfig() (*config, error) {
 
 	// Initialize loggers and log rotation.
 	logDir := filepath.Join(cfg.HomeDir, "logs", cfg.netParams.Name)
-	initLogRotator(filepath.Join(logDir, defaultLogFilename), cfg.MaxLogSize, cfg.LogsToKeep)
-	setLogLevels(cfg.LogLevel)
+	cfg.logBackend, err = NewLogBackend(logDir, appName, cfg.MaxLogSize, cfg.LogsToKeep)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
+	var ok bool
+	cfg.logLevel, ok = slog.LevelFromString(cfg.LogLevel)
+	if !ok {
+		return nil, fmt.Errorf("unknown log level: %s", cfg.LogLevel)
+	}
 
 	// Set the database path
 	cfg.dbPath = filepath.Join(dataDir, defaultDBFilename)
@@ -427,7 +437,7 @@ func loadConfig() (*config, error) {
 		}
 
 		// Create new database.
-		err = database.CreateNew(cfg.dbPath, cfg.FeeXPub)
+		err = database.CreateNew(cfg.dbPath, cfg.FeeXPub, cfg.Logger(" DB"))
 		if err != nil {
 			return nil, fmt.Errorf("error creating db file %s: %w", cfg.dbPath, err)
 		}
@@ -444,4 +454,10 @@ func loadConfig() (*config, error) {
 	}
 
 	return &cfg, nil
+}
+
+func (cfg *config) Logger(subsystem string) slog.Logger {
+	log := cfg.logBackend.Logger(subsystem)
+	log.SetLevel(cfg.logLevel)
+	return log
 }

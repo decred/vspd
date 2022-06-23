@@ -55,7 +55,7 @@ func randBytes(n int) []byte {
 func TestMain(m *testing.M) {
 	// Set test logger to stdout.
 	backend := slog.NewBackend(os.Stdout)
-	log = backend.Logger("test")
+	log := backend.Logger("test")
 	log.SetLevel(slog.LevelTrace)
 
 	// Set up some global params.
@@ -73,11 +73,11 @@ func TestMain(m *testing.M) {
 	var err error
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
-	err = database.CreateNew(testDb, feeXPub)
+	err = database.CreateNew(testDb, feeXPub, log)
 	if err != nil {
 		panic(fmt.Errorf("error creating test database: %w", err))
 	}
-	db, err := database.Open(ctx, &wg, testDb, time.Hour, maxVoteChangeRecords)
+	db, err := database.Open(ctx, &wg, log, testDb, time.Hour, maxVoteChangeRecords)
 	if err != nil {
 		panic(fmt.Errorf("error opening test database: %w", err))
 	}

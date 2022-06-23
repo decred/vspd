@@ -2,12 +2,13 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package background
+package main
 
 import (
 	"errors"
 	"strings"
 
+	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/jrick/wsrpc/v2"
@@ -22,7 +23,7 @@ const (
 
 // BlockConnected is called once when vspd starts up, and once each time a
 // blockconnected notification is received from dcrd.
-func BlockConnected(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *database.VspDatabase) {
+func BlockConnected(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *database.VspDatabase, log slog.Logger) {
 
 	const funcName = "BlockConnected"
 
@@ -283,7 +284,7 @@ func BlockConnected(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *da
 // CheckWalletConsistency will retrieve all votable tickets from the database
 // and ensure they are all added to voting wallets with the correct vote
 // choices.
-func CheckWalletConsistency(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *database.VspDatabase) {
+func CheckWalletConsistency(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *database.VspDatabase, log slog.Logger) {
 
 	const funcName = "CheckWalletConsistency"
 

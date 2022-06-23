@@ -75,7 +75,8 @@ type Server struct {
 }
 
 func Start(shutdownCtx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, config Config) error {
+	listen string, vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
+	wallets rpc.WalletConnect, config Config) error {
 
 	s := &Server{
 		cfg: config,
@@ -216,7 +217,7 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	// Recovery middleware handles any go panics generated while processing web
 	// requests. Ensures a 500 response is sent to the client rather than
 	// sending no response at all.
-	router.Use(Recovery(log))
+	router.Use(Recovery(s.log))
 
 	if s.cfg.Debug {
 		// Logger middleware outputs very detailed logging of webserver requests

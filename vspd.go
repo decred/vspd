@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/wire"
-	"github.com/decred/vspd/background"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/decred/vspd/version"
@@ -30,28 +29,32 @@ const maxVoteChangeRecords = 10
 const consistencyInterval = 30 * time.Minute
 
 func main() {
-	// Create a context that is cancelled when a shutdown request is received
-	// through an interrupt signal.
-	shutdownCtx := withShutdownCancel(context.Background())
-	go shutdownListener()
-
 	// Run until an exit code is returned.
-	os.Exit(run(shutdownCtx))
+	os.Exit(run())
 }
 
 // run is the main startup and teardown logic performed by the main package. It
 // is responsible for parsing the config, creating dcrd and dcrwallet RPC clients,
 // opening the database, starting the webserver, and stopping all started
-// services when the provided context is cancelled.
-func run(shutdownCtx context.Context) int {
+// services when a shutdown is requested.
+func run() int {
 
 	// Load config file and parse CLI args.
 	cfg, err := loadConfig()
 	if err != nil {
-		// Don't use logger here because it may not be initialized.
 		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
 		return 1
 	}
+
+	log := cfg.Logger("VSP")
+	dbLog := cfg.Logger(" DB")
+	apiLog := cfg.Logger("API")
+	rpcLog := cfg.Logger("RPC")
+
+	// Create a context that is cancelled when a shutdown request is received
+	// through an interrupt signal.
+	shutdownCtx := withShutdownCancel(context.Background())
+	go shutdownListener(log)
 
 	// Show version at startup.
 	log.Criticalf("Version %s (Go version %s %s/%s)", version.String(), runtime.Version(),
@@ -75,7 +78,7 @@ func run(shutdownCtx context.Context) int {
 	defer log.Criticalf("Shutdown complete")
 
 	// Open database.
-	db, err := database.Open(shutdownCtx, &shutdownWg, cfg.dbPath, cfg.BackupInterval, maxVoteChangeRecords)
+	db, err := database.Open(shutdownCtx, &shutdownWg, dbLog, cfg.dbPath, cfg.BackupInterval, maxVoteChangeRecords)
 	if err != nil {
 		log.Errorf("Database error: %v", err)
 		requestShutdown()
@@ -86,11 +89,11 @@ func run(shutdownCtx context.Context) int {
 
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
-	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, cfg.netParams.Params)
+	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, cfg.netParams.Params, rpcLog)
 	defer dcrd.Close()
 
 	// Create RPC client for remote dcrwallet instance (used for voting).
-	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.netParams.Params)
+	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.netParams.Params, rpcLog)
 	defer wallets.Close()
 
 	// Create a channel to receive blockConnected notifications from dcrd.
@@ -104,7 +107,7 @@ func run(shutdownCtx context.Context) int {
 				return
 			case header := <-notifChan:
 				log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
-				background.BlockConnected(dcrd, wallets, db)
+				BlockConnected(dcrd, wallets, db, log)
 			}
 		}
 	}()
@@ -140,11 +143,11 @@ func run(shutdownCtx context.Context) int {
 
 	// Run the block connected handler now to catch up with any blocks mined
 	// while vspd was shut down.
-	background.BlockConnected(dcrd, wallets, db)
+	BlockConnected(dcrd, wallets, db, log)
 
 	// Run voting wallet consistency check now to ensure all wallets are up to
 	// date.
-	background.CheckWalletConsistency(dcrd, wallets, db)
+	CheckWalletConsistency(dcrd, wallets, db, log)
 
 	// Run voting wallet consistency check periodically.
 	shutdownWg.Add(1)
@@ -155,7 +158,7 @@ func run(shutdownCtx context.Context) int {
 				shutdownWg.Done()
 				return
 			case <-time.After(consistencyInterval):
-				background.CheckWalletConsistency(dcrd, wallets, db)
+				CheckWalletConsistency(dcrd, wallets, db, log)
 			}
 		}
 	}()
@@ -174,7 +177,7 @@ func run(shutdownCtx context.Context) int {
 		MaxVoteChangeRecords: maxVoteChangeRecords,
 		VspdVersion:          version.String(),
 	}
-	err = webapi.Start(shutdownCtx, requestShutdown, &shutdownWg, cfg.Listen, db,
+	err = webapi.Start(shutdownCtx, requestShutdown, &shutdownWg, cfg.Listen, db, apiLog,
 		dcrd, wallets, apiCfg)
 	if err != nil {
 		log.Errorf("Failed to initialize webapi: %v", err)

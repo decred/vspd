@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -16,6 +16,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/decred/slog"
 )
 
 const (
@@ -82,15 +84,20 @@ func TestDatabase(t *testing.T) {
 	}
 
 	for testName, test := range tests {
+		// Set test logger to stdout.
+		backend := slog.NewBackend(os.Stdout)
+		log := backend.Logger("test")
+		log.SetLevel(slog.LevelTrace)
+
 		// Create a new blank database for each sub-test.
 		var err error
 		var wg sync.WaitGroup
 		ctx, cancel := context.WithCancel(context.TODO())
-		err = CreateNew(testDb, feeXPub)
+		err = CreateNew(testDb, feeXPub, log)
 		if err != nil {
 			t.Fatalf("error creating test database: %v", err)
 		}
-		db, err = Open(ctx, &wg, testDb, time.Hour, maxVoteChangeRecords)
+		db, err = Open(ctx, &wg, log, testDb, time.Hour, maxVoteChangeRecords)
 		if err != nil {
 			t.Fatalf("error opening test database: %v", err)
 		}

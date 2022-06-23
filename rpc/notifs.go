@@ -8,10 +8,12 @@ import (
 	"fmt"
 
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/slog"
 )
 
 type blockConnectedHandler struct {
 	blockConnected chan *wire.BlockHeader
+	log            slog.Logger
 }
 
 // Notify is called every time a notification is received from dcrd client.
@@ -25,7 +27,7 @@ func (n *blockConnectedHandler) Notify(method string, msg json.RawMessage) error
 
 	header, err := parseBlockConnected(msg)
 	if err != nil {
-		log.Errorf("Failed to parse dcrd block notification: %v", err)
+		n.log.Errorf("Failed to parse dcrd block notification: %v", err)
 		return nil
 	}
 
