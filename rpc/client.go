@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"sync"
 
+	"github.com/decred/slog"
 	"github.com/jrick/wsrpc/v2"
 )
 
@@ -35,9 +36,10 @@ type client struct {
 	tlsOpt   wsrpc.Option
 	authOpt  wsrpc.Option
 	notifier wsrpc.Notifier
+	log      slog.Logger
 }
 
-func setup(user, pass, addr string, cert []byte) *client {
+func setup(user, pass, addr string, cert []byte, log slog.Logger) *client {
 
 	// Create TLS options.
 	pool := x509.NewCertPool()
@@ -63,20 +65,20 @@ func setup(user, pass, addr string, cert []byte) *client {
 	var mu sync.Mutex
 	var c *wsrpc.Client
 	fullAddr := "wss://" + addr + "/ws"
-	return &client{&mu, c, fullAddr, tlsOpt, authOpt, nil}
+	return &client{&mu, c, fullAddr, tlsOpt, authOpt, nil, log}
 }
 
 func (c *client) Close() {
 	if c.client != nil {
 		select {
 		case <-c.client.Done():
-			log.Tracef("RPC already closed (%s)", c.addr)
+			c.log.Tracef("RPC already closed (%s)", c.addr)
 
 		default:
 			if err := c.client.Close(); err != nil {
-				log.Errorf("Failed to close RPC (%s): %v", c.addr, err)
+				c.log.Errorf("Failed to close RPC (%s): %v", c.addr, err)
 			} else {
-				log.Tracef("RPC closed (%s)", c.addr)
+				c.log.Tracef("RPC closed (%s)", c.addr)
 			}
 		}
 	}
@@ -92,7 +94,7 @@ func (c *client) dial(ctx context.Context) (Caller, bool, error) {
 	if c.client != nil {
 		select {
 		case <-c.client.Done():
-			log.Debugf("RPC client %s errored (%v); reconnecting...", c.addr, c.client.Err())
+			c.log.Debugf("RPC client %s errored (%v); reconnecting...", c.addr, c.client.Err())
 			c.client = nil
 		default:
 			return c.client, false, nil

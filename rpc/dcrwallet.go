@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/slog"
 )
 
 var (
@@ -28,18 +29,20 @@ type WalletRPC struct {
 type WalletConnect struct {
 	clients []*client
 	params  *chaincfg.Params
+	log     slog.Logger
 }
 
-func SetupWallet(user, pass, addrs []string, cert [][]byte, params *chaincfg.Params) WalletConnect {
+func SetupWallet(user, pass, addrs []string, cert [][]byte, params *chaincfg.Params, log slog.Logger) WalletConnect {
 	clients := make([]*client, len(addrs))
 
 	for i := 0; i < len(addrs); i++ {
-		clients[i] = setup(user[i], pass[i], addrs[i], cert[i])
+		clients[i] = setup(user[i], pass[i], addrs[i], cert[i], log)
 	}
 
 	return WalletConnect{
 		clients: clients,
 		params:  params,
+		log:     log,
 	}
 }
 
@@ -47,7 +50,7 @@ func (w *WalletConnect) Close() {
 	for _, client := range w.clients {
 		client.Close()
 	}
-	log.Debug("dcrwallet clients closed")
+	w.log.Debug("dcrwallet clients closed")
 }
 
 // Clients loops over each wallet and tries to establish a connection. It
@@ -62,7 +65,7 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 
 		c, newConnection, err := connect.dial(ctx)
 		if err != nil {
-			log.Errorf("dcrwallet dial error: %v", err)
+			w.log.Errorf("dcrwallet dial error: %v", err)
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
@@ -78,7 +81,7 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 		var verMap map[string]dcrdtypes.VersionResult
 		err = c.Call(ctx, "version", &verMap)
 		if err != nil {
-			log.Errorf("dcrwallet.Version error (wallet=%s): %v", c.String(), err)
+			w.log.Errorf("dcrwallet.Version error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
 			connect.Close()
 			continue
@@ -86,7 +89,7 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 
 		ver, exists := verMap["dcrwalletjsonrpcapi"]
 		if !exists {
-			log.Errorf("dcrwallet.Version response missing 'dcrwalletjsonrpcapi' (wallet=%s)",
+			w.log.Errorf("dcrwallet.Version response missing 'dcrwalletjsonrpcapi' (wallet=%s)",
 				c.String())
 			failedConnections = append(failedConnections, connect.addr)
 			connect.Close()
@@ -95,7 +98,7 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 
 		sVer := semver{ver.Major, ver.Minor, ver.Patch}
 		if !semverCompatible(requiredWalletVersion, sVer) {
-			log.Errorf("dcrwallet has incompatible JSON-RPC version (wallet=%s): got %s, expected %s",
+			w.log.Errorf("dcrwallet has incompatible JSON-RPC version (wallet=%s): got %s, expected %s",
 				c.String(), sVer, requiredWalletVersion)
 			failedConnections = append(failedConnections, connect.addr)
 			connect.Close()
@@ -106,13 +109,13 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 		var netID wire.CurrencyNet
 		err = c.Call(ctx, "getcurrentnet", &netID)
 		if err != nil {
-			log.Errorf("dcrwallet.GetCurrentNet error (wallet=%s): %v", c.String(), err)
+			w.log.Errorf("dcrwallet.GetCurrentNet error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
 			connect.Close()
 			continue
 		}
 		if netID != w.params.Net {
-			log.Errorf("dcrwallet on wrong network (wallet=%s): running on %s, expected %s",
+			w.log.Errorf("dcrwallet on wrong network (wallet=%s): running on %s, expected %s",
 				c.String(), netID, w.params.Net)
 			failedConnections = append(failedConnections, connect.addr)
 			connect.Close()
@@ -123,7 +126,7 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 		walletRPC := &WalletRPC{c, ctx}
 		walletInfo, err := walletRPC.WalletInfo()
 		if err != nil {
-			log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", c.String(), err)
+			w.log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
 			connect.Close()
 			continue
@@ -133,17 +136,17 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 			// All wallet should not be adding tickets found via the network.  This
 			// misconfiguration should not have a negative impact on users, so just
 			// log an error here.  Don't count this as a failed connection.
-			log.Errorf("wallet does not have manual tickets enabled (wallet=%s)", c.String())
+			w.log.Errorf("wallet does not have manual tickets enabled (wallet=%s)", c.String())
 		}
 		if !walletInfo.Voting {
 			// All wallet RPCs can still be used if voting is disabled, so just
 			// log an error here. Don't count this as a failed connection.
-			log.Errorf("wallet is not voting (wallet=%s)", c.String())
+			w.log.Errorf("wallet is not voting (wallet=%s)", c.String())
 		}
 		if !walletInfo.Unlocked {
 			// SetVoteChoice can still be used even if the wallet is locked, so
 			// just log an error here. Don't count this as a failed connection.
-			log.Errorf("wallet is not unlocked (wallet=%s)", c.String())
+			w.log.Errorf("wallet is not unlocked (wallet=%s)", c.String())
 		}
 
 		walletClients = append(walletClients, walletRPC)
@@ -208,9 +211,6 @@ func (c *WalletRPC) TicketInfo(startHeight int64) (map[string]*wallettypes.Ticke
 	if err != nil {
 		return nil, err
 	}
-
-	log.Debugf("TicketInfo RPC returned %d tickets (wallet=%s, startHeight=%d)",
-		len(result), c.String(), startHeight)
 
 	// For easier access later on, store the tickets in a map using their hash
 	// as the key.

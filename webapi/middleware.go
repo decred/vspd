@@ -312,7 +312,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	} else {
 		commitmentAddress, err = getCommitmentAddress(hash, dcrdClient, s.cfg.NetParams)
 		if err != nil {
-			log.Errorf("%s: Failed to get commitment address (clientIP=%s, ticketHash=%s): %v",
+			s.log.Errorf("%s: Failed to get commitment address (clientIP=%s, ticketHash=%s): %v",
 				funcName, c.ClientIP(), hash, err)
 
 			var apiErr *apiError

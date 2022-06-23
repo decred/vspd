@@ -78,7 +78,7 @@ func (vdb *VspDatabase) Upgrade(currentVersion uint32) error {
 
 	// Execute all necessary upgrades in order.
 	for _, upgrade := range upgrades[currentVersion:] {
-		err := upgrade(vdb.db, log)
+		err := upgrade(vdb.db, vdb.log)
 		if err != nil {
 			return err
 		}

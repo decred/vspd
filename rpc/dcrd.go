@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/slog"
 	"github.com/jrick/bitset"
 	"github.com/jrick/wsrpc/v2"
 )
@@ -41,12 +42,14 @@ type DcrdRPC struct {
 type DcrdConnect struct {
 	client *client
 	params *chaincfg.Params
+	log    slog.Logger
 }
 
-func SetupDcrd(user, pass, addr string, cert []byte, params *chaincfg.Params) DcrdConnect {
+func SetupDcrd(user, pass, addr string, cert []byte, params *chaincfg.Params, log slog.Logger) DcrdConnect {
 	return DcrdConnect{
-		client: setup(user, pass, addr, cert),
+		client: setup(user, pass, addr, cert, log),
 		params: params,
+		log:    log,
 	}
 }
 
@@ -56,12 +59,13 @@ func SetupDcrd(user, pass, addr string, cert []byte, params *chaincfg.Params) Dc
 func (d *DcrdConnect) BlockConnectedHandler(blockConnected chan *wire.BlockHeader) {
 	d.client.notifier = &blockConnectedHandler{
 		blockConnected: blockConnected,
+		log:            d.log,
 	}
 }
 
 func (d *DcrdConnect) Close() {
 	d.client.Close()
-	log.Debug("dcrd client closed")
+	d.log.Debug("dcrd client closed")
 }
 
 // Client creates a new DcrdRPC client instance. Returns an error if dialing
@@ -132,7 +136,7 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 		}
 	}
 
-	log.Debugf("Connected to dcrd")
+	d.log.Debugf("Connected to dcrd")
 
 	return &DcrdRPC{c, ctx}, d.client.addr, nil
 }

@@ -9,6 +9,8 @@ import (
 	"context"
 	"os"
 	"os/signal"
+
+	"github.com/decred/slog"
 )
 
 // shutdownRequestChannel is used to initiate shutdown from one of the
@@ -45,7 +47,7 @@ func requestShutdown() {
 // shutdownListener listens for shutdown requests and cancels all contexts
 // created from withShutdownCancel.  This function never returns and is intended
 // to be spawned in a new goroutine.
-func shutdownListener() {
+func shutdownListener(log slog.Logger) {
 	interruptChannel := make(chan os.Signal, 1)
 	signal.Notify(interruptChannel, interruptSignals...)
 
