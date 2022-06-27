@@ -59,6 +59,13 @@ func randString(length int, charset string) string {
 	return string(b)
 }
 
+func stdoutLogger() slog.Logger {
+	backend := slog.NewBackend(os.Stdout)
+	log := backend.Logger("test")
+	log.SetLevel(slog.LevelTrace)
+	return log
+}
+
 // TestDatabase runs all database tests.
 func TestDatabase(t *testing.T) {
 	// Ensure we are starting with a clean environment.
@@ -83,11 +90,9 @@ func TestDatabase(t *testing.T) {
 		"testDeleteAltSignAddr": testDeleteAltSignAddr,
 	}
 
+	log := stdoutLogger()
+
 	for testName, test := range tests {
-		// Set test logger to stdout.
-		backend := slog.NewBackend(os.Stdout)
-		log := backend.Logger("test")
-		log.SetLevel(slog.LevelTrace)
 
 		// Create a new blank database for each sub-test.
 		var err error

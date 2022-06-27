@@ -52,11 +52,16 @@ func randBytes(n int) []byte {
 	return slice
 }
 
-func TestMain(m *testing.M) {
-	// Set test logger to stdout.
+func stdoutLogger() slog.Logger {
 	backend := slog.NewBackend(os.Stdout)
 	log := backend.Logger("test")
 	log.SetLevel(slog.LevelTrace)
+	return log
+}
+
+func TestMain(m *testing.M) {
+
+	log := stdoutLogger()
 
 	// Set up some global params.
 	cfg := Config{
