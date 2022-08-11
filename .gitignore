@@ -9,6 +9,6 @@ cov.out
 /database/test.db
 /database/test.db-backup
 
-# Go 1.18 workspace
+# Go workspace
 go.work
 go.work.sum
