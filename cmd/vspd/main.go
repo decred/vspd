@@ -78,14 +78,18 @@ func run() int {
 	defer log.Criticalf("Shutdown complete")
 
 	// Open database.
-	db, err := database.Open(shutdownCtx, &shutdownWg, dbLog, cfg.dbPath, cfg.BackupInterval, maxVoteChangeRecords)
+	db, err := database.Open(cfg.dbPath, dbLog, maxVoteChangeRecords)
 	if err != nil {
 		log.Errorf("Database error: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return 1
 	}
-	defer db.Close()
+
+	writeBackup := true
+	defer db.Close(writeBackup)
+
+	db.WritePeriodicBackups(shutdownCtx, &shutdownWg, cfg.BackupInterval)
 
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).

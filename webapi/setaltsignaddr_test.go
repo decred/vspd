@@ -6,7 +6,6 @@ package webapi
 
 import (
 	"bytes"
-	"context"
 	"crypto/ed25519"
 	"encoding/json"
 	"errors"
@@ -15,7 +14,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"sync"
 	"testing"
 	"time"
 
@@ -33,7 +31,6 @@ const (
 	// (base64 encoding).
 	sigCharset = "0123456789ABCDEFGHJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+/="
 	testDb     = "test.db"
-	backupDb   = "test.db-backup"
 )
 
 var (
@@ -72,17 +69,15 @@ func TestMain(m *testing.M) {
 	// Create a database to use.
 	// Ensure we are starting with a clean environment.
 	os.Remove(testDb)
-	os.Remove(backupDb)
 
 	// Create a new blank database for all tests.
-	var err error
-	var wg sync.WaitGroup
-	ctx, cancel := context.WithCancel(context.Background())
-	err = database.CreateNew(testDb, feeXPub, log)
+	err := database.CreateNew(testDb, feeXPub, log)
 	if err != nil {
 		panic(fmt.Errorf("error creating test database: %w", err))
 	}
-	db, err := database.Open(ctx, &wg, log, testDb, time.Hour, maxVoteChangeRecords)
+
+	// Open the newly created database so it is ready to use.
+	db, err := database.Open(testDb, log, maxVoteChangeRecords)
 	if err != nil {
 		panic(fmt.Errorf("error opening test database: %w", err))
 	}
@@ -97,12 +92,9 @@ func TestMain(m *testing.M) {
 	// Run tests.
 	exitCode := m.Run()
 
-	// Request database shutdown and wait for it to complete.
-	cancel()
-	wg.Wait()
-	db.Close()
+	writeBackup := false
+	db.Close(writeBackup)
 	os.Remove(testDb)
-	os.Remove(backupDb)
 
 	os.Exit(exitCode)
 }

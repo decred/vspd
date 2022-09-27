@@ -9,7 +9,6 @@ cov.out
 *mem.out
 /webapi/test.db
 /database/test.db
-/database/test.db-backup
 
 # Go workspace
 go.work

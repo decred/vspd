@@ -5,7 +5,6 @@
 package database
 
 import (
-	"context"
 	"crypto/ed25519"
 	"io"
 	"math/rand"
@@ -13,7 +12,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
@@ -22,7 +20,6 @@ import (
 
 const (
 	testDb               = "test.db"
-	backupDb             = "test.db-backup"
 	feeXPub              = "feexpub"
 	maxVoteChangeRecords = 3
 
@@ -70,7 +67,6 @@ func stdoutLogger() slog.Logger {
 func TestDatabase(t *testing.T) {
 	// Ensure we are starting with a clean environment.
 	os.Remove(testDb)
-	os.Remove(backupDb)
 
 	// All sub-tests to run.
 	tests := map[string]func(*testing.T){
@@ -95,14 +91,13 @@ func TestDatabase(t *testing.T) {
 	for testName, test := range tests {
 
 		// Create a new blank database for each sub-test.
-		var err error
-		var wg sync.WaitGroup
-		ctx, cancel := context.WithCancel(context.TODO())
-		err = CreateNew(testDb, feeXPub, log)
+		err := CreateNew(testDb, feeXPub, log)
 		if err != nil {
 			t.Fatalf("error creating test database: %v", err)
 		}
-		db, err = Open(ctx, &wg, log, testDb, time.Hour, maxVoteChangeRecords)
+
+		// Open the newly created database so it is ready to use.
+		db, err = Open(testDb, log, maxVoteChangeRecords)
 		if err != nil {
 			t.Fatalf("error opening test database: %v", err)
 		}
@@ -110,14 +105,9 @@ func TestDatabase(t *testing.T) {
 		// Run the sub-test.
 		t.Run(testName, test)
 
-		// Request database shutdown and wait for it to complete.
-		cancel()
-		wg.Wait()
-
-		db.Close()
-
+		writeBackup := false
+		db.Close(writeBackup)
 		os.Remove(testDb)
-		os.Remove(backupDb)
 	}
 }
 
