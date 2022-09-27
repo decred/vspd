@@ -15,17 +15,16 @@ import (
 )
 
 const (
-
 	// requiredConfs is the number of confirmations required to consider a
 	// ticket purchase or a fee transaction to be final.
 	requiredConfs = 6
 )
 
-// BlockConnected is called once when vspd starts up, and once each time a
+// blockConnected is called once when vspd starts up, and once each time a
 // blockconnected notification is received from dcrd.
-func BlockConnected(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *database.VspDatabase, log slog.Logger) {
+func blockConnected(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *database.VspDatabase, log slog.Logger) {
 
-	const funcName = "BlockConnected"
+	const funcName = "blockConnected"
 
 	dcrdClient, _, err := dcrdRPC.Client()
 	if err != nil {
@@ -281,12 +280,12 @@ func BlockConnected(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *da
 
 }
 
-// CheckWalletConsistency will retrieve all votable tickets from the database
+// checkWalletConsistency will retrieve all votable tickets from the database
 // and ensure they are all added to voting wallets with the correct vote
 // choices.
-func CheckWalletConsistency(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *database.VspDatabase, log slog.Logger) {
+func checkWalletConsistency(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *database.VspDatabase, log slog.Logger) {
 
-	const funcName = "CheckWalletConsistency"
+	const funcName = "checkWalletConsistency"
 
 	log.Info("Checking voting wallet consistency")
 
