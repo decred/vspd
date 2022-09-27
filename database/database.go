@@ -175,9 +175,7 @@ func CreateNew(dbFile, feeXPub string, log slog.Logger) error {
 
 // Open initializes and returns an open database. An error is returned if no
 // database file is found at the provided path.
-func Open(shutdownCtx context.Context, shutdownWg *sync.WaitGroup, log slog.Logger, dbFile string,
-	backupInterval time.Duration, maxVoteChangeRecords int) (*VspDatabase, error) {
-
+func Open(dbFile string, log slog.Logger, maxVoteChangeRecords int) (*VspDatabase, error) {
 	// Error if db file does not exist. This is needed because bolt.Open will
 	// silently create a new empty database if the file does not exist. A new
 	// vspd database should be created with the CreateNew() function.
@@ -216,7 +214,15 @@ func Open(shutdownCtx context.Context, shutdownWg *sync.WaitGroup, log slog.Logg
 		return nil, fmt.Errorf("upgrade failed: %w", err)
 	}
 
-	// Periodically update the database backup file.
+	return vdb, nil
+}
+
+// WritePeriodicBackups starts a goroutine to periodically write a database backup file.
+// It can be stopped by cancelling the provided context, and uses the provided
+// WaitGroup to signal that it has finished.
+func (vdb *VspDatabase) WritePeriodicBackups(shutdownCtx context.Context, shutdownWg *sync.WaitGroup,
+	backupInterval time.Duration) {
+
 	shutdownWg.Add(1)
 	go func() {
 		for {
@@ -224,7 +230,7 @@ func Open(shutdownCtx context.Context, shutdownWg *sync.WaitGroup, log slog.Logg
 			case <-time.After(backupInterval):
 				err := vdb.writeHotBackupFile()
 				if err != nil {
-					log.Errorf("Failed to write database backup: %v", err)
+					vdb.log.Errorf("Failed to write database backup: %v", err)
 				}
 			case <-shutdownCtx.Done():
 				shutdownWg.Done()
@@ -232,13 +238,11 @@ func Open(shutdownCtx context.Context, shutdownWg *sync.WaitGroup, log slog.Logg
 			}
 		}
 	}()
-
-	return vdb, nil
 }
 
-// Close will close the database and then make a copy of the database to the
-// backup location.
-func (vdb *VspDatabase) Close() {
+// Close will close the database and, if requested, make a copy of the database
+// to the backup location.
+func (vdb *VspDatabase) Close(writeBackup bool) {
 
 	// Make a copy of the db path here because once the db is closed, db.Path
 	// returns empty string.
@@ -256,6 +260,10 @@ func (vdb *VspDatabase) Close() {
 	}
 
 	vdb.log.Debug("Database closed")
+
+	if !writeBackup {
+		return
+	}
 
 	// Ensure the database backup file is up-to-date.
 	backupPath := dbPath + "-backup"
@@ -291,7 +299,7 @@ func (vdb *VspDatabase) Close() {
 		return
 	}
 
-	vdb.log.Tracef("Database backup written to %s", backupPath)
+	vdb.log.Debugf("Database backup written to %s", backupPath)
 }
 
 // KeyPair retrieves the keypair used to sign API responses from the database.
