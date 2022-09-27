@@ -388,16 +388,16 @@ func loadConfig() (*config, error) {
 	}
 
 	// Verify minimum number of voting wallets are configured.
-	if numHost < cfg.netParams.MinWallets {
+	if numHost < cfg.netParams.minWallets {
 		return nil, fmt.Errorf("minimum required voting wallets has not been met: %d < %d",
-			numHost, cfg.netParams.MinWallets)
+			numHost, cfg.netParams.minWallets)
 	}
 
 	// Add default port for the active network if there is no port specified.
 	for i := 0; i < numHost; i++ {
-		cfg.walletHosts[i] = normalizeAddress(cfg.walletHosts[i], cfg.netParams.WalletRPCServerPort)
+		cfg.walletHosts[i] = normalizeAddress(cfg.walletHosts[i], cfg.netParams.walletRPCServerPort)
 	}
-	cfg.DcrdHost = normalizeAddress(cfg.DcrdHost, cfg.netParams.DcrdRPCServerPort)
+	cfg.DcrdHost = normalizeAddress(cfg.DcrdHost, cfg.netParams.dcrdRPCServerPort)
 
 	// Create the data directory.
 	dataDir := filepath.Join(cfg.HomeDir, "data", cfg.netParams.Name)
@@ -408,7 +408,7 @@ func loadConfig() (*config, error) {
 
 	// Initialize loggers and log rotation.
 	logDir := filepath.Join(cfg.HomeDir, "logs", cfg.netParams.Name)
-	cfg.logBackend, err = NewLogBackend(logDir, appName, cfg.MaxLogSize, cfg.LogsToKeep)
+	cfg.logBackend, err = newLogBackend(logDir, appName, cfg.MaxLogSize, cfg.LogsToKeep)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
@@ -437,7 +437,7 @@ func loadConfig() (*config, error) {
 		}
 
 		// Create new database.
-		err = database.CreateNew(cfg.dbPath, cfg.FeeXPub, cfg.Logger(" DB"))
+		err = database.CreateNew(cfg.dbPath, cfg.FeeXPub, cfg.logger(" DB"))
 		if err != nil {
 			return nil, fmt.Errorf("error creating db file %s: %w", cfg.dbPath, err)
 		}
@@ -456,7 +456,7 @@ func loadConfig() (*config, error) {
 	return &cfg, nil
 }
 
-func (cfg *config) Logger(subsystem string) slog.Logger {
+func (cfg *config) logger(subsystem string) slog.Logger {
 	log := cfg.logBackend.Logger(subsystem)
 	log.SetLevel(cfg.logLevel)
 	return log

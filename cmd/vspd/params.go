@@ -10,35 +10,35 @@ import (
 
 type netParams struct {
 	*chaincfg.Params
-	DcrdRPCServerPort   string
-	WalletRPCServerPort string
-	BlockExplorerURL    string
-	// MinWallets is the minimum number of voting wallets required for a vspd
+	dcrdRPCServerPort   string
+	walletRPCServerPort string
+	blockExplorerURL    string
+	// minWallets is the minimum number of voting wallets required for a vspd
 	// deployment on this network. vspd will log an error and refuse to start if
 	// fewer wallets are configured.
-	MinWallets int
+	minWallets int
 }
 
 var mainNetParams = netParams{
 	Params:              chaincfg.MainNetParams(),
-	DcrdRPCServerPort:   "9109",
-	WalletRPCServerPort: "9110",
-	BlockExplorerURL:    "https://dcrdata.decred.org",
-	MinWallets:          3,
+	dcrdRPCServerPort:   "9109",
+	walletRPCServerPort: "9110",
+	blockExplorerURL:    "https://dcrdata.decred.org",
+	minWallets:          3,
 }
 
 var testNet3Params = netParams{
 	Params:              chaincfg.TestNet3Params(),
-	DcrdRPCServerPort:   "19109",
-	WalletRPCServerPort: "19110",
-	BlockExplorerURL:    "https://testnet.dcrdata.org",
-	MinWallets:          1,
+	dcrdRPCServerPort:   "19109",
+	walletRPCServerPort: "19110",
+	blockExplorerURL:    "https://testnet.dcrdata.org",
+	minWallets:          1,
 }
 
 var simNetParams = netParams{
 	Params:              chaincfg.SimNetParams(),
-	DcrdRPCServerPort:   "19556",
-	WalletRPCServerPort: "19557",
-	BlockExplorerURL:    "...",
-	MinWallets:          1,
+	dcrdRPCServerPort:   "19556",
+	walletRPCServerPort: "19557",
+	blockExplorerURL:    "...",
+	minWallets:          1,
 }

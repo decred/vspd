@@ -46,10 +46,10 @@ func run() int {
 		return 1
 	}
 
-	log := cfg.Logger("VSP")
-	dbLog := cfg.Logger(" DB")
-	apiLog := cfg.Logger("API")
-	rpcLog := cfg.Logger("RPC")
+	log := cfg.logger("VSP")
+	dbLog := cfg.logger(" DB")
+	apiLog := cfg.logger("API")
+	rpcLog := cfg.logger("RPC")
 
 	// Create a context that is cancelled when a shutdown request is received
 	// through an interrupt signal.
@@ -107,7 +107,7 @@ func run() int {
 				return
 			case header := <-notifChan:
 				log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
-				BlockConnected(dcrd, wallets, db, log)
+				blockConnected(dcrd, wallets, db, log)
 			}
 		}
 	}()
@@ -143,11 +143,11 @@ func run() int {
 
 	// Run the block connected handler now to catch up with any blocks mined
 	// while vspd was shut down.
-	BlockConnected(dcrd, wallets, db, log)
+	blockConnected(dcrd, wallets, db, log)
 
 	// Run voting wallet consistency check now to ensure all wallets are up to
 	// date.
-	CheckWalletConsistency(dcrd, wallets, db, log)
+	checkWalletConsistency(dcrd, wallets, db, log)
 
 	// Run voting wallet consistency check periodically.
 	shutdownWg.Add(1)
@@ -158,7 +158,7 @@ func run() int {
 				shutdownWg.Done()
 				return
 			case <-time.After(consistencyInterval):
-				CheckWalletConsistency(dcrd, wallets, db, log)
+				checkWalletConsistency(dcrd, wallets, db, log)
 			}
 		}
 	}()
@@ -167,7 +167,7 @@ func run() int {
 	apiCfg := webapi.Config{
 		VSPFee:               cfg.VSPFee,
 		NetParams:            cfg.netParams.Params,
-		BlockExplorerURL:     cfg.netParams.BlockExplorerURL,
+		BlockExplorerURL:     cfg.netParams.blockExplorerURL,
 		SupportEmail:         cfg.SupportEmail,
 		VspClosed:            cfg.VspClosed,
 		VspClosedMsg:         cfg.VspClosedMsg,

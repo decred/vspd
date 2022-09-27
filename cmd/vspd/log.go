@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -24,7 +24,7 @@ func (lw logWriter) Write(p []byte) (n int, err error) {
 	return lw.rotator.Write(p)
 }
 
-func NewLogBackend(logDir string, appName string, maxLogSize int64, logsToKeep int) (*slog.Backend, error) {
+func newLogBackend(logDir string, appName string, maxLogSize int64, logsToKeep int) (*slog.Backend, error) {
 	err := os.MkdirAll(logDir, 0700)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create log directory: %w", err)
