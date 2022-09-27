@@ -1,5 +1,7 @@
 ./vspd.exe
 ./vspd
+./cmd/vspd/vspd.exe
+./cmd/vspd/vspd
 
 # Testing, profiling, and benchmarking artifacts
 cov.out
