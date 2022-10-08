@@ -3,6 +3,13 @@
 ./cmd/vspd/vspd.exe
 ./cmd/vspd/vspd
 
+./vote-validator.exe
+./vote-validator
+./cmd/vote-validator/vote-validator.exe
+./cmd/vote-validator/vote-validator
+
+vote-validator.log
+
 # Testing, profiling, and benchmarking artifacts
 cov.out
 *cpu.out
