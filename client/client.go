@@ -6,6 +6,7 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,17 +38,17 @@ type BadRequestError struct {
 func (e *BadRequestError) Error() string { return e.Message }
 
 func (c *Client) Post(ctx context.Context, path string, addr stdaddr.Address, resp, req interface{}) error {
-	return c.do(ctx, "POST", path, addr, resp, req)
+	return c.do(ctx, http.MethodPost, path, addr, resp, req)
 }
 
 func (c *Client) Get(ctx context.Context, path string, resp interface{}) error {
-	return c.do(ctx, "GET", path, nil, resp, nil)
+	return c.do(ctx, http.MethodGet, path, nil, resp, nil)
 }
 
 func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Address, resp, req interface{}) error {
 	var reqBody io.Reader
 	var sig []byte
-	if method == "POST" {
+	if method == http.MethodPost {
 		body, err := json.Marshal(req)
 		if err != nil {
 			return fmt.Errorf("marshal request: %w", err)
@@ -78,21 +79,17 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 		return fmt.Errorf("%s %s: http %v %s", method, httpReq.URL.String(),
 			status, http.StatusText(status))
 	}
-	sigBase64 := reply.Header.Get("VSP-Server-Signature")
-	if sigBase64 == "" {
-		return fmt.Errorf("cannot authenticate server: no signature")
-	}
-	sig, err = base64.StdEncoding.DecodeString(sigBase64)
-	if err != nil {
-		return fmt.Errorf("cannot authenticate server: %w", err)
-	}
+
 	respBody, err := io.ReadAll(reply.Body)
 	if err != nil {
 		return fmt.Errorf("read response body: %w", err)
 	}
-	if !ed25519.Verify(c.Pub, respBody, sig) {
-		return fmt.Errorf("cannot authenticate server: invalid signature")
+
+	err = c.validateServerSignature(reply, respBody)
+	if err != nil {
+		return fmt.Errorf("authenticate server response: %v", err)
 	}
+
 	var apiError *BadRequestError
 	if is4xx {
 		apiError = new(BadRequestError)
@@ -108,5 +105,21 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 		apiError.HTTPStatus = status
 		return apiError
 	}
+	return nil
+}
+
+func (c *Client) validateServerSignature(resp *http.Response, body []byte) error {
+	sigBase64 := resp.Header.Get("VSP-Server-Signature")
+	if sigBase64 == "" {
+		return errors.New("no signature provided")
+	}
+	sig, err := base64.StdEncoding.DecodeString(sigBase64)
+	if err != nil {
+		return fmt.Errorf("failed to decode signature: %w", err)
+	}
+	if !ed25519.Verify(c.Pub, body, sig) {
+		return errors.New("invalid signature")
+	}
+
 	return nil
 }
