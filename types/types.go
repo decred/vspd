@@ -2,9 +2,9 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package webapi
+package types
 
-type vspInfoResponse struct {
+type VspInfoResponse struct {
 	APIVersions         []int64 `json:"apiversions"`
 	Timestamp           int64   `json:"timestamp"`
 	PubKey              []byte  `json:"pubkey"`
@@ -22,14 +22,14 @@ type vspInfoResponse struct {
 	NetworkProportion   float32 `json:"estimatednetworkproportion"`
 }
 
-type feeAddressRequest struct {
+type FeeAddressRequest struct {
 	Timestamp  int64  `json:"timestamp" binding:"required"`
 	TicketHash string `json:"tickethash" binding:"required"`
 	TicketHex  string `json:"tickethex" binding:"required"`
 	ParentHex  string `json:"parenthex" binding:"required"`
 }
 
-type feeAddressResponse struct {
+type FeeAddressResponse struct {
 	Timestamp  int64  `json:"timestamp"`
 	FeeAddress string `json:"feeaddress"`
 	FeeAmount  int64  `json:"feeamount"`
@@ -37,7 +37,7 @@ type feeAddressResponse struct {
 	Request    []byte `json:"request"`
 }
 
-type payFeeRequest struct {
+type PayFeeRequest struct {
 	Timestamp      int64             `json:"timestamp" binding:"required"`
 	TicketHash     string            `json:"tickethash" binding:"required"`
 	FeeTx          string            `json:"feetx" binding:"required"`
@@ -47,12 +47,12 @@ type payFeeRequest struct {
 	TreasuryPolicy map[string]string `json:"treasurypolicy" binding:"max=3"`
 }
 
-type payFeeResponse struct {
+type PayFeeResponse struct {
 	Timestamp int64  `json:"timestamp"`
 	Request   []byte `json:"request"`
 }
 
-type setVoteChoicesRequest struct {
+type SetVoteChoicesRequest struct {
 	Timestamp      int64             `json:"timestamp" binding:"required"`
 	TicketHash     string            `json:"tickethash" binding:"required"`
 	VoteChoices    map[string]string `json:"votechoices" binding:"required"`
@@ -60,16 +60,16 @@ type setVoteChoicesRequest struct {
 	TreasuryPolicy map[string]string `json:"treasurypolicy" binding:"max=3"`
 }
 
-type setVoteChoicesResponse struct {
+type SetVoteChoicesResponse struct {
 	Timestamp int64  `json:"timestamp"`
 	Request   []byte `json:"request"`
 }
 
-type ticketStatusRequest struct {
+type TicketStatusRequest struct {
 	TicketHash string `json:"tickethash" binding:"required"`
 }
 
-type ticketStatusResponse struct {
+type TicketStatusResponse struct {
 	Timestamp       int64             `json:"timestamp"`
 	TicketConfirmed bool              `json:"ticketconfirmed"`
 	FeeTxStatus     string            `json:"feetxstatus"`
@@ -81,7 +81,7 @@ type ticketStatusResponse struct {
 	Request         []byte            `json:"request"`
 }
 
-type setAltSignAddrRequest struct {
+type SetAltSignAddrRequest struct {
 	Timestamp      int64  `json:"timestamp" binding:"required"`
 	TicketHash     string `json:"tickethash" binding:"required"`
 	TicketHex      string `json:"tickethex" binding:"required"`
@@ -89,7 +89,7 @@ type setAltSignAddrRequest struct {
 	AltSignAddress string `json:"altsignaddress" binding:"required"`
 }
 
-type setAltSignAddrResponse struct {
+type SetAltSignAddrResponse struct {
 	Timestamp int64  `json:"timestamp"`
 	Request   []byte `json:"request"`
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -46,7 +47,7 @@ func (s *Server) payFee(c *gin.Context) {
 		return
 	}
 
-	var request payFeeRequest
+	var request types.PayFeeRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
@@ -292,7 +293,7 @@ func (s *Server) payFee(c *gin.Context) {
 	}
 
 	// Send success response to client.
-	resp, respSig := s.sendJSONResponse(payFeeResponse{
+	resp, respSig := s.sendJSONResponse(types.PayFeeResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)

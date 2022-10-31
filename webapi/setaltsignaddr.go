@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -44,7 +45,7 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 		return
 	}
 
-	var request setAltSignAddrRequest
+	var request types.SetAltSignAddrRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
@@ -103,7 +104,7 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	}
 
 	// Send success response to client.
-	resp, respSig := s.sendJSONResponse(setAltSignAddrResponse{
+	resp, respSig := s.sendJSONResponse(types.SetAltSignAddrResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)

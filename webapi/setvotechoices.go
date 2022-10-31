@@ -11,6 +11,7 @@ import (
 
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -54,7 +55,7 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 		return
 	}
 
-	var request setVoteChoicesRequest
+	var request types.SetVoteChoicesRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
@@ -179,7 +180,7 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 	s.log.Debugf("%s: Vote choices updated (ticketHash=%s)", funcName, ticket.Hash)
 
 	// Send success response to client.
-	resp, respSig := s.sendJSONResponse(setVoteChoicesResponse{
+	resp, respSig := s.sendJSONResponse(types.SetVoteChoicesResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -27,7 +28,7 @@ func (s *Server) ticketStatus(c *gin.Context) {
 		return
 	}
 
-	var request ticketStatusRequest
+	var request types.TicketStatusRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
@@ -47,7 +48,7 @@ func (s *Server) ticketStatus(c *gin.Context) {
 		altSignAddr = altSignAddrData.AltSignAddr
 	}
 
-	s.sendJSONResponse(ticketStatusResponse{
+	s.sendJSONResponse(types.TicketStatusResponse{
 		Timestamp:       time.Now().Unix(),
 		Request:         reqBytes,
 		TicketConfirmed: ticket.Confirmed,

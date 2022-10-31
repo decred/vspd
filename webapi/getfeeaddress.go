@@ -12,6 +12,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -94,7 +95,7 @@ func (s *Server) feeAddress(c *gin.Context) {
 		return
 	}
 
-	var request feeAddressRequest
+	var request types.FeeAddressRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
@@ -161,7 +162,7 @@ func (s *Server) feeAddress(c *gin.Context) {
 			s.log.Debugf("%s: Expired fee updated (newFeeAmt=%s, ticketHash=%s)",
 				funcName, newFee, ticket.Hash)
 		}
-		s.sendJSONResponse(feeAddressResponse{
+		s.sendJSONResponse(types.FeeAddressResponse{
 			Timestamp:  now.Unix(),
 			Request:    reqBytes,
 			FeeAddress: ticket.FeeAddress,
@@ -224,7 +225,7 @@ func (s *Server) feeAddress(c *gin.Context) {
 		"feeAddr=%s, feeAmt=%s, ticketHash=%s)",
 		funcName, confirmed, newAddressIdx, newAddress, fee, ticketHash)
 
-	s.sendJSONResponse(feeAddressResponse{
+	s.sendJSONResponse(types.FeeAddressResponse{
 		Timestamp:  now.Unix(),
 		Request:    reqBytes,
 		FeeAddress: newAddress,
