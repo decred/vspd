@@ -27,7 +27,7 @@ func (s *Server) ticketStatus(c *gin.Context) {
 		return
 	}
 
-	var request ticketStatusRequest
+	var request TicketStatusRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), ErrBadRequest, c)
@@ -47,7 +47,7 @@ func (s *Server) ticketStatus(c *gin.Context) {
 		altSignAddr = altSignAddrData.AltSignAddr
 	}
 
-	s.sendJSONResponse(ticketStatusResponse{
+	s.sendJSONResponse(TicketStatusResponse{
 		Timestamp:       time.Now().Unix(),
 		Request:         reqBytes,
 		TicketConfirmed: ticket.Confirmed,

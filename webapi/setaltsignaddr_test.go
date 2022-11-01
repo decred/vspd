@@ -211,7 +211,7 @@ func TestSetAltSignAddress(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ticketHash := randString(64, hexCharset)
-			req := &setAltSignAddrRequest{
+			req := &SetAltSignAddrRequest{
 				Timestamp:      time.Now().Unix(),
 				TicketHash:     ticketHash,
 				TicketHex:      randString(504, hexCharset),

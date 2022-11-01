@@ -44,7 +44,7 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 		return
 	}
 
-	var request setAltSignAddrRequest
+	var request SetAltSignAddrRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), ErrBadRequest, c)
@@ -103,7 +103,7 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	}
 
 	// Send success response to client.
-	resp, respSig := s.sendJSONResponse(setAltSignAddrResponse{
+	resp, respSig := s.sendJSONResponse(SetAltSignAddrResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)

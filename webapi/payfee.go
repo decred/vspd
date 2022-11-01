@@ -46,7 +46,7 @@ func (s *Server) payFee(c *gin.Context) {
 		return
 	}
 
-	var request payFeeRequest
+	var request PayFeeRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), ErrBadRequest, c)
@@ -292,7 +292,7 @@ func (s *Server) payFee(c *gin.Context) {
 	}
 
 	// Send success response to client.
-	resp, respSig := s.sendJSONResponse(payFeeResponse{
+	resp, respSig := s.sendJSONResponse(PayFeeResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)

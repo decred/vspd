@@ -19,8 +19,8 @@ func TestAPIErrorAs(t *testing.T) {
 		expectedMessage string
 	}{{
 		testName:        "BadRequest error",
-		apiError:        APIError{Message: "something went wrong", Code: int64(errBadRequest)},
-		expectedKind:    errBadRequest,
+		apiError:        APIError{Message: "something went wrong", Code: int64(ErrBadRequest)},
+		expectedKind:    ErrBadRequest,
 		expectedMessage: "something went wrong",
 	},
 		{
