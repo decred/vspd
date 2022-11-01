@@ -11,64 +11,64 @@ import "net/http"
 type ErrorCode int64
 
 const (
-	errBadRequest ErrorCode = iota
-	errInternalError
-	errVspClosed
-	errFeeAlreadyReceived
-	errInvalidFeeTx
-	errFeeTooSmall
-	errUnknownTicket
-	errTicketCannotVote
-	errFeeExpired
-	errInvalidVoteChoices
-	errBadSignature
-	errInvalidPrivKey
-	errFeeNotReceived
-	errInvalidTicket
-	errCannotBroadcastTicket
-	errCannotBroadcastFee
-	errCannotBroadcastFeeUnknownOutputs
-	errInvalidTimestamp
+	ErrBadRequest ErrorCode = iota
+	ErrInternalError
+	ErrVspClosed
+	ErrFeeAlreadyReceived
+	ErrInvalidFeeTx
+	ErrFeeTooSmall
+	ErrUnknownTicket
+	ErrTicketCannotVote
+	ErrFeeExpired
+	ErrInvalidVoteChoices
+	ErrBadSignature
+	ErrInvalidPrivKey
+	ErrFeeNotReceived
+	ErrInvalidTicket
+	ErrCannotBroadcastTicket
+	ErrCannotBroadcastFee
+	ErrCannotBroadcastFeeUnknownOutputs
+	ErrInvalidTimestamp
 )
 
-// httpStatus returns a corresponding HTTP status code for a given error code.
-func (e ErrorCode) httpStatus() int {
+// HTTPStatus returns a corresponding HTTP status code for a given error code.
+func (e ErrorCode) HTTPStatus() int {
 	switch e {
-	case errBadRequest:
+	case ErrBadRequest:
 		return http.StatusBadRequest
-	case errInternalError:
+	case ErrInternalError:
 		return http.StatusInternalServerError
-	case errVspClosed:
+	case ErrVspClosed:
 		return http.StatusBadRequest
-	case errFeeAlreadyReceived:
+	case ErrFeeAlreadyReceived:
 		return http.StatusBadRequest
-	case errInvalidFeeTx:
+	case ErrInvalidFeeTx:
 		return http.StatusBadRequest
-	case errFeeTooSmall:
+	case ErrFeeTooSmall:
 		return http.StatusBadRequest
-	case errUnknownTicket:
+	case ErrUnknownTicket:
 		return http.StatusBadRequest
-	case errTicketCannotVote:
+	case ErrTicketCannotVote:
 		return http.StatusBadRequest
-	case errFeeExpired:
+	case ErrFeeExpired:
 		return http.StatusBadRequest
-	case errInvalidVoteChoices:
+	case ErrInvalidVoteChoices:
 		return http.StatusBadRequest
-	case errBadSignature:
+	case ErrBadSignature:
 		return http.StatusBadRequest
-	case errInvalidPrivKey:
+	case ErrInvalidPrivKey:
 		return http.StatusBadRequest
-	case errFeeNotReceived:
+	case ErrFeeNotReceived:
 		return http.StatusBadRequest
-	case errInvalidTicket:
+	case ErrInvalidTicket:
 		return http.StatusBadRequest
-	case errCannotBroadcastTicket:
+	case ErrCannotBroadcastTicket:
 		return http.StatusInternalServerError
-	case errCannotBroadcastFee:
+	case ErrCannotBroadcastFee:
 		return http.StatusInternalServerError
-	case errCannotBroadcastFeeUnknownOutputs:
+	case ErrCannotBroadcastFeeUnknownOutputs:
 		return http.StatusPreconditionRequired
-	case errInvalidTimestamp:
+	case ErrInvalidTimestamp:
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
@@ -78,41 +78,41 @@ func (e ErrorCode) httpStatus() int {
 // DefaultMessage returns a descriptive error string for a given error code.
 func (e ErrorCode) DefaultMessage() string {
 	switch e {
-	case errBadRequest:
+	case ErrBadRequest:
 		return "bad request"
-	case errInternalError:
+	case ErrInternalError:
 		return "internal error"
-	case errVspClosed:
+	case ErrVspClosed:
 		return "vsp is closed"
-	case errFeeAlreadyReceived:
+	case ErrFeeAlreadyReceived:
 		return "fee tx already received for ticket"
-	case errInvalidFeeTx:
+	case ErrInvalidFeeTx:
 		return "invalid fee tx"
-	case errFeeTooSmall:
+	case ErrFeeTooSmall:
 		return "fee too small"
-	case errUnknownTicket:
+	case ErrUnknownTicket:
 		return "unknown ticket"
-	case errTicketCannotVote:
+	case ErrTicketCannotVote:
 		return "ticket not eligible to vote"
-	case errFeeExpired:
+	case ErrFeeExpired:
 		return "fee has expired"
-	case errInvalidVoteChoices:
+	case ErrInvalidVoteChoices:
 		return "invalid vote choices"
-	case errBadSignature:
+	case ErrBadSignature:
 		return "bad request signature"
-	case errInvalidPrivKey:
+	case ErrInvalidPrivKey:
 		return "invalid private key"
-	case errFeeNotReceived:
+	case ErrFeeNotReceived:
 		return "no fee tx received for ticket"
-	case errInvalidTicket:
+	case ErrInvalidTicket:
 		return "not a valid ticket tx"
-	case errCannotBroadcastTicket:
+	case ErrCannotBroadcastTicket:
 		return "ticket transaction could not be broadcast"
-	case errCannotBroadcastFee:
+	case ErrCannotBroadcastFee:
 		return "fee transaction could not be broadcast"
-	case errCannotBroadcastFeeUnknownOutputs:
+	case ErrCannotBroadcastFeeUnknownOutputs:
 		return "fee transaction could not be broadcast due to unknown outputs"
-	case errInvalidTimestamp:
+	case ErrInvalidTimestamp:
 		return "old or reused timestamp"
 	default:
 		return "unknown error"

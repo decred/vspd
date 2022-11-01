@@ -34,20 +34,20 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
 		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
-		s.sendError(errInternalError, c)
+		s.sendError(ErrInternalError, c)
 		return
 	}
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	if s.cfg.VspClosed {
-		s.sendError(errVspClosed, c)
+		s.sendError(ErrVspClosed, c)
 		return
 	}
 
 	var request setAltSignAddrRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), ErrBadRequest, c)
 		return
 	}
 
@@ -56,13 +56,13 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	currentData, err := s.db.AltSignAddrData(ticketHash)
 	if err != nil {
 		s.log.Errorf("%s: db.AltSignAddrData (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(errInternalError, c)
+		s.sendError(ErrInternalError, c)
 		return
 	}
 	if currentData != nil {
 		msg := "alternate sign address data already exists"
 		s.log.Warnf("%s: %s (ticketHash=%s)", funcName, msg, ticketHash)
-		s.sendErrorWithMsg(msg, errBadRequest, c)
+		s.sendErrorWithMsg(msg, ErrBadRequest, c)
 		return
 
 	}
@@ -71,12 +71,12 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	addr, err := stdaddr.DecodeAddressV0(altSignAddr, s.cfg.NetParams)
 	if err != nil {
 		s.log.Warnf("%s: Alt sign address cannot be decoded (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), ErrBadRequest, c)
 		return
 	}
 	if _, ok := addr.(*stdaddr.AddressPubKeyHashEcdsaSecp256k1V0); !ok {
 		s.log.Warnf("%s: Alt sign address is unexpected type (clientIP=%s, type=%T)", funcName, c.ClientIP(), addr)
-		s.sendErrorWithMsg("wrong type for alternate signing address", errBadRequest, c)
+		s.sendErrorWithMsg("wrong type for alternate signing address", ErrBadRequest, c)
 		return
 	}
 
@@ -84,7 +84,7 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	rawTicket, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
 		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(errInternalError, c)
+		s.sendError(ErrInternalError, c)
 		return
 	}
 
@@ -92,13 +92,13 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.NetParams)
 	if err != nil {
 		s.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(errInternalError, c)
+		s.sendError(ErrInternalError, c)
 		return
 	}
 	if !canVote {
 		s.log.Warnf("%s: unvotable ticket (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticketHash)
-		s.sendError(errTicketCannotVote, c)
+		s.sendError(ErrTicketCannotVote, c)
 		return
 	}
 

@@ -276,7 +276,7 @@ func (s *Server) sendJSONResponse(resp interface{}, c *gin.Context) (string, str
 	dec, err := json.Marshal(resp)
 	if err != nil {
 		s.log.Errorf("JSON marshal error: %v", err)
-		s.sendError(errInternalError, c)
+		s.sendError(ErrInternalError, c)
 		return "", ""
 	}
 
@@ -299,7 +299,7 @@ func (s *Server) sendError(e ErrorCode, c *gin.Context) {
 // sendErrorWithMsg sends an error response with the provided error code and
 // message.
 func (s *Server) sendErrorWithMsg(msg string, e ErrorCode, c *gin.Context) {
-	status := e.httpStatus()
+	status := e.HTTPStatus()
 
 	resp := APIError{
 		Code:    int64(e),
