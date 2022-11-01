@@ -301,9 +301,9 @@ func (s *Server) sendError(e ErrorCode, c *gin.Context) {
 func (s *Server) sendErrorWithMsg(msg string, e ErrorCode, c *gin.Context) {
 	status := e.httpStatus()
 
-	resp := gin.H{
-		"code":    int(e),
-		"message": msg,
+	resp := APIError{
+		Code:    int64(e),
+		Message: msg,
 	}
 
 	// Try to sign the error response. If it fails, send it without a signature.

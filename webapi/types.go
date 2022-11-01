@@ -4,6 +4,13 @@
 
 package webapi
 
+type APIError struct {
+	Code    int64  `json:"code"`
+	Message string `json:"message"`
+}
+
+func (e APIError) Error() string { return e.Message }
+
 type vspInfoResponse struct {
 	APIVersions         []int64 `json:"apiversions"`
 	Timestamp           int64   `json:"timestamp"`
