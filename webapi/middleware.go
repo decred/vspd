@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/decred/dcrd/blockchain/stake/v4"
 	"github.com/decred/vspd/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -296,34 +297,56 @@ func (s *Server) vspAuth(c *gin.Context) {
 		return
 	}
 
-	// If the ticket was found in the database, we already know its
-	// commitment address. Otherwise we need to get it from the chain.
-	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
-	dcrdErr := c.MustGet(dcrdErrorKey)
-	if dcrdErr != nil {
-		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
-		s.sendError(errInternalError, c)
-		return
-	}
-
 	var commitmentAddress string
 	if ticketFound {
+		// The commitment address is already known if the ticket already exists
+		// in the database.
 		commitmentAddress = ticket.CommitmentAddress
 	} else {
-		commitmentAddress, err = getCommitmentAddress(hash, dcrdClient, s.cfg.NetParams)
-		if err != nil {
-			s.log.Errorf("%s: Failed to get commitment address (clientIP=%s, ticketHash=%s): %v",
-				funcName, c.ClientIP(), hash, err)
-
-			var apiErr *apiError
-			if errors.Is(err, apiErr) {
-				s.sendError(errInvalidTicket, c)
-			} else {
-				s.sendError(errInternalError, c)
-			}
-
+		// Otherwise the commitment address must be retrieved from the chain
+		// using dcrd.
+		dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+		dcrdErr := c.MustGet(dcrdErrorKey)
+		if dcrdErr != nil {
+			s.log.Errorf("%s: Could not get dcrd client (clientIP=%s, ticketHash=%s): %v",
+				funcName, c.ClientIP(), hash, dcrdErr.(error))
+			s.sendError(errInternalError, c)
 			return
 		}
+
+		rawTx, err := dcrdClient.GetRawTransaction(hash)
+		if err != nil {
+			s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (clientIP=%s, ticketHash=%s): %v",
+				funcName, c.ClientIP(), hash, err)
+			s.sendError(errInternalError, c)
+			return
+		}
+
+		msgTx, err := decodeTransaction(rawTx.Hex)
+		if err != nil {
+			s.log.Errorf("%s: Failed to decode ticket hex (clientIP=%s, ticketHash=%s): %v",
+				funcName, c.ClientIP(), hash, err)
+			s.sendError(errInternalError, c)
+			return
+		}
+
+		err = isValidTicket(msgTx)
+		if err != nil {
+			s.log.Errorf("%s: Invalid ticket (clientIP=%s, ticketHash=%s)",
+				funcName, c.ClientIP(), hash)
+			s.sendError(errInvalidTicket, c)
+			return
+		}
+
+		addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, s.cfg.NetParams)
+		if err != nil {
+			s.log.Errorf("%s: AddrFromSStxPkScrCommitment error (clientIP=%s, ticketHash=%s): %v",
+				funcName, c.ClientIP(), hash, err)
+			s.sendError(errInternalError, c)
+			return
+		}
+
+		commitmentAddress = addr.String()
 	}
 
 	// Ensure a signature is provided.

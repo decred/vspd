@@ -17,7 +17,6 @@ import (
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/vspd/database"
-	"github.com/decred/vspd/rpc"
 )
 
 func currentVoteVersion(params *chaincfg.Params) uint32 {
@@ -168,32 +167,6 @@ func validateTicketHash(hash string) error {
 	}
 
 	return nil
-}
-
-// getCommitmentAddress gets the commitment address of the provided ticket hash
-// from the chain.
-func getCommitmentAddress(hash string, dcrdClient *rpc.DcrdRPC, params *chaincfg.Params) (string, error) {
-	resp, err := dcrdClient.GetRawTransaction(hash)
-	if err != nil {
-		return "", fmt.Errorf("dcrd.GetRawTransaction for ticket failed: %w", err)
-	}
-
-	msgTx, err := decodeTransaction(resp.Hex)
-	if err != nil {
-		return "", fmt.Errorf("failed to decode ticket hex: %w", err)
-	}
-
-	err = isValidTicket(msgTx)
-	if err != nil {
-		return "", fmt.Errorf("invalid ticket: %w", errInvalidTicket)
-	}
-
-	addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, params)
-	if err != nil {
-		return "", fmt.Errorf("AddrFromSStxPkScrCommitment error: %w", err)
-	}
-
-	return addr.String(), nil
 }
 
 // canTicketVote checks determines whether a ticket is able to vote at some
