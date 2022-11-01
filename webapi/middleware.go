@@ -13,6 +13,7 @@ import (
 
 	"github.com/decred/dcrd/blockchain/stake/v4"
 	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/gorilla/sessions"
@@ -122,7 +123,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	reqBytes, err := drainAndReplaceBody(c.Request)
 	if err != nil {
 		s.log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), ErrBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 
@@ -134,7 +135,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	}
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), ErrBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 
@@ -143,7 +144,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	if err != nil {
 		s.log.Errorf("%s: Failed to decode ticket hex (ticketHash=%s): %v",
 			funcName, request.TicketHash, err)
-		s.sendErrorWithMsg("cannot decode ticket hex", ErrBadRequest, c)
+		s.sendErrorWithMsg("cannot decode ticket hex", types.ErrBadRequest, c)
 		return
 	}
 
@@ -151,7 +152,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	if err != nil {
 		s.log.Warnf("%s: Invalid ticket (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), request.TicketHash, err)
-		s.sendError(ErrInvalidTicket, c)
+		s.sendError(types.ErrInvalidTicket, c)
 		return
 	}
 
@@ -159,7 +160,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	if msgTx.TxHash().String() != request.TicketHash {
 		s.log.Warnf("%s: Ticket hex/hash mismatch (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), request.TicketHash)
-		s.sendErrorWithMsg("ticket hex does not match hash", ErrBadRequest, c)
+		s.sendErrorWithMsg("ticket hex does not match hash", types.ErrBadRequest, c)
 		return
 	}
 
@@ -167,7 +168,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	parentTx, err := decodeTransaction(request.ParentHex)
 	if err != nil {
 		s.log.Errorf("%s: Failed to decode parent hex (ticketHash=%s): %v", funcName, request.TicketHash, err)
-		s.sendErrorWithMsg("cannot decode parent hex", ErrBadRequest, c)
+		s.sendErrorWithMsg("cannot decode parent hex", types.ErrBadRequest, c)
 		return
 	}
 	parentHash := parentTx.TxHash()
@@ -177,7 +178,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
 		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -202,7 +203,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 
 		if !found {
 			s.log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
-			s.sendErrorWithMsg("invalid ticket parent", ErrBadRequest, c)
+			s.sendErrorWithMsg("invalid ticket parent", types.ErrBadRequest, c)
 			return
 		}
 
@@ -211,14 +212,14 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 		if err != nil {
 			s.log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
 				funcName, request.TicketHash, err)
-			s.sendError(ErrCannotBroadcastTicket, c)
+			s.sendError(types.ErrCannotBroadcastTicket, c)
 			return
 		}
 
 	} else {
 		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket parent failed (ticketHash=%s): %v",
 			funcName, request.TicketHash, err)
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -237,13 +238,13 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 		if err != nil {
 			s.log.Errorf("%s: dcrd.SendRawTransaction for ticket failed (ticketHash=%s): %v",
 				funcName, request.TicketHash, err)
-			s.sendError(ErrCannotBroadcastTicket, c)
+			s.sendError(types.ErrCannotBroadcastTicket, c)
 			return
 		}
 	} else {
 		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v",
 			funcName, request.TicketHash, err)
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 }
@@ -262,7 +263,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	reqBytes, err := drainAndReplaceBody(c.Request)
 	if err != nil {
 		s.log.Warnf("%s: Error reading request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), ErrBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 
@@ -276,7 +277,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	}
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), ErrBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 	hash := request.TicketHash
@@ -285,7 +286,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	err = validateTicketHash(hash)
 	if err != nil {
 		s.log.Errorf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg("invalid ticket hash", ErrBadRequest, c)
+		s.sendErrorWithMsg("invalid ticket hash", types.ErrBadRequest, c)
 		return
 	}
 
@@ -293,7 +294,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	ticket, ticketFound, err := s.db.GetTicketByHash(hash)
 	if err != nil {
 		s.log.Errorf("%s: db.GetTicketByHash error (ticketHash=%s): %v", funcName, hash, err)
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -310,7 +311,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 		if dcrdErr != nil {
 			s.log.Errorf("%s: Could not get dcrd client (clientIP=%s, ticketHash=%s): %v",
 				funcName, c.ClientIP(), hash, dcrdErr.(error))
-			s.sendError(ErrInternalError, c)
+			s.sendError(types.ErrInternalError, c)
 			return
 		}
 
@@ -318,7 +319,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 		if err != nil {
 			s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (clientIP=%s, ticketHash=%s): %v",
 				funcName, c.ClientIP(), hash, err)
-			s.sendError(ErrInternalError, c)
+			s.sendError(types.ErrInternalError, c)
 			return
 		}
 
@@ -326,7 +327,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 		if err != nil {
 			s.log.Errorf("%s: Failed to decode ticket hex (clientIP=%s, ticketHash=%s): %v",
 				funcName, c.ClientIP(), hash, err)
-			s.sendError(ErrInternalError, c)
+			s.sendError(types.ErrInternalError, c)
 			return
 		}
 
@@ -334,7 +335,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 		if err != nil {
 			s.log.Errorf("%s: Invalid ticket (clientIP=%s, ticketHash=%s)",
 				funcName, c.ClientIP(), hash)
-			s.sendError(ErrInvalidTicket, c)
+			s.sendError(types.ErrInvalidTicket, c)
 			return
 		}
 
@@ -342,7 +343,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 		if err != nil {
 			s.log.Errorf("%s: AddrFromSStxPkScrCommitment error (clientIP=%s, ticketHash=%s): %v",
 				funcName, c.ClientIP(), hash, err)
-			s.sendError(ErrInternalError, c)
+			s.sendError(types.ErrInternalError, c)
 			return
 		}
 
@@ -353,7 +354,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	signature := c.GetHeader("VSP-Client-Signature")
 	if signature == "" {
 		s.log.Warnf("%s: No VSP-Client-Signature header (clientIP=%s)", funcName, c.ClientIP())
-		s.sendErrorWithMsg("no VSP-Client-Signature header", ErrBadRequest, c)
+		s.sendErrorWithMsg("no VSP-Client-Signature header", types.ErrBadRequest, c)
 		return
 	}
 
@@ -362,7 +363,7 @@ func (s *Server) vspAuth(c *gin.Context) {
 	if err != nil {
 		s.log.Errorf("%s: Couldn't validate signature (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), hash, err)
-		s.sendError(ErrBadSignature, c)
+		s.sendError(types.ErrBadSignature, c)
 		return
 	}
 

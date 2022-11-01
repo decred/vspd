@@ -15,6 +15,7 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -30,26 +31,26 @@ func (s *Server) payFee(c *gin.Context) {
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
 		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	if s.cfg.VspClosed {
-		s.sendError(ErrVspClosed, c)
+		s.sendError(types.ErrVspClosed, c)
 		return
 	}
 
 	if !knownTicket {
 		s.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
-		s.sendError(ErrUnknownTicket, c)
+		s.sendError(types.ErrUnknownTicket, c)
 		return
 	}
 
-	var request PayFeeRequest
+	var request types.PayFeeRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), ErrBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 
@@ -59,7 +60,7 @@ func (s *Server) payFee(c *gin.Context) {
 		ticket.FeeTxStatus == database.FeeConfirmed {
 		s.log.Warnf("%s: Fee tx already received (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
-		s.sendError(ErrFeeAlreadyReceived, c)
+		s.sendError(types.ErrFeeAlreadyReceived, c)
 		return
 	}
 
@@ -67,7 +68,7 @@ func (s *Server) payFee(c *gin.Context) {
 	rawTicket, err := dcrdClient.GetRawTransaction(ticket.Hash)
 	if err != nil {
 		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -75,13 +76,13 @@ func (s *Server) payFee(c *gin.Context) {
 	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.NetParams)
 	if err != nil {
 		s.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticket.Hash, err)
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 	if !canVote {
 		s.log.Warnf("%s: Unvotable ticket (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
-		s.sendError(ErrTicketCannotVote, c)
+		s.sendError(types.ErrTicketCannotVote, c)
 		return
 	}
 
@@ -89,7 +90,7 @@ func (s *Server) payFee(c *gin.Context) {
 	if ticket.FeeExpired() {
 		s.log.Warnf("%s: Expired payfee request (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
-		s.sendError(ErrFeeExpired, c)
+		s.sendError(types.ErrFeeExpired, c)
 		return
 	}
 
@@ -99,7 +100,7 @@ func (s *Server) payFee(c *gin.Context) {
 	if err != nil {
 		s.log.Warnf("%s: Failed to decode WIF (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
-		s.sendError(ErrInvalidPrivKey, c)
+		s.sendError(types.ErrInvalidPrivKey, c)
 		return
 	}
 
@@ -135,7 +136,7 @@ func (s *Server) payFee(c *gin.Context) {
 	if err != nil {
 		s.log.Warnf("%s: Failed to decode fee tx hex (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
-		s.sendError(ErrInvalidFeeTx, c)
+		s.sendError(types.ErrInvalidFeeTx, c)
 		return
 	}
 
@@ -143,7 +144,7 @@ func (s *Server) payFee(c *gin.Context) {
 	if err != nil {
 		s.log.Warnf("%s: Fee tx failed sanity check (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
-		s.sendError(ErrInvalidFeeTx, c)
+		s.sendError(types.ErrInvalidFeeTx, c)
 		return
 	}
 
@@ -152,7 +153,7 @@ func (s *Server) payFee(c *gin.Context) {
 	if err != nil {
 		s.log.Errorf("%s: Failed to decode fee address (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -174,7 +175,7 @@ func (s *Server) payFee(c *gin.Context) {
 			funcName, ticket.Hash, ticket.FeeAddress, c.ClientIP())
 		s.sendErrorWithMsg(
 			fmt.Sprintf("feetx did not include any payments for fee address %s", ticket.FeeAddress),
-			ErrInvalidFeeTx, c)
+			types.ErrInvalidFeeTx, c)
 		return
 	}
 
@@ -183,7 +184,7 @@ func (s *Server) payFee(c *gin.Context) {
 	if feePaid < minFee {
 		s.log.Warnf("%s: Fee too small (ticketHash=%s, clientIP=%s): was %s, expected minimum %s",
 			funcName, ticket.Hash, c.ClientIP(), feePaid, minFee)
-		s.sendError(ErrFeeTooSmall, c)
+		s.sendError(types.ErrFeeTooSmall, c)
 		return
 	}
 
@@ -193,7 +194,7 @@ func (s *Server) payFee(c *gin.Context) {
 	if err != nil {
 		s.log.Errorf("%s: Failed to get voting address from WIF (ticketHash=%s, clientIP=%s): %v",
 			funcName, ticket.Hash, c.ClientIP(), err)
-		s.sendError(ErrInvalidPrivKey, c)
+		s.sendError(types.ErrInvalidPrivKey, c)
 		return
 	}
 
@@ -204,7 +205,7 @@ func (s *Server) payFee(c *gin.Context) {
 	if err != nil {
 		s.log.Warnf("%s: Failed to decode ticket hex (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -217,7 +218,7 @@ func (s *Server) payFee(c *gin.Context) {
 		s.log.Warnf("%s: Voting address does not match provided private key: (ticketHash=%s)",
 			funcName, ticket.Hash)
 		s.sendErrorWithMsg("voting address does not match provided private key",
-			ErrInvalidPrivKey, c)
+			types.ErrInvalidPrivKey, c)
 		return
 	}
 
@@ -246,7 +247,7 @@ func (s *Server) payFee(c *gin.Context) {
 	if err != nil {
 		s.log.Errorf("%s: db.UpdateTicket error, failed to set fee tx (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -263,9 +264,9 @@ func (s *Server) payFee(c *gin.Context) {
 
 			if strings.Contains(err.Error(),
 				"references outputs of unknown or fully-spent transaction") {
-				s.sendError(ErrCannotBroadcastFeeUnknownOutputs, c)
+				s.sendError(types.ErrCannotBroadcastFeeUnknownOutputs, c)
 			} else {
-				s.sendError(ErrCannotBroadcastFee, c)
+				s.sendError(types.ErrCannotBroadcastFee, c)
 			}
 
 			err = s.db.UpdateTicket(ticket)
@@ -283,7 +284,7 @@ func (s *Server) payFee(c *gin.Context) {
 		if err != nil {
 			s.log.Errorf("%s: db.UpdateTicket error, failed to set fee tx as broadcast (ticketHash=%s): %v",
 				funcName, ticket.Hash, err)
-			s.sendError(ErrInternalError, c)
+			s.sendError(types.ErrInternalError, c)
 			return
 		}
 
@@ -292,7 +293,7 @@ func (s *Server) payFee(c *gin.Context) {
 	}
 
 	// Send success response to client.
-	resp, respSig := s.sendJSONResponse(PayFeeResponse{
+	resp, respSig := s.sendJSONResponse(types.PayFeeResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)

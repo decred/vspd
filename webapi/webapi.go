@@ -21,6 +21,7 @@ import (
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/types"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
@@ -276,7 +277,7 @@ func (s *Server) sendJSONResponse(resp interface{}, c *gin.Context) (string, str
 	dec, err := json.Marshal(resp)
 	if err != nil {
 		s.log.Errorf("JSON marshal error: %v", err)
-		s.sendError(ErrInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return "", ""
 	}
 
@@ -291,17 +292,17 @@ func (s *Server) sendJSONResponse(resp interface{}, c *gin.Context) (string, str
 
 // sendError sends an error response with the provided error code and the
 // default message for that code.
-func (s *Server) sendError(e ErrorCode, c *gin.Context) {
+func (s *Server) sendError(e types.ErrorCode, c *gin.Context) {
 	msg := e.DefaultMessage()
 	s.sendErrorWithMsg(msg, e, c)
 }
 
 // sendErrorWithMsg sends an error response with the provided error code and
 // message.
-func (s *Server) sendErrorWithMsg(msg string, e ErrorCode, c *gin.Context) {
+func (s *Server) sendErrorWithMsg(msg string, e types.ErrorCode, c *gin.Context) {
 	status := e.HTTPStatus()
 
-	resp := APIError{
+	resp := types.APIError{
 		Code:    int64(e),
 		Message: msg,
 	}
