@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2022 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -6,12 +6,12 @@ package webapi
 
 import "net/http"
 
-// apiError is a kind of error.  It has full support for errors.Is and
-// errors.As.
-type apiError int
+// ErrorCode is an integer which represents a kind of error which may be
+// encountered by vspd.
+type ErrorCode int64
 
 const (
-	errBadRequest apiError = iota
+	errBadRequest ErrorCode = iota
 	errInternalError
 	errVspClosed
 	errFeeAlreadyReceived
@@ -31,8 +31,8 @@ const (
 	errInvalidTimestamp
 )
 
-// httpStatus maps application error codes to HTTP status codes.
-func (e apiError) httpStatus() int {
+// httpStatus returns a corresponding HTTP status code for a given error code.
+func (e ErrorCode) httpStatus() int {
 	switch e {
 	case errBadRequest:
 		return http.StatusBadRequest
@@ -75,8 +75,8 @@ func (e apiError) httpStatus() int {
 	}
 }
 
-// String returns a descriptive error string for a given error code.
-func (e apiError) String() string {
+// DefaultMessage returns a descriptive error string for a given error code.
+func (e ErrorCode) DefaultMessage() string {
 	switch e {
 	case errBadRequest:
 		return "bad request"
@@ -117,9 +117,4 @@ func (e apiError) String() string {
 	default:
 		return "unknown error"
 	}
-}
-
-// Error satisfies the error interface and returns a human-readable error string.
-func (e apiError) Error() string {
-	return e.String()
 }

@@ -289,16 +289,16 @@ func (s *Server) sendJSONResponse(resp interface{}, c *gin.Context) (string, str
 	return string(dec), sigStr
 }
 
-// sendError sends an error response to the client using the default error
-// message.
-func (s *Server) sendError(e apiError, c *gin.Context) {
-	msg := e.Error()
+// sendError sends an error response with the provided error code and the
+// default message for that code.
+func (s *Server) sendError(e ErrorCode, c *gin.Context) {
+	msg := e.DefaultMessage()
 	s.sendErrorWithMsg(msg, e, c)
 }
 
-// sendErrorWithMsg sends an error response to the client using the provided
-// error message.
-func (s *Server) sendErrorWithMsg(msg string, e apiError, c *gin.Context) {
+// sendErrorWithMsg sends an error response with the provided error code and
+// message.
+func (s *Server) sendErrorWithMsg(msg string, e ErrorCode, c *gin.Context) {
 	status := e.httpStatus()
 
 	resp := gin.H{

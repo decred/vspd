@@ -5,15 +5,16 @@
 package webapi
 
 import (
-	"errors"
+	"net/http"
 	"testing"
 )
 
-// TestApiErrorString tests the stringized output for the apiError type.
-func TestApiErrorString(t *testing.T) {
+// TestErrorDefaultMessages ensures each ErrorKind can be mapped to a default
+// descriptive error message.
+func TestErrorDefaultMessages(t *testing.T) {
 	tests := []struct {
-		in   apiError
-		want string
+		in      ErrorCode
+		wantMsg string
 	}{
 		{errBadRequest, "bad request"},
 		{errInternalError, "internal error"},
@@ -33,57 +34,51 @@ func TestApiErrorString(t *testing.T) {
 		{errCannotBroadcastFee, "fee transaction could not be broadcast"},
 		{errCannotBroadcastFeeUnknownOutputs, "fee transaction could not be broadcast due to unknown outputs"},
 		{errInvalidTimestamp, "old or reused timestamp"},
+		{ErrorCode(9999), "unknown error"},
 	}
 
-	for i, test := range tests {
-		result := test.in.Error()
-		if result != test.want {
-			t.Errorf("%d: got: %s want: %s", i, result, test.want)
+	for _, test := range tests {
+		actualMsg := test.in.DefaultMessage()
+		if actualMsg != test.wantMsg {
+			t.Errorf("wrong default message for ErrorKind(%d). expected: %q actual: %q ",
+				test.in, test.wantMsg, actualMsg)
 			continue
 		}
 	}
 }
 
-// TestApiErrorIsAs ensures apiError can be identified via errors.Is and unwrapped via errors.As.
-func TestApiErrorIsAs(t *testing.T) {
+// TestErrorHTTPStatus ensures each ErrorCode can be mapped to a corresponding HTTP status code.
+func TestErrorHTTPStatus(t *testing.T) {
 	tests := []struct {
-		name      string
-		err       error
-		target    error
-		wantMatch bool
-		wantAs    apiError
-	}{{
-		name:      "errBadRequest == errBadRequest",
-		err:       errBadRequest,
-		target:    errBadRequest,
-		wantMatch: true,
-		wantAs:    errBadRequest,
-	}, {
-		name:      "errBadRequest != errInternalError",
-		err:       errBadRequest,
-		target:    errInternalError,
-		wantMatch: false,
-		wantAs:    errBadRequest,
-	}}
-	for _, test := range tests {
-		// Ensure the error matches or not depending on the expected result.
-		result := errors.Is(test.err, test.target)
-		if result != test.wantMatch {
-			t.Errorf("%s: incorrect error identification -- got %v, want %v",
-				test.name, result, test.wantMatch)
-			continue
-		}
+		in         ErrorCode
+		wantStatus int
+	}{
+		{errBadRequest, http.StatusBadRequest},
+		{errInternalError, http.StatusInternalServerError},
+		{errVspClosed, http.StatusBadRequest},
+		{errFeeAlreadyReceived, http.StatusBadRequest},
+		{errInvalidFeeTx, http.StatusBadRequest},
+		{errFeeTooSmall, http.StatusBadRequest},
+		{errUnknownTicket, http.StatusBadRequest},
+		{errTicketCannotVote, http.StatusBadRequest},
+		{errFeeExpired, http.StatusBadRequest},
+		{errInvalidVoteChoices, http.StatusBadRequest},
+		{errBadSignature, http.StatusBadRequest},
+		{errInvalidPrivKey, http.StatusBadRequest},
+		{errFeeNotReceived, http.StatusBadRequest},
+		{errInvalidTicket, http.StatusBadRequest},
+		{errCannotBroadcastTicket, http.StatusInternalServerError},
+		{errCannotBroadcastFee, http.StatusInternalServerError},
+		{errCannotBroadcastFeeUnknownOutputs, http.StatusPreconditionRequired},
+		{errInvalidTimestamp, http.StatusBadRequest},
+		{ErrorCode(9999), http.StatusInternalServerError},
+	}
 
-		// Ensure the underlying apiError can be unwrapped and is the
-		// expected type.
-		var err apiError
-		if !errors.As(test.err, &err) {
-			t.Errorf("%s: unable to unwrap error", test.name)
-			continue
-		}
-		if err != test.wantAs {
-			t.Errorf("%s: unexpected unwrapped error -- got %v, want %v",
-				test.name, err, test.wantAs)
+	for _, test := range tests {
+		result := test.in.httpStatus()
+		if result != test.wantStatus {
+			t.Errorf("wrong HTTP status for ErrorKind(%d). expected: %d actual: %d ",
+				test.in, test.wantStatus, result)
 			continue
 		}
 	}
