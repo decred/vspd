@@ -1,6 +1,6 @@
 module github.com/decred/vspd
 
-go 1.17
+go 1.18
 
 require (
 	decred.org/dcrwallet/v2 v2.0.9
