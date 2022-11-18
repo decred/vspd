@@ -383,6 +383,13 @@ func (vdb *VspDatabase) GetVotableTickets() ([]Ticket, error) {
 	})
 }
 
+// GetVotedTickets returns tickets with a confirmed fee tx and outcome == voted.
+func (vdb *VspDatabase) GetVotedTickets() ([]Ticket, error) {
+	return vdb.filterTickets(func(t *bolt.Bucket) bool {
+		return FeeStatus(t.Get(feeTxStatusK)) == FeeConfirmed && TicketOutcome(t.Get(outcomeK)) == Voted
+	})
+}
+
 // GetMissingPurchaseHeight returns tickets which are confirmed but do not have
 // a purchase height.
 func (vdb *VspDatabase) GetMissingPurchaseHeight() ([]Ticket, error) {
