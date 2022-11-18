@@ -7,6 +7,7 @@ package version
 import (
 	"bytes"
 	"fmt"
+	"runtime/debug"
 	"strings"
 )
 
@@ -42,7 +43,41 @@ func String() string {
 		version = version + "-" + preRelease
 	}
 
+	buildMetadata := vcsCommitID()
+
+	// Append build metadata if there is any. The plus called for
+	// by the semantic versioning spec is automatically appended and should
+	// not be contained in the build metadata string. The build metadata
+	// string is not appended if it contains invalid characters.
+	buildMetadata = normalizeVerString(buildMetadata)
+	if buildMetadata != "" {
+		version = version + "+" + buildMetadata
+	}
+
 	return version
+}
+
+func vcsCommitID() string {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	var vcs, revision string
+	for _, bs := range bi.Settings {
+		switch bs.Key {
+		case "vcs":
+			vcs = bs.Value
+		case "vcs.revision":
+			revision = bs.Value
+		}
+	}
+	if vcs == "" {
+		return ""
+	}
+	if vcs == "git" && len(revision) > 9 {
+		revision = revision[:9]
+	}
+	return revision
 }
 
 // normalizeVerString returns the passed string stripped of all characters which
