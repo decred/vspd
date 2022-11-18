@@ -7,6 +7,7 @@ package webapi
 import (
 	"time"
 
+	"github.com/decred/vspd/types"
 	"github.com/decred/vspd/version"
 	"github.com/gin-gonic/gin"
 )
@@ -14,7 +15,7 @@ import (
 // vspInfo is the handler for "GET /api/v3/vspinfo".
 func (s *Server) vspInfo(c *gin.Context) {
 	cachedStats := s.cache.getData()
-	s.sendJSONResponse(vspInfoResponse{
+	s.sendJSONResponse(types.VspInfoResponse{
 		APIVersions:         []int64{3},
 		Timestamp:           time.Now().Unix(),
 		PubKey:              s.signPubKey,

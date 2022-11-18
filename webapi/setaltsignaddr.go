@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/types"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -34,20 +35,20 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
 		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
-		s.sendError(errInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	if s.cfg.VspClosed {
-		s.sendError(errVspClosed, c)
+		s.sendError(types.ErrVspClosed, c)
 		return
 	}
 
-	var request setAltSignAddrRequest
+	var request types.SetAltSignAddrRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 
@@ -56,13 +57,13 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	currentData, err := s.db.AltSignAddrData(ticketHash)
 	if err != nil {
 		s.log.Errorf("%s: db.AltSignAddrData (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(errInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 	if currentData != nil {
 		msg := "alternate sign address data already exists"
 		s.log.Warnf("%s: %s (ticketHash=%s)", funcName, msg, ticketHash)
-		s.sendErrorWithMsg(msg, errBadRequest, c)
+		s.sendErrorWithMsg(msg, types.ErrBadRequest, c)
 		return
 
 	}
@@ -71,12 +72,12 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	addr, err := stdaddr.DecodeAddressV0(altSignAddr, s.cfg.NetParams)
 	if err != nil {
 		s.log.Warnf("%s: Alt sign address cannot be decoded (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), errBadRequest, c)
+		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 	if _, ok := addr.(*stdaddr.AddressPubKeyHashEcdsaSecp256k1V0); !ok {
 		s.log.Warnf("%s: Alt sign address is unexpected type (clientIP=%s, type=%T)", funcName, c.ClientIP(), addr)
-		s.sendErrorWithMsg("wrong type for alternate signing address", errBadRequest, c)
+		s.sendErrorWithMsg("wrong type for alternate signing address", types.ErrBadRequest, c)
 		return
 	}
 
@@ -84,7 +85,7 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	rawTicket, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
 		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(errInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -92,18 +93,18 @@ func (s *Server) setAltSignAddr(c *gin.Context) {
 	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.NetParams)
 	if err != nil {
 		s.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(errInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return
 	}
 	if !canVote {
 		s.log.Warnf("%s: unvotable ticket (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticketHash)
-		s.sendError(errTicketCannotVote, c)
+		s.sendError(types.ErrTicketCannotVote, c)
 		return
 	}
 
 	// Send success response to client.
-	resp, respSig := s.sendJSONResponse(setAltSignAddrResponse{
+	resp, respSig := s.sendJSONResponse(types.SetAltSignAddrResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)

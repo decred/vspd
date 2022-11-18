@@ -21,6 +21,7 @@ import (
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/types"
 	"github.com/gin-gonic/gin"
 )
 
@@ -211,7 +212,7 @@ func TestSetAltSignAddress(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ticketHash := randString(64, hexCharset)
-			req := &setAltSignAddrRequest{
+			req := &types.SetAltSignAddrRequest{
 				Timestamp:      time.Now().Unix(),
 				TicketHash:     ticketHash,
 				TicketHex:      randString(504, hexCharset),

@@ -21,6 +21,7 @@ import (
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
+	"github.com/decred/vspd/types"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
@@ -276,7 +277,7 @@ func (s *Server) sendJSONResponse(resp interface{}, c *gin.Context) (string, str
 	dec, err := json.Marshal(resp)
 	if err != nil {
 		s.log.Errorf("JSON marshal error: %v", err)
-		s.sendError(errInternalError, c)
+		s.sendError(types.ErrInternalError, c)
 		return "", ""
 	}
 
@@ -289,21 +290,21 @@ func (s *Server) sendJSONResponse(resp interface{}, c *gin.Context) (string, str
 	return string(dec), sigStr
 }
 
-// sendError sends an error response to the client using the default error
-// message.
-func (s *Server) sendError(e apiError, c *gin.Context) {
-	msg := e.Error()
+// sendError sends an error response with the provided error code and the
+// default message for that code.
+func (s *Server) sendError(e types.ErrorCode, c *gin.Context) {
+	msg := e.DefaultMessage()
 	s.sendErrorWithMsg(msg, e, c)
 }
 
-// sendErrorWithMsg sends an error response to the client using the provided
-// error message.
-func (s *Server) sendErrorWithMsg(msg string, e apiError, c *gin.Context) {
-	status := e.httpStatus()
+// sendErrorWithMsg sends an error response with the provided error code and
+// message.
+func (s *Server) sendErrorWithMsg(msg string, e types.ErrorCode, c *gin.Context) {
+	status := e.HTTPStatus()
 
-	resp := gin.H{
-		"code":    int(e),
-		"message": msg,
+	resp := types.APIError{
+		Code:    int64(e),
+		Message: msg,
 	}
 
 	// Try to sign the error response. If it fails, send it without a signature.
