@@ -302,7 +302,7 @@ func (s *Server) sendError(e types.ErrorCode, c *gin.Context) {
 func (s *Server) sendErrorWithMsg(msg string, e types.ErrorCode, c *gin.Context) {
 	status := e.HTTPStatus()
 
-	resp := types.APIError{
+	resp := types.ErrorResponse{
 		Code:    int64(e),
 		Message: msg,
 	}

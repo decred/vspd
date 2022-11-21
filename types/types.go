@@ -4,12 +4,12 @@
 
 package types
 
-type APIError struct {
+type ErrorResponse struct {
 	Code    int64  `json:"code"`
 	Message string `json:"message"`
 }
 
-func (e APIError) Error() string { return e.Message }
+func (e ErrorResponse) Error() string { return e.Message }
 
 type VspInfoResponse struct {
 	APIVersions         []int64 `json:"apiversions"`

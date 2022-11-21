@@ -19,20 +19,20 @@ func TestAPIErrorAs(t *testing.T) {
 		expectedMessage string
 	}{{
 		testName:        "BadRequest error",
-		apiError:        APIError{Message: "something went wrong", Code: int64(ErrBadRequest)},
+		apiError:        ErrorResponse{Message: "something went wrong", Code: int64(ErrBadRequest)},
 		expectedKind:    ErrBadRequest,
 		expectedMessage: "something went wrong",
 	},
 		{
 			testName:        "Unknown error",
-			apiError:        APIError{Message: "something went wrong again", Code: int64(999)},
+			apiError:        ErrorResponse{Message: "something went wrong again", Code: int64(999)},
 			expectedKind:    999,
 			expectedMessage: "something went wrong again",
 		}}
 
 	for _, test := range tests {
 		// Ensure APIError can be unwrapped from error.
-		var parsedError APIError
+		var parsedError ErrorResponse
 		if !errors.As(test.apiError, &parsedError) {
 			t.Errorf("%s: unable to unwrap error", test.testName)
 			continue
