@@ -200,19 +200,23 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 	status := reply.StatusCode
 
 	if status != http.StatusOK {
-		// If no response body, just return status.
+		// If no response body, return an error with just the HTTP status.
 		if len(respBody) == 0 {
 			return fmt.Errorf("http status %d (%s) with no body",
 				status, http.StatusText(status))
 		}
 
-		// Try unmarshal response body to a known vspd error.
+		// Try to unmarshal the response body to a known vspd error.
 		var apiError types.ErrorResponse
 		err = json.Unmarshal(respBody, &apiError)
 		if err == nil {
 			return apiError
 		}
 
+		// If the response body could not be unmarshalled it might not have come
+		// from vspd (eg. it could be from an nginx reverse proxy or some other
+		// intermediary server). Return an error with the HTTP status and the
+		// full body so that it may be investigated.
 		return fmt.Errorf("http status %d (%s) with body %q",
 			status, http.StatusText(status), respBody)
 	}
