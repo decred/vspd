@@ -15,7 +15,7 @@ require (
 	github.com/decred/dcrd/txscript/v4 v4.0.0
 	github.com/decred/dcrd/wire v1.5.0
 	github.com/decred/slog v1.2.0
-	github.com/decred/vspd/types v0.0.0-00010101000000-000000000000
+	github.com/decred/vspd/types v1.1.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/gorilla/sessions v1.2.1
@@ -61,8 +61,4 @@ require (
 	golang.org/x/text v0.4.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-)
-
-replace (
-	github.com/decred/vspd/types => ./types
 )
