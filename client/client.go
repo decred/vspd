@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
+	"github.com/decred/slog"
 	"github.com/decred/vspd/types"
 )
 
@@ -20,14 +22,20 @@ type Client struct {
 	URL    string
 	PubKey []byte
 	sign   func(context.Context, string, stdaddr.Address) ([]byte, error)
+	log    slog.Logger
 }
 
 type Signer interface {
 	SignMessage(ctx context.Context, message string, address stdaddr.Address) ([]byte, error)
 }
 
-func NewClient(url string, pub []byte, s Signer) *Client {
-	return &Client{URL: url, PubKey: pub, sign: s.SignMessage}
+func NewClient(url string, pub []byte, s Signer, log slog.Logger) *Client {
+	return &Client{
+		URL:    url,
+		PubKey: pub,
+		sign:   s.SignMessage,
+		log:    log,
+	}
 }
 
 type BadRequestError struct {
@@ -146,7 +154,9 @@ func (c *Client) get(ctx context.Context, path string, resp interface{}) error {
 func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Address, resp, req interface{}) error {
 	var reqBody io.Reader
 	var sig []byte
-	if method == http.MethodPost {
+
+	sendBody := method == http.MethodPost
+	if sendBody {
 		body, err := json.Marshal(req)
 		if err != nil {
 			return fmt.Errorf("marshal request: %w", err)
@@ -157,6 +167,7 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 		}
 		reqBody = bytes.NewReader(body)
 	}
+
 	httpReq, err := http.NewRequestWithContext(ctx, method, c.URL+path, reqBody)
 	if err != nil {
 		return fmt.Errorf("new request: %w", err)
@@ -164,11 +175,30 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 	if sig != nil {
 		httpReq.Header.Set("VSP-Client-Signature", base64.StdEncoding.EncodeToString(sig))
 	}
+
+	if c.log.Level() == slog.LevelTrace {
+		dump, err := httputil.DumpRequestOut(httpReq, sendBody)
+		if err == nil {
+			c.log.Tracef("Request to %s\n%s\n", c.URL, dump)
+		} else {
+			c.log.Tracef("VSP request dump failed: %v", err)
+		}
+	}
+
 	reply, err := c.Do(httpReq)
 	if err != nil {
 		return fmt.Errorf("%s %s: %w", method, httpReq.URL.String(), err)
 	}
 	defer reply.Body.Close()
+
+	if c.log.Level() == slog.LevelTrace {
+		dump, err := httputil.DumpResponse(reply, true)
+		if err == nil {
+			c.log.Tracef("Response from %s\n%s\n", c.URL, dump)
+		} else {
+			c.log.Tracef("VSP response dump failed: %v", err)
+		}
+	}
 
 	status := reply.StatusCode
 	is200 := status == 200

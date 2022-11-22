@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/decred/dcrd/txscript/v4 v4.0.0
+	github.com/decred/slog v1.2.0
 	github.com/decred/vspd/types v1.1.0
 )
 
@@ -18,5 +19,4 @@ require (
 	github.com/decred/dcrd/dcrec/edwards/v2 v2.0.2 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/decred/dcrd/wire v1.5.0 // indirect
-	github.com/decred/slog v1.2.0 // indirect
 )
