@@ -27,3 +27,5 @@ github.com/decred/dcrd/wire v1.5.0 h1:3SgcEzSjqAMQvOugP0a8iX7yQSpiVT1yNi9bc4iOXV
 github.com/decred/dcrd/wire v1.5.0/go.mod h1:fzAjVqw32LkbAZIt5mnrvBR751GTa3e0rRQdOIhPY3w=
 github.com/decred/slog v1.2.0 h1:soHAxV52B54Di3WtKLfPum9OFfWqwtf/ygf9njdfnPM=
 github.com/decred/slog v1.2.0/go.mod h1:kVXlGnt6DHy2fV5OjSeuvCJ0OmlmTF6LFpEPMu/fOY0=
+github.com/decred/vspd/types v1.1.0 h1:hTeqQwgRUN2FGIbuCIdyzBejKV+jxKrmEIcLKxpsB1g=
+github.com/decred/vspd/types v1.1.0/go.mod h1:THsO8aBSwWBq6ZsIG25cNqbkNb+EEASXzLhFvODVc0s=

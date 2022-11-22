@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
+	"github.com/decred/vspd/types"
 )
 
 type Client struct {
@@ -37,11 +38,108 @@ type BadRequestError struct {
 
 func (e *BadRequestError) Error() string { return e.Message }
 
-func (c *Client) Post(ctx context.Context, path string, addr stdaddr.Address, resp, req interface{}) error {
+func (c *Client) VspInfo(ctx context.Context) (*types.VspInfoResponse, error) {
+	var resp *types.VspInfoResponse
+	err := c.get(ctx, "/api/v3/vspinfo", &resp)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (c *Client) FeeAddress(ctx context.Context, req types.FeeAddressRequest,
+	commitmentAddr stdaddr.Address) (*types.FeeAddressResponse, error) {
+
+	requestBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp *types.FeeAddressResponse
+	err = c.post(ctx, "/api/v3/feeaddress", commitmentAddr, &resp, json.RawMessage(requestBody))
+	if err != nil {
+		return nil, err
+	}
+
+	// verify initial request matches server
+	if !bytes.Equal(requestBody, resp.Request) {
+		return nil, fmt.Errorf("server response contains differing request")
+	}
+
+	return resp, nil
+}
+
+func (c *Client) PayFee(ctx context.Context, req types.PayFeeRequest,
+	commitmentAddr stdaddr.Address) (*types.PayFeeResponse, error) {
+
+	requestBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp *types.PayFeeResponse
+	err = c.post(ctx, "/api/v3/payfee", commitmentAddr, &resp, json.RawMessage(requestBody))
+	if err != nil {
+		return nil, err
+	}
+
+	// verify initial request matches server
+	if !bytes.Equal(requestBody, resp.Request) {
+		return nil, fmt.Errorf("server response contains differing request")
+	}
+
+	return resp, nil
+}
+
+func (c *Client) TicketStatus(ctx context.Context, req types.TicketStatusRequest,
+	commitmentAddr stdaddr.Address) (*types.TicketStatusResponse, error) {
+
+	requestBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp *types.TicketStatusResponse
+	err = c.post(ctx, "/api/v3/ticketstatus", commitmentAddr, &resp, json.RawMessage(requestBody))
+	if err != nil {
+		return nil, err
+	}
+
+	// verify initial request matches server
+	if !bytes.Equal(requestBody, resp.Request) {
+		return nil, fmt.Errorf("server response contains differing request")
+	}
+
+	return resp, nil
+}
+
+func (c *Client) SetVoteChoices(ctx context.Context, req types.SetVoteChoicesRequest,
+	commitmentAddr stdaddr.Address) (*types.SetVoteChoicesResponse, error) {
+
+	requestBody, err := json.Marshal(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp *types.SetVoteChoicesResponse
+	err = c.post(ctx, "/api/v3/setvotechoices", commitmentAddr, &resp, json.RawMessage(requestBody))
+	if err != nil {
+		return nil, err
+	}
+
+	// verify initial request matches server
+	if !bytes.Equal(requestBody, resp.Request) {
+		return nil, fmt.Errorf("server response contains differing request")
+	}
+
+	return resp, nil
+}
+
+func (c *Client) post(ctx context.Context, path string, addr stdaddr.Address, resp, req interface{}) error {
 	return c.do(ctx, http.MethodPost, path, addr, resp, req)
 }
 
-func (c *Client) Get(ctx context.Context, path string, resp interface{}) error {
+func (c *Client) get(ctx context.Context, path string, resp interface{}) error {
 	return c.do(ctx, http.MethodGet, path, nil, resp, nil)
 }
 

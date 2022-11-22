@@ -2,7 +2,10 @@ module github.com/decred/vspd/client
 
 go 1.19
 
-require github.com/decred/dcrd/txscript/v4 v4.0.0
+require (
+	github.com/decred/dcrd/txscript/v4 v4.0.0
+	github.com/decred/vspd/types v1.1.0
+)
 
 require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
