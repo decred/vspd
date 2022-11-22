@@ -38,14 +38,6 @@ func NewClient(url string, pub []byte, s Signer, log slog.Logger) *Client {
 	}
 }
 
-type BadRequestError struct {
-	HTTPStatus int    `json:"-"`
-	Code       int    `json:"code"`
-	Message    string `json:"message"`
-}
-
-func (e *BadRequestError) Error() string { return e.Message }
-
 func (c *Client) VspInfo(ctx context.Context) (*types.VspInfoResponse, error) {
 	var resp *types.VspInfoResponse
 	err := c.get(ctx, "/api/v3/vspinfo", &resp)
@@ -200,17 +192,29 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 		}
 	}
 
-	status := reply.StatusCode
-	is200 := status == 200
-	is4xx := status >= 400 && status <= 499
-	if !(is200 || is4xx) {
-		return fmt.Errorf("%s %s: http %v %s", method, httpReq.URL.String(),
-			status, http.StatusText(status))
-	}
-
 	respBody, err := io.ReadAll(reply.Body)
 	if err != nil {
 		return fmt.Errorf("read response body: %w", err)
+	}
+
+	status := reply.StatusCode
+
+	if status != http.StatusOK {
+		// If no response body, just return status.
+		if len(respBody) == 0 {
+			return fmt.Errorf("http status %d (%s) with no body",
+				status, http.StatusText(status))
+		}
+
+		// Try unmarshal response body to a known vspd error.
+		var apiError types.ErrorResponse
+		err = json.Unmarshal(respBody, &apiError)
+		if err == nil {
+			return apiError
+		}
+
+		return fmt.Errorf("http status %d (%s) with body %q",
+			status, http.StatusText(status), respBody)
 	}
 
 	err = ValidateServerSignature(reply, respBody, c.PubKey)
@@ -218,21 +222,11 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 		return fmt.Errorf("authenticate server response: %v", err)
 	}
 
-	var apiError *BadRequestError
-	if is4xx {
-		apiError = new(BadRequestError)
-		resp = apiError
+	err = json.Unmarshal(respBody, resp)
+	if err != nil {
+		return fmt.Errorf("unmarshal response body: %w", err)
 	}
-	if resp != nil {
-		err = json.Unmarshal(respBody, resp)
-		if err != nil {
-			return fmt.Errorf("unmarshal respose body: %w", err)
-		}
-	}
-	if apiError != nil {
-		apiError.HTTPStatus = status
-		return apiError
-	}
+
 	return nil
 }
 
