@@ -4,36 +4,40 @@
 # Use of this source code is governed by an ISC
 # license that can be found in the LICENSE file.
 #
-# usage:
-# ./run_tests.sh
+# Usage:
+#   ./run_tests.sh
 
 set -e
 
 go version
 
-# run tests on all modules
-ROOTPKG=$(go list -m)
+# Run tests on root module and all submodules.
+echo "==> test all modules"
+ROOTPKG="github.com/decred/vspd"
+GORACE="halt_on_error=1" go test -race $ROOTPKG/...
+
+# Find submodules.
 ROOTPKGPATTERN=$(echo $ROOTPKG | sed 's/\\/\\\\/g' | sed 's/\//\\\//g')
 MODPATHS=$(go list -m all | grep "^$ROOTPKGPATTERN" | cut -d' ' -f1)
-for module in $MODPATHS; do
-  echo "==> ${module}"
-  env GORACE="halt_on_error=1" go test -race ${module}/...
 
-  # check linters
+for module in $MODPATHS; do
+
+  echo "==> lint ${module}"
+
+  # Get the path of the module.
   MODNAME=$(echo $module | sed -E -e "s/^$ROOTPKGPATTERN//" \
     -e 's,^/,,' -e 's,/v[0-9]+$,,')
   if [ -z "$MODNAME" ]; then
     MODNAME=.
   fi
 
-  # run commands in the module directory as a subshell
+  # Run commands in the module directory as a subshell.
   (
     cd $MODNAME
 
-    # run linter
     golangci-lint run
   )
 done
 
-echo "------------------------------------------"
+echo "-----------------------------"
 echo "Tests completed successfully!"
