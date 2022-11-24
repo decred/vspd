@@ -12,15 +12,15 @@ set -e
 go version
 
 # run tests on all modules
-ROOTPATH=$(go list -m)
-ROOTPATHPATTERN=$(echo $ROOTPATH | sed 's/\\/\\\\/g' | sed 's/\//\\\//g')
-MODPATHS=$(go list -m all | grep "^$ROOTPATHPATTERN" | cut -d' ' -f1)
+ROOTPKG=$(go list -m)
+ROOTPKGPATTERN=$(echo $ROOTPKG | sed 's/\\/\\\\/g' | sed 's/\//\\\//g')
+MODPATHS=$(go list -m all | grep "^$ROOTPKGPATTERN" | cut -d' ' -f1)
 for module in $MODPATHS; do
   echo "==> ${module}"
   env GORACE="halt_on_error=1" go test -race ${module}/...
 
   # check linters
-  MODNAME=$(echo $module | sed -E -e "s/^$ROOTPATHPATTERN//" \
+  MODNAME=$(echo $module | sed -E -e "s/^$ROOTPKGPATTERN//" \
     -e 's,^/,,' -e 's,/v[0-9]+$,,')
   if [ -z "$MODNAME" ]; then
     MODNAME=.
