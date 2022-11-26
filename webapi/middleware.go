@@ -6,6 +6,8 @@ package webapi
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"crypto/subtle"
 	"errors"
 	"io"
 	"net/http"
@@ -372,4 +374,20 @@ func (s *Server) vspAuth(c *gin.Context) {
 	c.Set(ticketKey, ticket)
 	c.Set(knownTicketKey, ticketFound)
 	c.Set(commitmentAddressKey, commitmentAddress)
+}
+
+// authMiddleware checks incoming requests for authentication.
+func (s *Server) authMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// User is ignored
+		_, password, ok := c.Request.BasicAuth()
+		passwordHash := sha256.Sum256([]byte(password))
+		if !ok || subtle.ConstantTimeCompare(s.cfg.AdminAuthHash[:], passwordHash[:]) != 1 {
+			s.log.Warnf("Failed authentication attempt from %s", c.ClientIP())
+			// Credentials doesn't match, we return 401 and abort handlers chain.
+			c.Header("WWW-Authenticate", `Basic realm="Authorization Required"`)
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+	}
 }

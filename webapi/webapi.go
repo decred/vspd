@@ -35,7 +35,7 @@ type Config struct {
 	SupportEmail         string
 	VspClosed            bool
 	VspClosedMsg         string
-	AdminPass            string
+	AdminAuthHash        []byte
 	Debug                bool
 	Designation          string
 	MaxVoteChangeRecords int
@@ -261,9 +261,7 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 
 	// Require Basic HTTP Auth on /admin/status endpoint.
 	basic := router.Group("/admin").Use(
-		s.withDcrdClient(dcrd), s.withWalletClients(wallets), gin.BasicAuth(gin.Accounts{
-			"admin": s.cfg.AdminPass,
-		}),
+		s.withDcrdClient(dcrd), s.withWalletClients(wallets), s.authMiddleware(),
 	)
 	basic.GET("/status", s.statusJSON)
 
