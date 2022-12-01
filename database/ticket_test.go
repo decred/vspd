@@ -53,14 +53,6 @@ func testInsertNewTicket(t *testing.T) {
 		t.Fatal("expected an error inserting ticket with duplicate hash")
 	}
 
-	// Inserting a ticket with the same fee address should fail.
-	ticket3 := exampleTicket()
-	ticket3.FeeAddress = ticket.FeeAddress
-	err = db.InsertNewTicket(ticket3)
-	if err == nil {
-		t.Fatal("expected an error inserting ticket with duplicate fee addr")
-	}
-
 	// Inserting a ticket with empty hash should fail.
 	ticket.Hash = ""
 	err = db.InsertNewTicket(ticket)

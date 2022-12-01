@@ -113,20 +113,6 @@ func (vdb *VspDatabase) InsertNewTicket(ticket Ticket) error {
 			return fmt.Errorf("could not create bucket for ticket: %w", err)
 		}
 
-		// Error if a ticket already exists with the same fee address.
-		err = ticketBkt.ForEach(func(k, v []byte) error {
-			tbkt := ticketBkt.Bucket(k)
-
-			if string(tbkt.Get(feeAddressK)) == ticket.FeeAddress {
-				return fmt.Errorf("ticket with fee address %s already exists", ticket.FeeAddress)
-			}
-
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
 		err = putTicketInBucket(newTicketBkt, ticket)
 		if err != nil {
 			return fmt.Errorf("putting ticket in bucket failed: %w", err)
