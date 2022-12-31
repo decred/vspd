@@ -19,24 +19,23 @@ import (
 
 type Client struct {
 	http.Client
-	URL    string
-	PubKey []byte
-	sign   func(context.Context, string, stdaddr.Address) ([]byte, error)
-	log    slog.Logger
+	URL      string
+	PubKey   []byte
+	Sign     SignFunc
+	Validate ValidateFunc
+	Log      slog.Logger
 }
 
-type Signer interface {
-	SignMessage(ctx context.Context, message string, address stdaddr.Address) ([]byte, error)
-}
+// SignFunc is the signature of a function must be provided to an instance of
+// Client so that it can sign request bodies using the PrivKey of the specified
+// address.
+type SignFunc func(context.Context, string, stdaddr.Address) ([]byte, error)
 
-func NewClient(url string, pub []byte, s Signer, log slog.Logger) *Client {
-	return &Client{
-		URL:    url,
-		PubKey: pub,
-		sign:   s.SignMessage,
-		log:    log,
-	}
-}
+// ValidateFunc is the signature of a function which must be provided to an
+// instance of Client so that it can validate that HTTP responses are signed
+// with the provided pubkey. This package provides a default implementation of
+// ValidateFunc named ValidateServerResponse.
+type ValidateFunc func(resp *http.Response, body []byte, serverPubkey []byte) error
 
 func (c *Client) VspInfo(ctx context.Context) (*types.VspInfoResponse, error) {
 	var resp *types.VspInfoResponse
@@ -153,7 +152,7 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 		if err != nil {
 			return fmt.Errorf("marshal request: %w", err)
 		}
-		sig, err = c.sign(ctx, string(body), addr)
+		sig, err = c.Sign(ctx, string(body), addr)
 		if err != nil {
 			return fmt.Errorf("sign request: %w", err)
 		}
@@ -168,12 +167,12 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 		httpReq.Header.Set("VSP-Client-Signature", base64.StdEncoding.EncodeToString(sig))
 	}
 
-	if c.log.Level() == slog.LevelTrace {
+	if c.Log.Level() == slog.LevelTrace {
 		dump, err := httputil.DumpRequestOut(httpReq, sendBody)
 		if err == nil {
-			c.log.Tracef("Request to %s\n%s\n", c.URL, dump)
+			c.Log.Tracef("Request to %s\n%s\n", c.URL, dump)
 		} else {
-			c.log.Tracef("VSP request dump failed: %v", err)
+			c.Log.Tracef("VSP request dump failed: %v", err)
 		}
 	}
 
@@ -183,12 +182,12 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 	}
 	defer reply.Body.Close()
 
-	if c.log.Level() == slog.LevelTrace {
+	if c.Log.Level() == slog.LevelTrace {
 		dump, err := httputil.DumpResponse(reply, true)
 		if err == nil {
-			c.log.Tracef("Response from %s\n%s\n", c.URL, dump)
+			c.Log.Tracef("Response from %s\n%s\n", c.URL, dump)
 		} else {
-			c.log.Tracef("VSP response dump failed: %v", err)
+			c.Log.Tracef("VSP response dump failed: %v", err)
 		}
 	}
 
@@ -221,7 +220,7 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 			status, http.StatusText(status), respBody)
 	}
 
-	err = ValidateServerSignature(reply, respBody, c.PubKey)
+	err = c.Validate(reply, respBody, c.PubKey)
 	if err != nil {
 		return fmt.Errorf("authenticate server response: %v", err)
 	}
