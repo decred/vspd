@@ -206,8 +206,11 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 		}
 
 		// Try to unmarshal the response body to a known vspd error.
+		d := json.NewDecoder(bytes.NewReader(respBody))
+		d.DisallowUnknownFields()
+
 		var apiError types.ErrorResponse
-		err = json.Unmarshal(respBody, &apiError)
+		err = d.Decode(&apiError)
 		if err == nil {
 			return apiError
 		}
