@@ -12,42 +12,42 @@ import (
 // TestAPIErrorAs ensures APIError can be unwrapped via errors.As.
 func TestAPIErrorAs(t *testing.T) {
 
-	tests := []struct {
-		testName        string
+	tests := map[string]struct {
 		apiError        error
 		expectedKind    ErrorCode
 		expectedMessage string
-	}{{
-		testName:        "BadRequest error",
-		apiError:        ErrorResponse{Message: "something went wrong", Code: int64(ErrBadRequest)},
-		expectedKind:    ErrBadRequest,
-		expectedMessage: "something went wrong",
-	},
-		{
-			testName:        "Unknown error",
+	}{
+		"BadRequest error": {
+			apiError:        ErrorResponse{Message: "something went wrong", Code: int64(ErrBadRequest)},
+			expectedKind:    ErrBadRequest,
+			expectedMessage: "something went wrong",
+		},
+		"Unknown error": {
 			apiError:        ErrorResponse{Message: "something went wrong again", Code: int64(999)},
 			expectedKind:    999,
 			expectedMessage: "something went wrong again",
-		}}
+		},
+	}
 
-	for _, test := range tests {
-		// Ensure APIError can be unwrapped from error.
-		var parsedError ErrorResponse
-		if !errors.As(test.apiError, &parsedError) {
-			t.Errorf("%s: unable to unwrap error", test.testName)
-			continue
-		}
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
 
-		if parsedError.Code != int64(test.expectedKind) {
-			t.Errorf("%s: error was wrong kind. expected: %d actual %d",
-				test.testName, test.expectedKind, parsedError.Code)
-			continue
-		}
+			// Ensure APIError can be unwrapped from error.
+			var parsedError ErrorResponse
+			if !errors.As(test.apiError, &parsedError) {
+				t.Fatalf("unable to unwrap error")
+			}
 
-		if parsedError.Message != test.expectedMessage {
-			t.Errorf("%s: error had wrong message. expected: %q actual %q",
-				test.testName, test.expectedMessage, parsedError.Message)
-			continue
-		}
+			if parsedError.Code != int64(test.expectedKind) {
+				t.Fatalf("error was wrong kind. expected: %d actual %d",
+					test.expectedKind, parsedError.Code)
+			}
+
+			if parsedError.Message != test.expectedMessage {
+				t.Fatalf("error had wrong message. expected: %q actual %q",
+					test.expectedMessage, parsedError.Message)
+			}
+
+		})
 	}
 }
