@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -308,7 +308,7 @@ func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
-		return ticketBkt.ForEach(func(k, v []byte) error {
+		return ticketBkt.ForEachBucket(func(k []byte) error {
 			tBkt := ticketBkt.Bucket(k)
 
 			if FeeStatus(tBkt.Get(feeTxStatusK)) == FeeConfirmed {
@@ -393,7 +393,7 @@ func (vdb *VspDatabase) filterTickets(filter func(*bolt.Bucket) bool) ([]Ticket,
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
-		return ticketBkt.ForEach(func(k, v []byte) error {
+		return ticketBkt.ForEachBucket(func(k []byte) error {
 			ticketBkt := ticketBkt.Bucket(k)
 
 			if filter(ticketBkt) {
