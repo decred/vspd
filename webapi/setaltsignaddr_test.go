@@ -130,8 +130,7 @@ func (n *testNode) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, err
 
 func TestSetAltSignAddress(t *testing.T) {
 	const testAddr = "DsVoDXNQqyF3V83PJJ5zMdnB4pQuJHBAh15"
-	tests := []struct {
-		name                  string
+	tests := map[string]struct {
 		dcrdClientErr         bool
 		vspClosed             bool
 		deformReq             int
@@ -139,78 +138,77 @@ func TestSetAltSignAddress(t *testing.T) {
 		node                  *testNode
 		isExistingAltSignAddr bool
 		wantCode              int
-	}{{
-		name: "ok",
-		addr: testAddr,
-		node: &testNode{
-			getRawTransaction: &dcrdtypes.TxRawResult{
-				Confirmations: 1000,
+	}{
+		"ok": {
+			addr: testAddr,
+			node: &testNode{
+				getRawTransaction: &dcrdtypes.TxRawResult{
+					Confirmations: 1000,
+				},
+				getRawTransactionErr: nil,
+				existsLiveTicket:     true,
 			},
-			getRawTransactionErr: nil,
-			existsLiveTicket:     true,
+			wantCode: http.StatusOK,
 		},
-		wantCode: http.StatusOK,
-	}, {
-		name:      "vsp closed",
-		vspClosed: true,
-		wantCode:  http.StatusBadRequest,
-	}, {
-		name:          "dcrd client error",
-		dcrdClientErr: true,
-		wantCode:      http.StatusInternalServerError,
-	}, {
+		"vsp closed": {
+			vspClosed: true,
+			wantCode:  http.StatusBadRequest,
+		},
+		"dcrd client error": {
+			dcrdClientErr: true,
+			wantCode:      http.StatusInternalServerError,
+		},
+		"bad request": {
+			deformReq: 1,
+			wantCode:  http.StatusBadRequest,
+		},
+		"bad addr": {
+			addr:     "xxx",
+			wantCode: http.StatusBadRequest,
+		},
+		"addr wrong type": {
+			addr:     "DkM3ZigNyiwHrsXRjkDQ8t8tW6uKGW9g61qEkG3bMqQPQWYEf5X3J",
+			wantCode: http.StatusBadRequest,
+		},
+		"getRawTransaction error from dcrd client": {
+			addr: testAddr,
+			node: &testNode{
+				getRawTransactionErr: errors.New("getRawTransaction error"),
+			},
+			wantCode: http.StatusInternalServerError,
+		},
+		"existsLiveTicket error from dcrd client": {
+			addr: testAddr,
+			node: &testNode{
+				getRawTransaction: &dcrdtypes.TxRawResult{
+					Confirmations: 1000,
+				},
+				existsLiveTicketErr: errors.New("existsLiveTicket error"),
+			},
+			wantCode: http.StatusInternalServerError,
+		},
+		"ticket can't vote": {
+			addr: testAddr,
+			node: &testNode{
+				getRawTransaction: &dcrdtypes.TxRawResult{
+					Confirmations: 1000,
+				},
+				existsLiveTicket: false,
+			},
+			wantCode: http.StatusBadRequest,
+		},
+		"only one alt sign addr allowed": {
+			addr: testAddr,
+			node: &testNode{
+				getRawTransaction: &dcrdtypes.TxRawResult{},
+				existsLiveTicket:  true,
+			},
+			isExistingAltSignAddr: true,
+			wantCode:              http.StatusBadRequest,
+		}}
 
-		name:      "bad request",
-		deformReq: 1,
-		wantCode:  http.StatusBadRequest,
-	}, {
-		name:     "bad addr",
-		addr:     "xxx",
-		wantCode: http.StatusBadRequest,
-	}, {
-		name:     "addr wrong type",
-		addr:     "DkM3ZigNyiwHrsXRjkDQ8t8tW6uKGW9g61qEkG3bMqQPQWYEf5X3J",
-		wantCode: http.StatusBadRequest,
-	}, {
-		name: "getRawTransaction error from dcrd client",
-		addr: testAddr,
-		node: &testNode{
-			getRawTransactionErr: errors.New("getRawTransaction error"),
-		},
-		wantCode: http.StatusInternalServerError,
-	}, {
-		name: "existsLiveTicket error from dcrd client",
-		addr: testAddr,
-		node: &testNode{
-			getRawTransaction: &dcrdtypes.TxRawResult{
-				Confirmations: 1000,
-			},
-			existsLiveTicketErr: errors.New("existsLiveTicket error"),
-		},
-		wantCode: http.StatusInternalServerError,
-	}, {
-		name: "ticket can't vote",
-		addr: testAddr,
-		node: &testNode{
-			getRawTransaction: &dcrdtypes.TxRawResult{
-				Confirmations: 1000,
-			},
-			existsLiveTicket: false,
-		},
-		wantCode: http.StatusBadRequest,
-	}, {
-		name: "only one alt sign addr allowed",
-		addr: testAddr,
-		node: &testNode{
-			getRawTransaction: &dcrdtypes.TxRawResult{},
-			existsLiveTicket:  true,
-		},
-		isExistingAltSignAddr: true,
-		wantCode:              http.StatusBadRequest,
-	}}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
 			ticketHash := randString(64, hexCharset)
 			req := &types.SetAltSignAddrRequest{
 				Timestamp:      time.Now().Unix(),
