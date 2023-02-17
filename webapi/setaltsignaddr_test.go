@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -130,87 +131,100 @@ func (n *testNode) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, err
 
 func TestSetAltSignAddress(t *testing.T) {
 	const testAddr = "DsVoDXNQqyF3V83PJJ5zMdnB4pQuJHBAh15"
-	tests := []struct {
-		name                  string
+	tests := map[string]struct {
 		dcrdClientErr         bool
-		vspClosed             bool
 		deformReq             int
 		addr                  string
 		node                  *testNode
 		isExistingAltSignAddr bool
-		wantCode              int
-	}{{
-		name: "ok",
-		addr: testAddr,
-		node: &testNode{
-			getRawTransaction: &dcrdtypes.TxRawResult{
-				Confirmations: 1000,
+		wantHTTPStatus        int
+		// wantErrCode and wantErrMsg only checked if wantHTTPStatus != 200.
+		wantErrCode types.ErrorCode
+		wantErrMsg  string
+	}{
+		"ok": {
+			addr: testAddr,
+			node: &testNode{
+				getRawTransaction: &dcrdtypes.TxRawResult{
+					Confirmations: 1000,
+				},
+				getRawTransactionErr: nil,
+				existsLiveTicket:     true,
 			},
-			getRawTransactionErr: nil,
-			existsLiveTicket:     true,
+			wantHTTPStatus: http.StatusOK,
 		},
-		wantCode: http.StatusOK,
-	}, {
-		name:      "vsp closed",
-		vspClosed: true,
-		wantCode:  http.StatusBadRequest,
-	}, {
-		name:          "dcrd client error",
-		dcrdClientErr: true,
-		wantCode:      http.StatusInternalServerError,
-	}, {
+		"dcrd client error": {
+			dcrdClientErr:  true,
+			wantHTTPStatus: http.StatusInternalServerError,
+			wantErrCode:    types.ErrInternalError,
+			wantErrMsg:     types.ErrInternalError.DefaultMessage(),
+		},
+		"bad request": {
+			deformReq:      1,
+			wantHTTPStatus: http.StatusBadRequest,
+			wantErrCode:    types.ErrBadRequest,
+			wantErrMsg:     "json: cannot unmarshal string into Go value of type types.SetAltSignAddrRequest",
+		},
+		"bad addr": {
+			addr:           "xxx",
+			wantHTTPStatus: http.StatusBadRequest,
+			wantErrCode:    types.ErrBadRequest,
+			wantErrMsg:     "failed to decoded address \"xxx\": invalid format: version and/or checksum bytes missing",
+		},
+		"addr wrong type": {
+			addr:           "DkM3ZigNyiwHrsXRjkDQ8t8tW6uKGW9g61qEkG3bMqQPQWYEf5X3J",
+			wantHTTPStatus: http.StatusBadRequest,
+			wantErrCode:    types.ErrBadRequest,
+			wantErrMsg:     "wrong type for alternate signing address",
+		},
+		"getRawTransaction error from dcrd client": {
+			addr: testAddr,
+			node: &testNode{
+				getRawTransactionErr: errors.New("getRawTransaction error"),
+			},
+			wantHTTPStatus: http.StatusInternalServerError,
+			wantErrCode:    types.ErrInternalError,
+			wantErrMsg:     types.ErrInternalError.DefaultMessage(),
+		},
+		"existsLiveTicket error from dcrd client": {
+			addr: testAddr,
+			node: &testNode{
+				getRawTransaction: &dcrdtypes.TxRawResult{
+					Confirmations: 1000,
+				},
+				existsLiveTicketErr: errors.New("existsLiveTicket error"),
+			},
+			wantHTTPStatus: http.StatusInternalServerError,
+			wantErrCode:    types.ErrInternalError,
+			wantErrMsg:     types.ErrInternalError.DefaultMessage(),
+		},
+		"ticket can't vote": {
+			addr: testAddr,
+			node: &testNode{
+				getRawTransaction: &dcrdtypes.TxRawResult{
+					Confirmations: 1000,
+				},
+				existsLiveTicket: false,
+			},
+			wantHTTPStatus: http.StatusBadRequest,
+			wantErrCode:    types.ErrTicketCannotVote,
+			wantErrMsg:     types.ErrTicketCannotVote.DefaultMessage(),
+		},
+		"only one alt sign addr allowed": {
+			addr: testAddr,
+			node: &testNode{
+				getRawTransaction: &dcrdtypes.TxRawResult{},
+				existsLiveTicket:  true,
+			},
+			isExistingAltSignAddr: true,
+			wantHTTPStatus:        http.StatusBadRequest,
+			wantErrCode:           types.ErrBadRequest,
+			wantErrMsg:            "alternate sign address data already exists",
+		},
+	}
 
-		name:      "bad request",
-		deformReq: 1,
-		wantCode:  http.StatusBadRequest,
-	}, {
-		name:     "bad addr",
-		addr:     "xxx",
-		wantCode: http.StatusBadRequest,
-	}, {
-		name:     "addr wrong type",
-		addr:     "DkM3ZigNyiwHrsXRjkDQ8t8tW6uKGW9g61qEkG3bMqQPQWYEf5X3J",
-		wantCode: http.StatusBadRequest,
-	}, {
-		name: "getRawTransaction error from dcrd client",
-		addr: testAddr,
-		node: &testNode{
-			getRawTransactionErr: errors.New("getRawTransaction error"),
-		},
-		wantCode: http.StatusInternalServerError,
-	}, {
-		name: "existsLiveTicket error from dcrd client",
-		addr: testAddr,
-		node: &testNode{
-			getRawTransaction: &dcrdtypes.TxRawResult{
-				Confirmations: 1000,
-			},
-			existsLiveTicketErr: errors.New("existsLiveTicket error"),
-		},
-		wantCode: http.StatusInternalServerError,
-	}, {
-		name: "ticket can't vote",
-		addr: testAddr,
-		node: &testNode{
-			getRawTransaction: &dcrdtypes.TxRawResult{
-				Confirmations: 1000,
-			},
-			existsLiveTicket: false,
-		},
-		wantCode: http.StatusBadRequest,
-	}, {
-		name: "only one alt sign addr allowed",
-		addr: testAddr,
-		node: &testNode{
-			getRawTransaction: &dcrdtypes.TxRawResult{},
-			existsLiveTicket:  true,
-		},
-		isExistingAltSignAddr: true,
-		wantCode:              http.StatusBadRequest,
-	}}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
 			ticketHash := randString(64, hexCharset)
 			req := &types.SetAltSignAddrRequest{
 				Timestamp:      time.Now().Unix(),
@@ -238,8 +252,6 @@ func TestSetAltSignAddress(t *testing.T) {
 				}
 			}
 
-			api.cfg.VspClosed = test.vspClosed
-
 			w := httptest.NewRecorder()
 			c, r := gin.CreateTestContext(w)
 
@@ -266,8 +278,31 @@ func TestSetAltSignAddress(t *testing.T) {
 
 			r.ServeHTTP(w, c.Request)
 
-			if test.wantCode != w.Code {
-				t.Fatalf("expected status %d, got %d", test.wantCode, w.Code)
+			if test.wantHTTPStatus != w.Code {
+				t.Fatalf("expected http status %d, got %d", test.wantHTTPStatus, w.Code)
+			}
+
+			if test.wantHTTPStatus != http.StatusOK {
+				respBytes, err := io.ReadAll(w.Body)
+				if err != nil {
+					t.Fatalf("failed reading response body bytes: %v", err)
+				}
+
+				var apiError types.ErrorResponse
+				err = json.Unmarshal(respBytes, &apiError)
+				if err != nil {
+					t.Fatalf("could not unmarshal error response: %v", err)
+				}
+
+				if int64(test.wantErrCode) != apiError.Code {
+					t.Fatalf("incorrect error code, expected %d, actual %d",
+						test.wantErrCode, apiError.Code)
+				}
+
+				if test.wantErrMsg != apiError.Message {
+					t.Fatalf("incorrect error message, expected %q, actual %q",
+						test.wantErrMsg, apiError.Message)
+				}
 			}
 
 			altsig, err := api.db.AltSignAddrData(ticketHash)
@@ -275,7 +310,7 @@ func TestSetAltSignAddress(t *testing.T) {
 				t.Fatalf("unable to get alt sign addr data: %v", err)
 			}
 
-			if test.wantCode != http.StatusOK && !test.isExistingAltSignAddr {
+			if test.wantHTTPStatus != http.StatusOK && !test.isExistingAltSignAddr {
 				if altsig != nil {
 					t.Fatalf("expected no alt sign addr saved for errored state")
 				}

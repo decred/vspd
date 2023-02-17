@@ -90,11 +90,6 @@ func (s *Server) feeAddress(c *gin.Context) {
 	}
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
-	if s.cfg.VspClosed {
-		s.sendError(types.ErrVspClosed, c)
-		return
-	}
-
 	var request types.FeeAddressRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
 		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)

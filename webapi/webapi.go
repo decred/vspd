@@ -236,10 +236,10 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 
 	api := router.Group("/api/v3")
 	api.GET("/vspinfo", s.vspInfo)
-	api.POST("/setaltsignaddr", s.withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.setAltSignAddr)
-	api.POST("/feeaddress", s.withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.feeAddress)
+	api.POST("/setaltsignaddr", s.vspMustBeOpen, s.withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.setAltSignAddr)
+	api.POST("/feeaddress", s.vspMustBeOpen, s.withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.feeAddress)
 	api.POST("/ticketstatus", s.withDcrdClient(dcrd), s.vspAuth, s.ticketStatus)
-	api.POST("/payfee", s.withDcrdClient(dcrd), s.vspAuth, s.payFee)
+	api.POST("/payfee", s.vspMustBeOpen, s.withDcrdClient(dcrd), s.vspAuth, s.payFee)
 	api.POST("/setvotechoices", s.withDcrdClient(dcrd), s.withWalletClients(wallets), s.vspAuth, s.setVoteChoices)
 
 	// Website routes.
