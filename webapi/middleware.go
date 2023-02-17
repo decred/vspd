@@ -111,6 +111,13 @@ func drainAndReplaceBody(req *http.Request) ([]byte, error) {
 	return reqBytes, nil
 }
 
+func (s *Server) vspMustBeOpen(c *gin.Context) {
+	if s.cfg.VspClosed {
+		s.sendError(types.ErrVspClosed, c)
+		return
+	}
+}
+
 // broadcastTicket will ensure that the local dcrd instance is aware of the
 // provided ticket.
 // Ticket hash, ticket hex, and parent hex are parsed from the request body and

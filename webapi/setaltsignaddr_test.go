@@ -133,7 +133,6 @@ func TestSetAltSignAddress(t *testing.T) {
 	const testAddr = "DsVoDXNQqyF3V83PJJ5zMdnB4pQuJHBAh15"
 	tests := map[string]struct {
 		dcrdClientErr         bool
-		vspClosed             bool
 		deformReq             int
 		addr                  string
 		node                  *testNode
@@ -153,12 +152,6 @@ func TestSetAltSignAddress(t *testing.T) {
 				existsLiveTicket:     true,
 			},
 			wantHTTPStatus: http.StatusOK,
-		},
-		"vsp closed": {
-			vspClosed:      true,
-			wantHTTPStatus: http.StatusBadRequest,
-			wantErrCode:    types.ErrVspClosed,
-			wantErrMsg:     types.ErrVspClosed.DefaultMessage(),
 		},
 		"dcrd client error": {
 			dcrdClientErr:  true,
@@ -258,8 +251,6 @@ func TestSetAltSignAddress(t *testing.T) {
 					t.Fatalf("unable to insert alt sign addr: %v", err)
 				}
 			}
-
-			api.cfg.VspClosed = test.vspClosed
 
 			w := httptest.NewRecorder()
 			c, r := gin.CreateTestContext(w)

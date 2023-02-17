@@ -36,11 +36,6 @@ func (s *Server) payFee(c *gin.Context) {
 	}
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
-	if s.cfg.VspClosed {
-		s.sendError(types.ErrVspClosed, c)
-		return
-	}
-
 	if !knownTicket {
 		s.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
 		s.sendError(types.ErrUnknownTicket, c)
