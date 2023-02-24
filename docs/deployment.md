@@ -101,24 +101,6 @@ vspd. **Do not run a voting wallet on your webserver.**
 1. Once the database is initialized, vspd can be started for normal operation by
    running it without the `--feexpub` flag.
 
-## Deploying alongside dcrstakepool
-
-It is possible to run vspd on the same infrastructure as an existing
-dcrstakepool deployment.
-
-- On the voting servers...
-  - The existing dcrd instance requires no changes.
-  - Create a new instance of dcrwallet listening for RPC connections on a
-    different port. Ensure the new wallet is unlocked and voting is enabled
-    (dcrstakepool wallet should still have voting disabled).
-
-- On the front-end server...
-  - Run an instance of dcrd with txindex enabled.
-  - Run the vspd binary
-    - Configure webserver to proxy requests from the internet to vspd.
-    - Configure vspd to use the newly created dcrwallet instances.
-  - Web requests for `/api/v3` should be redirected to vspd.
-
 ## Monitoring
 
 A monitoring system with alerting should be pointed at vspd and tested/verified
