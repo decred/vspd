@@ -28,7 +28,7 @@ const appName = "vspd"
 
 var (
 	defaultListen         = ":8800"
-	defaultLogLevel       = slog.LevelDebug.String()
+	defaultLogLevel       = "debug"
 	defaultMaxLogSize     = int64(10)
 	defaultLogsToKeep     = 20
 	defaultVSPFee         = 3.0
