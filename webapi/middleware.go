@@ -6,10 +6,13 @@ package webapi
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/decred/dcrd/blockchain/stake/v4"
 	"github.com/decred/vspd/rpc"
@@ -19,6 +22,10 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/jrick/wsrpc/v2"
 )
+
+// TicketSearchMessageFmt is the format for the message to be signed
+// in order to search for a ticket using the vspd frontend.
+const TicketSearchMessageFmt = "I want to check vspd ticket status for ticket %s at vsp with pubkey %s on window %d."
 
 // withSession middleware adds a gorilla session to the request context for
 // downstream handlers to make use of. Sessions are used by admin pages to
@@ -379,4 +386,112 @@ func (s *Server) vspAuth(c *gin.Context) {
 	c.Set(ticketKey, ticket)
 	c.Set(knownTicketKey, ticketFound)
 	c.Set(commitmentAddressKey, commitmentAddress)
+}
+
+// ticketSearchAuth middleware reads the request form body and extracts the
+// ticket hash and signature from the base64 string provided. The commitment
+// address for the ticket is retrieved from the database if it is known, or it
+// is retrieved from the chain if not. The middleware errors out if required
+// information is not provided or the signature does not contain a message
+// signed with the commitment address. Ticket information is added to the
+// request context for downstream handlers to use.
+func (s *Server) ticketSearchAuth(c *gin.Context) {
+	funcName := "ticketSearchAuth"
+
+	encodedString := c.PostForm("encoded")
+
+	// Get information added to context.
+	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+	dcrdErr := c.MustGet(dcrdErrorKey)
+	if dcrdErr != nil {
+		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
+		c.Set(errorKey, errInternalError)
+		return
+	}
+
+	currentBlockHeader, err := dcrdClient.GetBestBlockHeader()
+	if err != nil {
+		s.log.Errorf("%s: Error getting best block header : %v", funcName, err)
+		c.Set(errorKey, errInternalError)
+		// Average blocks per day for the current network.
+		blocksPerDay := (24 * time.Hour) / s.cfg.NetParams.TargetTimePerBlock
+		blockWindow := int(currentBlockHeader.Height) / int(blocksPerDay)
+
+		decodedByte, err := base64.StdEncoding.DecodeString(encodedString)
+		if err != nil {
+			s.log.Errorf("%s: Decoding form data error : %v", funcName, err)
+			c.Set(errorKey, errBadRequest)
+			return
+		}
+
+		data := strings.Split(string(decodedByte), ":")
+		if len(data) != 2 {
+			c.Set(errorKey, errBadRequest)
+			return
+		}
+
+		ticketHash := data[0]
+		signature := data[1]
+		vspPublicKey := s.cache.data.PubKey
+		messageSigned := fmt.Sprintf(TicketSearchMessageFmt, ticketHash, vspPublicKey, blockWindow)
+
+		// Before hitting the db or any RPC, ensure this is a valid ticket hash.
+		err = validateTicketHash(ticketHash)
+		if err != nil {
+			s.log.Errorf("%s: Invalid ticket (clientIP=%s): %v", funcName, c.ClientIP(), err)
+			c.Set(errorKey, errInvalidTicket)
+			return
+		}
+
+		// Check if this ticket already appears in the database.
+		ticket, ticketFound, err := s.db.GetTicketByHash(ticketHash)
+		if err != nil {
+			s.log.Errorf("%s: db.GetTicketByHash error (ticketHash=%s): %v", funcName, ticketHash, err)
+			c.Set(errorKey, errInternalError)
+			return
+		}
+
+		if !ticketFound {
+			s.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
+			c.Set(errorKey, errUnknownTicket)
+			return
+		}
+
+		// If the ticket was found in the database, we already know its
+		// commitment address. Otherwise we need to get it from the chain.
+		var commitmentAddress string
+		if ticketFound {
+			commitmentAddress = ticket.CommitmentAddress
+		} else {
+			commitmentAddress, err = getCommitmentAddress(ticketHash, dcrdClient, s.cfg.NetParams)
+			if err != nil {
+				s.log.Errorf("%s: Failed to get commitment address (clientIP=%s, ticketHash=%s): %v",
+					funcName, c.ClientIP(), ticketHash, err)
+
+				var apiErr *apiError
+				if errors.Is(err, apiErr) {
+					c.Set(errorKey, errInvalidTicket)
+				} else {
+					c.Set(errorKey, errInternalError)
+				}
+
+				return
+			}
+		}
+
+		// Validate request signature to ensure ticket ownership.
+		err = validateSignature(ticketHash, commitmentAddress, signature, messageSigned, s.db, s.cfg.NetParams)
+		if err != nil {
+			s.log.Errorf("%s: Couldn't validate signature (clientIP=%s, ticketHash=%s): %v",
+				funcName, c.ClientIP(), ticketHash, err)
+			c.Set(errorKey, errBadSignature)
+			return
+		}
+
+		// Add ticket information to context so downstream handlers don't need
+		// to access the db for it.
+		c.Set(ticketKey, ticket)
+		c.Set(knownTicketKey, ticketFound)
+		c.Set(errorKey, nil)
+	}
 }
