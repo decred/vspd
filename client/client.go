@@ -19,23 +19,14 @@ import (
 
 type Client struct {
 	http.Client
-	URL      string
-	PubKey   []byte
-	Sign     SignFunc
-	Validate ValidateFunc
-	Log      slog.Logger
+	URL    string
+	PubKey []byte
+	// Sign is a function which must be provided to an instance of Client so
+	// that it can sign request bodies using the PrivKey of the specified
+	// address.
+	Sign func(context.Context, string, stdaddr.Address) ([]byte, error)
+	Log  slog.Logger
 }
-
-// SignFunc is the signature of a function must be provided to an instance of
-// Client so that it can sign request bodies using the PrivKey of the specified
-// address.
-type SignFunc func(context.Context, string, stdaddr.Address) ([]byte, error)
-
-// ValidateFunc is the signature of a function which must be provided to an
-// instance of Client so that it can validate that HTTP responses are signed
-// with the provided pubkey. This package provides a default implementation of
-// ValidateFunc named ValidateServerResponse.
-type ValidateFunc func(resp *http.Response, body []byte, serverPubkey []byte) error
 
 func (c *Client) VspInfo(ctx context.Context) (*types.VspInfoResponse, error) {
 	var resp *types.VspInfoResponse
@@ -223,7 +214,7 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 			status, http.StatusText(status), respBody)
 	}
 
-	err = c.Validate(reply, respBody, c.PubKey)
+	err = ValidateServerSignature(reply, respBody, c.PubKey)
 	if err != nil {
 		return fmt.Errorf("authenticate server response: %v", err)
 	}

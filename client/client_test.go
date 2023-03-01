@@ -7,18 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/slog"
 	"github.com/decred/vspd/types"
 )
-
-func NoopSign(ctx context.Context, message string, address stdaddr.Address) ([]byte, error) {
-	return nil, nil
-}
-
-func NoopValidate(resp *http.Response, body []byte, serverPubkey []byte) error {
-	return nil
-}
 
 // TestErrorDetails ensures errors returned by client.do contain adequate
 // information for debugging (HTTP status and response body).
@@ -68,11 +59,9 @@ func TestErrorDetails(t *testing.T) {
 			}))
 
 			client := Client{
-				URL:      testServer.URL,
-				PubKey:   []byte("fake pubkey"),
-				Sign:     NoopSign,
-				Validate: NoopValidate,
-				Log:      slog.Disabled,
+				URL:    testServer.URL,
+				PubKey: []byte("fake pubkey"),
+				Log:    slog.Disabled,
 			}
 
 			var resp interface{}
