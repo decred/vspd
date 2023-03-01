@@ -16,34 +16,43 @@ import (
 func TestErrorDetails(t *testing.T) {
 
 	tests := map[string]struct {
-		httpStatus        int
-		responseBodyBytes []byte
-		expectedErr       string
-		vspdError         bool
+		respHTTPStatus int
+		respBodyBytes  []byte
+		expectedErr    string
+		vspdError      bool
+		vspdErrCode    int64
 	}{
-		"500, vspd error": {
-			httpStatus:        500,
-			responseBodyBytes: []byte(`{"code": 1, "message": "bad request"}`),
-			expectedErr:       `bad request`,
-			vspdError:         true,
+		"500, vspd error (generic bad request)": {
+			respHTTPStatus: 500,
+			respBodyBytes:  []byte(`{"code": 1, "message": "bad request"}`),
+			expectedErr:    `bad request`,
+			vspdError:      true,
+			vspdErrCode:    1,
+		},
+		"428, vspd error (cannot broadcast fee)": {
+			respHTTPStatus: 428,
+			respBodyBytes:  []byte(`{"code": 16, "message": "fee transaction could not be broadcast due to unknown outputs"}`),
+			expectedErr:    `fee transaction could not be broadcast due to unknown outputs`,
+			vspdError:      true,
+			vspdErrCode:    16,
 		},
 		"500, no body": {
-			httpStatus:        500,
-			responseBodyBytes: nil,
-			expectedErr:       `http status 500 (Internal Server Error) with no body`,
-			vspdError:         false,
+			respHTTPStatus: 500,
+			respBodyBytes:  nil,
+			expectedErr:    `http status 500 (Internal Server Error) with no body`,
+			vspdError:      false,
 		},
 		"500, non vspd error": {
-			httpStatus:        500,
-			responseBodyBytes: []byte(`an error occurred`),
-			expectedErr:       `http status 500 (Internal Server Error) with body "an error occurred"`,
-			vspdError:         false,
+			respHTTPStatus: 500,
+			respBodyBytes:  []byte(`an error occurred`),
+			expectedErr:    `http status 500 (Internal Server Error) with body "an error occurred"`,
+			vspdError:      false,
 		},
 		"500, non vspd error (json)": {
-			httpStatus:        500,
-			responseBodyBytes: []byte(`{"some": "json"}`),
-			expectedErr:       `http status 500 (Internal Server Error) with body "{\"some\": \"json\"}"`,
-			vspdError:         false,
+			respHTTPStatus: 500,
+			respBodyBytes:  []byte(`{"some": "json"}`),
+			expectedErr:    `http status 500 (Internal Server Error) with body "{\"some\": \"json\"}"`,
+			vspdError:      false,
 		},
 	}
 
@@ -51,8 +60,8 @@ func TestErrorDetails(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 
 			testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-				res.WriteHeader(testData.httpStatus)
-				_, err := res.Write(testData.responseBodyBytes)
+				res.WriteHeader(testData.respHTTPStatus)
+				_, err := res.Write(testData.respBodyBytes)
 				if err != nil {
 					t.Fatalf("writing response body failed: %v", err)
 				}
@@ -83,6 +92,11 @@ func TestErrorDetails(t *testing.T) {
 				var e types.ErrorResponse
 				if !errors.As(err, &e) {
 					t.Fatal("unable to unwrap vspd error")
+				}
+
+				if e.Code != testData.vspdErrCode {
+					t.Fatalf("incorrect vspd error code, expected %d, got %d",
+						testData.vspdErrCode, e.Code)
 				}
 			}
 
