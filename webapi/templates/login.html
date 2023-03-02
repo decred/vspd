@@ -4,9 +4,9 @@
     <h1>Login</h1>
     <form class="py-3" action="/admin" method="post">
 
-        <input type="password" name="password" required placeholder="Enter password">
+        <input type="password" name="password" autofocus required placeholder="Enter password">
         
-        <p class="my-1 orange" style="visibility:{{ if .IncorrectPassword }}visible{{ else }}hidden{{ end }};">Incorrect password</p>
+        <p class="my-1 orange" style="visibility:{{ if .FailedLoginMsg }}visible{{ else }}hidden{{ end }};">{{ .FailedLoginMsg }}</p>
 
         <button class="btn btn-primary" type="submit">Login</button>
     </form>

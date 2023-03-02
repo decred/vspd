@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -249,7 +249,17 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	login := router.Group("/admin").Use(
 		s.withSession(cookieStore),
 	)
-	login.POST("", s.adminLogin)
+
+	// Limit login attempts to 3 per second.
+	loginRateLmiter := rateLimit(3, func(c *gin.Context) {
+		s.log.Warnf("Login rate limit exceeded by %s", c.ClientIP())
+		c.HTML(http.StatusTooManyRequests, "login.html", gin.H{
+			"WebApiCache":    s.cache.getData(),
+			"WebApiCfg":      s.cfg,
+			"FailedLoginMsg": "Rate limit exceeded",
+		})
+	})
+	login.POST("", loginRateLmiter, s.adminLogin)
 
 	admin := router.Group("/admin").Use(
 		s.withWalletClients(wallets), s.withSession(cookieStore), s.requireAdmin,

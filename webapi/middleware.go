@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,6 +10,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/decred/dcrd/blockchain/stake/v4"
 	"github.com/decred/vspd/rpc"
@@ -18,7 +20,42 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/gorilla/sessions"
 	"github.com/jrick/wsrpc/v2"
+	"golang.org/x/time/rate"
 )
+
+// rateLimit middleware limits how many requests each client IP can submit per
+// second. If the limit is exceeded the limitExceeded handler will be executed
+// and the context will be aborted.
+func rateLimit(limit rate.Limit, limitExceeded gin.HandlerFunc) gin.HandlerFunc {
+	var limitersMtx sync.Mutex
+	limiters := make(map[string]*rate.Limiter)
+
+	// Clear limiters every hour so they arent accumulating infinitely.
+	go func() {
+		for {
+			<-time.After(time.Hour)
+			limitersMtx.Lock()
+			limiters = make(map[string]*rate.Limiter)
+			limitersMtx.Unlock()
+		}
+	}()
+
+	return func(c *gin.Context) {
+		limitersMtx.Lock()
+		defer limitersMtx.Unlock()
+
+		// Create a limiter for this IP if one does not exist.
+		if _, ok := limiters[c.ClientIP()]; !ok {
+			limiters[c.ClientIP()] = rate.NewLimiter(limit, 1)
+		}
+
+		// Check if this IP exceeds limit.
+		if !limiters[c.ClientIP()].Allow() {
+			limitExceeded(c)
+			c.Abort()
+		}
+	}
+}
 
 // withSession middleware adds a gorilla session to the request context for
 // downstream handlers to make use of. Sessions are used by admin pages to
