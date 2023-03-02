@@ -101,6 +101,20 @@ vspd. **Do not run a voting wallet on your webserver.**
 1. Once the database is initialized, vspd can be started for normal operation by
    running it without the `--feexpub` flag.
 
+1. Configure nginx with SSL and set up reverse proxy to forward requests to the
+   vspd process. nginx must also set the `X-Forwarded-For` header to make vspd
+   aware of the IP address of clients. Client IPs are used for logging and rate
+   limiting.
+
+    ```no-higlight
+    server {
+        location / {
+            proxy_pass http://127.0.0.1:8800/;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+    }
+    ```
+
 ## Monitoring
 
 A monitoring system with alerting should be pointed at vspd and tested/verified
