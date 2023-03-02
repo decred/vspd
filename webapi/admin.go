@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -200,9 +200,9 @@ func (s *Server) adminLogin(c *gin.Context) {
 	if password != s.cfg.AdminPass {
 		s.log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"WebApiCache":       s.cache.getData(),
-			"WebApiCfg":         s.cfg,
-			"IncorrectPassword": true,
+			"WebApiCache":    s.cache.getData(),
+			"WebApiCfg":      s.cfg,
+			"FailedLoginMsg": "Incorrect password",
 		})
 		return
 	}
