@@ -69,6 +69,8 @@ github.com/decred/dcrd/wire v1.5.0/go.mod h1:fzAjVqw32LkbAZIt5mnrvBR751GTa3e0rRQ
 github.com/decred/go-socks v1.1.0/go.mod h1:sDhHqkZH0X4JjSa02oYOGhcGHYp12FsY1jQ/meV8md0=
 github.com/decred/slog v1.2.0 h1:soHAxV52B54Di3WtKLfPum9OFfWqwtf/ygf9njdfnPM=
 github.com/decred/slog v1.2.0/go.mod h1:kVXlGnt6DHy2fV5OjSeuvCJ0OmlmTF6LFpEPMu/fOY0=
+github.com/decred/vspd/client v1.1.0 h1:vyMjbT9jGuH96yNsv2msx5E/DP7xk3ePIU7XWhu1Des=
+github.com/decred/vspd/client v1.1.0/go.mod h1:+gn860mKciikYxQrPm+hSVMEG8CQ7EWf/vN9pZa3Baw=
 github.com/decred/vspd/types v1.1.0 h1:hTeqQwgRUN2FGIbuCIdyzBejKV+jxKrmEIcLKxpsB1g=
 github.com/decred/vspd/types v1.1.0/go.mod h1:THsO8aBSwWBq6ZsIG25cNqbkNb+EEASXzLhFvODVc0s=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
