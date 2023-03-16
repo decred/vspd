@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Decred developers
+// Copyright (c) 2022-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -18,12 +18,12 @@ func TestAPIErrorAs(t *testing.T) {
 		expectedMessage string
 	}{
 		"BadRequest error": {
-			apiError:        ErrorResponse{Message: "something went wrong", Code: int64(ErrBadRequest)},
+			apiError:        ErrorResponse{Message: "something went wrong", Code: ErrBadRequest},
 			expectedKind:    ErrBadRequest,
 			expectedMessage: "something went wrong",
 		},
 		"Unknown error": {
-			apiError:        ErrorResponse{Message: "something went wrong again", Code: int64(999)},
+			apiError:        ErrorResponse{Message: "something went wrong again", Code: 999},
 			expectedKind:    999,
 			expectedMessage: "something went wrong again",
 		},
@@ -38,7 +38,7 @@ func TestAPIErrorAs(t *testing.T) {
 				t.Fatalf("unable to unwrap error")
 			}
 
-			if parsedError.Code != int64(test.expectedKind) {
+			if parsedError.Code != test.expectedKind {
 				t.Fatalf("error was wrong kind. expected: %d actual %d",
 					test.expectedKind, parsedError.Code)
 			}
