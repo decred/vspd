@@ -14,7 +14,7 @@ import (
 
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/slog"
-	"github.com/decred/vspd/types"
+	"github.com/decred/vspd/types/v2"
 )
 
 type Client struct {
