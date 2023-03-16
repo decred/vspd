@@ -17,6 +17,7 @@ require (
 	github.com/decred/slog v1.2.0
 	github.com/decred/vspd/client v1.1.0
 	github.com/decred/vspd/types v1.1.0
+	github.com/decred/vspd/types/v2 v2.0.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-gonic/gin v1.8.2
 	github.com/gorilla/sessions v1.2.1

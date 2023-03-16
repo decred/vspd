@@ -73,6 +73,8 @@ github.com/decred/vspd/client v1.1.0 h1:vyMjbT9jGuH96yNsv2msx5E/DP7xk3ePIU7XWhu1
 github.com/decred/vspd/client v1.1.0/go.mod h1:+gn860mKciikYxQrPm+hSVMEG8CQ7EWf/vN9pZa3Baw=
 github.com/decred/vspd/types v1.1.0 h1:hTeqQwgRUN2FGIbuCIdyzBejKV+jxKrmEIcLKxpsB1g=
 github.com/decred/vspd/types v1.1.0/go.mod h1:THsO8aBSwWBq6ZsIG25cNqbkNb+EEASXzLhFvODVc0s=
+github.com/decred/vspd/types/v2 v2.0.0 h1:FaPA+W4OOMRWK+Vk4fyyYdXoVLRMMRQsxzsnSjJjOnI=
+github.com/decred/vspd/types/v2 v2.0.0/go.mod h1:2xnNqedkt9GuL+pK8uIzDxqYxFlwLRflYFJH64b76n0=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=

@@ -22,7 +22,7 @@ import (
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
-	"github.com/decred/vspd/types"
+	"github.com/decred/vspd/types/v2"
 	"github.com/gin-gonic/gin"
 )
 
@@ -294,7 +294,7 @@ func TestSetAltSignAddress(t *testing.T) {
 					t.Fatalf("could not unmarshal error response: %v", err)
 				}
 
-				if int64(test.wantErrCode) != apiError.Code {
+				if test.wantErrCode != apiError.Code {
 					t.Fatalf("incorrect error code, expected %d, actual %d",
 						test.wantErrCode, apiError.Code)
 				}
