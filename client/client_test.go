@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/decred/slog"
-	"github.com/decred/vspd/types"
+	"github.com/decred/vspd/types/v2"
 )
 
 // TestErrorDetails ensures errors returned by client.do contain adequate
@@ -22,21 +22,28 @@ func TestErrorDetails(t *testing.T) {
 		respBodyBytes  []byte
 		expectedErr    string
 		vspdError      bool
-		vspdErrCode    int64
+		vspdErrCode    types.ErrorCode
 	}{
 		"500, vspd error (generic bad request)": {
 			respHTTPStatus: 500,
-			respBodyBytes:  []byte(`{"code": 1, "message": "bad request"}`),
+			respBodyBytes:  []byte(`{"code": 0, "message": "bad request"}`),
 			expectedErr:    `bad request`,
 			vspdError:      true,
-			vspdErrCode:    1,
+			vspdErrCode:    types.ErrBadRequest,
+		},
+		"500, vspd error (generic internal error)": {
+			respHTTPStatus: 500,
+			respBodyBytes:  []byte(`{"code": 1, "message": "something terrible happened"}`),
+			expectedErr:    `something terrible happened`,
+			vspdError:      true,
+			vspdErrCode:    types.ErrInternalError,
 		},
 		"428, vspd error (cannot broadcast fee)": {
 			respHTTPStatus: 428,
 			respBodyBytes:  []byte(`{"code": 16, "message": "fee transaction could not be broadcast due to unknown outputs"}`),
 			expectedErr:    `fee transaction could not be broadcast due to unknown outputs`,
 			vspdError:      true,
-			vspdErrCode:    16,
+			vspdErrCode:    types.ErrCannotBroadcastFeeUnknownOutputs,
 		},
 		"500, no body": {
 			respHTTPStatus: 500,

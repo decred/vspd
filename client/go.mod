@@ -1,11 +1,11 @@
-module github.com/decred/vspd/client
+module github.com/decred/vspd/client/v2
 
 go 1.19
 
 require (
 	github.com/decred/dcrd/txscript/v4 v4.0.0
 	github.com/decred/slog v1.2.0
-	github.com/decred/vspd/types v1.1.0
+	github.com/decred/vspd/types/v2 v2.0.0
 )
 
 require (
