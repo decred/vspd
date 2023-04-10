@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/decred/slog"
-	"github.com/decred/vspd/client"
-	"github.com/decred/vspd/types"
+	"github.com/decred/vspd/client/v2"
+	"github.com/decred/vspd/types/v2"
 )
 
 const (
