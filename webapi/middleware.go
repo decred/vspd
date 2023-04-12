@@ -15,7 +15,7 @@ import (
 
 	"github.com/decred/dcrd/blockchain/stake/v4"
 	"github.com/decred/vspd/rpc"
-	"github.com/decred/vspd/types"
+	"github.com/decred/vspd/types/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/gorilla/sessions"

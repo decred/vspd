@@ -21,7 +21,7 @@ import (
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
-	"github.com/decred/vspd/types"
+	"github.com/decred/vspd/types/v2"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
@@ -313,7 +313,7 @@ func (s *Server) sendErrorWithMsg(msg string, e types.ErrorCode, c *gin.Context)
 	status := e.HTTPStatus()
 
 	resp := types.ErrorResponse{
-		Code:    int64(e),
+		Code:    e,
 		Message: msg,
 	}
 
