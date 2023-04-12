@@ -1,3 +1,7 @@
+// Copyright (c) 2021-2023 The Decred developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package main
 
 import (
@@ -9,11 +13,11 @@ import (
 	"fmt"
 	"strings"
 
-	wallettypes "decred.org/dcrwallet/v2/rpc/jsonrpc/types"
-	"github.com/decred/dcrd/blockchain/stake/v4"
+	wallettypes "decred.org/dcrwallet/v3/rpc/jsonrpc/types"
+	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v4"
-	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
+	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"

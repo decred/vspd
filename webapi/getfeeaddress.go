@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2021-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"decred.org/dcrwallet/v2/wallet/txrules"
+	"decred.org/dcrwallet/v3/wallet/txrules"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
