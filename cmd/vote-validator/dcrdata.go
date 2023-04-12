@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Decred developers
+// Copyright (c) 2021-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,7 +11,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/decred/dcrd/rpc/jsonrpc/types/v3"
+	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 )
 
 type txns struct {
@@ -24,22 +24,22 @@ type txInputID struct {
 }
 
 type vout struct {
-	Value               float64                  `json:"value"`
-	N                   uint32                   `json:"n"`
-	Version             uint16                   `json:"version"`
-	ScriptPubKeyDecoded types.ScriptPubKeyResult `json:"scriptPubKey"`
-	Spend               *txInputID               `json:"spend"`
+	Value               float64                      `json:"value"`
+	N                   uint32                       `json:"n"`
+	Version             uint16                       `json:"version"`
+	ScriptPubKeyDecoded dcrdtypes.ScriptPubKeyResult `json:"scriptPubKey"`
+	Spend               *txInputID                   `json:"spend"`
 }
 
 type tx struct {
-	TxID          string      `json:"txid"`
-	Size          int32       `json:"size"`
-	Version       int32       `json:"version"`
-	Locktime      uint32      `json:"locktime"`
-	Expiry        uint32      `json:"expiry"`
-	Vin           []types.Vin `json:"vin"`
-	Vout          []vout      `json:"vout"`
-	Confirmations int64       `json:"confirmations"`
+	TxID          string          `json:"txid"`
+	Size          int32           `json:"size"`
+	Version       int32           `json:"version"`
+	Locktime      uint32          `json:"locktime"`
+	Expiry        uint32          `json:"expiry"`
+	Vin           []dcrdtypes.Vin `json:"vin"`
+	Vout          []vout          `json:"vout"`
+	Confirmations int64           `json:"confirmations"`
 }
 
 type dcrdataClient struct {

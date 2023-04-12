@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2021-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,9 +10,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/decred/dcrd/blockchain/v4"
 	"github.com/decred/dcrd/chaincfg/v3"
-	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v3"
+	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/slog"
 	"github.com/jrick/bitset"
@@ -21,8 +20,6 @@ import (
 
 var (
 	requiredDcrdVersion = semver{Major: 7, Minor: 0, Patch: 0}
-
-	activeStatus = blockchain.ThresholdStateTuple{State: blockchain.ThresholdActive}.String()
 )
 
 // These error codes are defined in dcrd/dcrjson. They are copied here so we
@@ -189,7 +186,7 @@ func (c *DcrdRPC) IsDCP0010Active() (bool, error) {
 			chaincfg.VoteIDChangeSubsidySplit)
 	}
 
-	return agenda.Status == activeStatus, nil
+	return agenda.Status == dcrdtypes.AgendaInfoStatusActive, nil
 }
 
 // NotifyBlocks uses notifyblocks RPC to request new block notifications from dcrd.

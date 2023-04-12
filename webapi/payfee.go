@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2021-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/decred/dcrd/blockchain/v4"
+	blockchain "github.com/decred/dcrd/blockchain/standalone/v2"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/vspd/database"
@@ -135,7 +135,7 @@ func (s *Server) payFee(c *gin.Context) {
 		return
 	}
 
-	err = blockchain.CheckTransactionSanity(feeTx, s.cfg.NetParams)
+	err = blockchain.CheckTransactionSanity(feeTx, uint64(s.cfg.NetParams.MaxTxSize))
 	if err != nil {
 		s.log.Warnf("%s: Fee tx failed sanity check (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
