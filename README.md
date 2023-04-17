@@ -9,8 +9,9 @@
 
 <img src="./docs/img/stakey.png" align="right" />
 
-vspd is a from scratch implementation of a Voting Service Provider (VSP) for
-the Decred network.
+[First announced in 2020](https://blog.decred.org/2020/06/02/A-More-Private-Way-to-Stake/),
+vspd is a from scratch implementation of a Voting Service Provider (VSP) for the
+Decred network.
 
 A VSP running vspd can be used to vote on any ticket - tickets do not need to
 be purchased with any special conditions such as dedicated outputs for paying
