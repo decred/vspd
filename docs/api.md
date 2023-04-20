@@ -13,13 +13,13 @@
   ```
 
   A full list of error codes can be looked up in
-  [webapi/errors.go](../webapi/errors.go)
+  [types/errors.go](../types/errors.go)
 
 - Requests which reference specific tickets need to be properly signed as
   described in [two-way-accountability.md](./two-way-accountability.md).
 
 - Implementation of request and response types can be found in
-  [webapi/types.go](../webapi/types.go).
+  [types/types.go](../types/types.go).
 
 - The initial version of the vspd API is version 3. This is because the first
   version of the vspd API actually represents the third iteration of VSP APIs.
