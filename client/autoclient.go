@@ -1,4 +1,4 @@
-package vsp
+package client
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/wire"
-	vspd "github.com/decred/vspd/client/v2"
+	"github.com/decred/slog"
 )
 
 type DialFunc func(ctx context.Context, network, addr string) (net.Conn, error)
@@ -27,13 +27,15 @@ type Policy struct {
 	FeeAcct    uint32 // to pay fees from, if inputs are not provided to Process
 }
 
-type Client struct {
+type AutoClient struct {
 	wallet *wallet.Wallet
 	policy Policy
-	*vspd.Client
+	*Client
 
 	mu   sync.Mutex
 	jobs map[chainhash.Hash]*feePayment
+
+	log slog.Logger
 }
 
 type Config struct {
@@ -54,7 +56,7 @@ type Config struct {
 	Policy Policy
 }
 
-func New(cfg Config) (*Client, error) {
+func New(cfg Config, log slog.Logger) (*AutoClient, error) {
 	u, err := url.Parse(cfg.URL)
 	if err != nil {
 		return nil, err
@@ -67,7 +69,7 @@ func New(cfg Config) (*Client, error) {
 		return nil, fmt.Errorf("wallet option not set")
 	}
 
-	client := &vspd.Client{
+	client := &Client{
 		URL:    u.String(),
 		PubKey: pubKey,
 		Sign:   cfg.Wallet.SignMessage,
@@ -77,16 +79,17 @@ func New(cfg Config) (*Client, error) {
 		DialContext: cfg.Dialer,
 	}
 
-	v := &Client{
+	v := &AutoClient{
 		wallet: cfg.Wallet,
 		policy: cfg.Policy,
 		Client: client,
 		jobs:   make(map[chainhash.Hash]*feePayment),
+		log:    log,
 	}
 	return v, nil
 }
 
-func (c *Client) FeePercentage(ctx context.Context) (float64, error) {
+func (c *AutoClient) FeePercentage(ctx context.Context) (float64, error) {
 	resp, err := c.Client.VspInfo(ctx)
 	if err != nil {
 		return -1, err
@@ -96,9 +99,9 @@ func (c *Client) FeePercentage(ctx context.Context) (float64, error) {
 
 // ProcessUnprocessedTickets processes all tickets that don't currently have
 // any association with a VSP.
-func (c *Client) ProcessUnprocessedTickets(ctx context.Context) {
+func (c *AutoClient) ProcessUnprocessedTickets(ctx context.Context) {
 	var wg sync.WaitGroup
-	c.wallet.ForUnspentUnexpiredTickets(ctx, func(hash *chainhash.Hash) error {
+	_ = c.wallet.ForUnspentUnexpiredTickets(ctx, func(hash *chainhash.Hash) error {
 		// Skip tickets which have a fee tx already associated with
 		// them; they are already processed by some vsp.
 		_, err := c.wallet.VSPFeeHashForTicket(ctx, hash)
@@ -107,7 +110,7 @@ func (c *Client) ProcessUnprocessedTickets(ctx context.Context) {
 		}
 		confirmed, err := c.wallet.IsVSPTicketConfirmed(ctx, hash)
 		if err != nil && !errors.Is(err, errors.NotExist) {
-			log.Error(err)
+			c.log.Error(err)
 			return nil
 		}
 
@@ -129,7 +132,7 @@ func (c *Client) ProcessUnprocessedTickets(ctx context.Context) {
 			defer wg.Done()
 			err := c.Process(ctx, hash, nil)
 			if err != nil {
-				log.Error(err)
+				c.log.Error(err)
 			}
 		}()
 
@@ -139,7 +142,7 @@ func (c *Client) ProcessUnprocessedTickets(ctx context.Context) {
 }
 
 // ProcessTicket attempts to process a given ticket based on the hash provided.
-func (c *Client) ProcessTicket(ctx context.Context, hash *chainhash.Hash) error {
+func (c *AutoClient) ProcessTicket(ctx context.Context, hash *chainhash.Hash) error {
 	err := c.Process(ctx, hash, nil)
 	if err != nil {
 		return err
@@ -151,12 +154,12 @@ func (c *Client) ProcessTicket(ctx context.Context, hash *chainhash.Hash) error 
 // a VSP and begins syncing them in the background.  This is used to recover VSP
 // tracking after seed restores, and is only performed on unspent and unexpired
 // tickets.
-func (c *Client) ProcessManagedTickets(ctx context.Context) error {
+func (c *AutoClient) ProcessManagedTickets(ctx context.Context) error {
 	err := c.wallet.ForUnspentUnexpiredTickets(ctx, func(hash *chainhash.Hash) error {
 		// We only want to process tickets that haven't been confirmed yet.
 		confirmed, err := c.wallet.IsVSPTicketConfirmed(ctx, hash)
 		if err != nil && !errors.Is(err, errors.NotExist) {
-			log.Error(err)
+			c.log.Error(err)
 			return nil
 		}
 		if confirmed {
@@ -219,7 +222,7 @@ func (c *Client) ProcessManagedTickets(ctx context.Context) error {
 // with the inputs and the fee and change outputs before returning without an
 // error.  The fee transaction is also recorded as unpublised in the wallet, and
 // the fee hash is associated with the ticket.
-func (c *Client) Process(ctx context.Context, ticketHash *chainhash.Hash, feeTx *wire.MsgTx) error {
+func (c *AutoClient) Process(ctx context.Context, ticketHash *chainhash.Hash, feeTx *wire.MsgTx) error {
 	vspTicket, err := c.wallet.VSPTicketInfo(ctx, ticketHash)
 	if err != nil && !errors.Is(err, errors.NotExist) {
 		return err
@@ -291,7 +294,7 @@ func (c *Client) Process(ctx context.Context, ticketHash *chainhash.Hash, feeTx 
 // preferences, and checks if they match the status of the specified ticket from
 // the connected VSP. The status provides the current voting preferences so we
 // can just update from there if need be.
-func (c *Client) SetVoteChoice(ctx context.Context, hash *chainhash.Hash,
+func (c *AutoClient) SetVoteChoice(ctx context.Context, hash *chainhash.Hash,
 	choices map[string]string, tspendPolicy map[string]string, treasuryPolicy map[string]string) error {
 
 	// Retrieve current voting preferences from VSP.
@@ -300,7 +303,7 @@ func (c *Client) SetVoteChoice(ctx context.Context, hash *chainhash.Hash,
 		if errors.Is(err, errors.Locked) {
 			return err
 		}
-		log.Errorf("Could not check status of VSP ticket %s: %v", hash, err)
+		c.log.Errorf("Could not check status of VSP ticket %s: %v", hash, err)
 		return nil
 	}
 
@@ -348,11 +351,11 @@ func (c *Client) SetVoteChoice(ctx context.Context, hash *chainhash.Hash,
 	}
 
 	if !update {
-		log.Debugf("VSP already has correct vote choices for ticket %s", hash)
+		c.log.Debugf("VSP already has correct vote choices for ticket %s", hash)
 		return nil
 	}
 
-	log.Debugf("Updating vote choices on VSP for ticket %s", hash)
+	c.log.Debugf("Updating vote choices on VSP for ticket %s", hash)
 	err = c.setVoteChoices(ctx, hash, choices, tspendPolicy, treasuryPolicy)
 	if err != nil {
 		return err
@@ -377,7 +380,7 @@ type TicketInfo struct {
 //
 // Currently this returns only info about tickets which fee hasn't been paid or
 // confirmed at enough depth to be considered committed to.
-func (c *Client) TrackedTickets() []*TicketInfo {
+func (c *AutoClient) TrackedTickets() []*TicketInfo {
 	// Collect all jobs first, to avoid working under two different locks.
 	c.mu.Lock()
 	jobs := make([]*feePayment, 0, len(c.jobs))

@@ -1,15 +1,16 @@
-package vsp
+package client
 
 import (
 	"bytes"
 	"context"
 	cryptorand "crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
 
-	"decred.org/dcrwallet/v3/errors"
+	wallet_errs "decred.org/dcrwallet/v3/errors"
 	"decred.org/dcrwallet/v3/internal/uniformprng"
 	"decred.org/dcrwallet/v3/wallet"
 	"decred.org/dcrwallet/v3/wallet/txrules"
@@ -22,6 +23,7 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/txscript/v4/stdscript"
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/slog"
 	"github.com/decred/vspd/types/v2"
 )
 
@@ -74,7 +76,7 @@ const (
 )
 
 type feePayment struct {
-	client *Client
+	client *AutoClient
 	ctx    context.Context
 
 	// Set at feepayment creation and never changes
@@ -97,6 +99,8 @@ type feePayment struct {
 
 	timerMu sync.Mutex
 	timer   *time.Timer
+
+	log slog.Logger
 }
 
 type state uint32
@@ -171,7 +175,7 @@ func (fp *feePayment) removedExpiredOrSpent() bool {
 
 func (fp *feePayment) remove(reason string) {
 	fp.stop()
-	log.Infof("ticket %v is %s; removing from VSP client", &fp.ticketHash, reason)
+	fp.log.Infof("ticket %v is %s; removing from VSP client", &fp.ticketHash, reason)
 	fp.client.mu.Lock()
 	delete(fp.client.jobs, fp.ticketHash)
 	fp.client.mu.Unlock()
@@ -179,7 +183,7 @@ func (fp *feePayment) remove(reason string) {
 
 // feePayment returns an existing managed fee payment, or creates and begins
 // processing a fee payment for a ticket.
-func (c *Client) feePayment(ctx context.Context, ticketHash *chainhash.Hash, paidConfirmed bool) (fp *feePayment) {
+func (c *AutoClient) feePayment(ctx context.Context, ticketHash *chainhash.Hash, paidConfirmed bool) (fp *feePayment) {
 	c.mu.Lock()
 	fp = c.jobs[*ticketHash]
 	c.mu.Unlock()
@@ -215,6 +219,7 @@ func (c *Client) feePayment(ctx context.Context, ticketHash *chainhash.Hash, pai
 		ctx:        ctx,
 		ticketHash: *ticketHash,
 		policy:     c.policy,
+		log:        c.log,
 	}
 
 	// No VSP interaction is required for spent tickets.
@@ -225,7 +230,7 @@ func (c *Client) feePayment(ctx context.Context, ticketHash *chainhash.Hash, pai
 
 	ticket, err := c.tx(ctx, ticketHash)
 	if err != nil {
-		log.Warnf("no ticket found for %v", ticketHash)
+		fp.log.Warnf("no ticket found for %v", ticketHash)
 		return nil
 	}
 
@@ -233,7 +238,7 @@ func (c *Client) feePayment(ctx context.Context, ticketHash *chainhash.Hash, pai
 	if err != nil {
 		// This is not expected to ever error, as the ticket was fetched
 		// from the wallet in the above call.
-		log.Errorf("failed to query block which mines ticket: %v", err)
+		fp.log.Errorf("failed to query block which mines ticket: %v", err)
 		return nil
 	}
 	if ticketHeight >= 2 {
@@ -245,14 +250,14 @@ func (c *Client) feePayment(ctx context.Context, ticketHash *chainhash.Hash, pai
 
 	fp.votingAddr, fp.commitmentAddr, err = parseTicket(ticket, params)
 	if err != nil {
-		log.Errorf("%v is not a ticket: %v", ticketHash, err)
+		fp.log.Errorf("%v is not a ticket: %v", ticketHash, err)
 		return nil
 	}
 	// Try to access the voting key, ignore error unless the wallet is
 	// locked.
 	fp.votingKey, err = w.DumpWIFPrivateKey(ctx, fp.votingAddr)
-	if err != nil && !errors.Is(err, errors.Locked) {
-		log.Errorf("no voting key for ticket %v: %v", ticketHash, err)
+	if err != nil && !errors.Is(err, wallet_errs.Locked) {
+		fp.log.Errorf("no voting key for ticket %v: %v", ticketHash, err)
 		return nil
 	}
 	feeHash, err := w.VSPFeeHashForTicket(ctx, ticketHash)
@@ -291,7 +296,7 @@ func (c *Client) feePayment(ctx context.Context, ticketHash *chainhash.Hash, pai
 	return fp
 }
 
-func (c *Client) tx(ctx context.Context, hash *chainhash.Hash) (*wire.MsgTx, error) {
+func (c *AutoClient) tx(ctx context.Context, hash *chainhash.Hash) (*wire.MsgTx, error) {
 	txs, _, err := c.wallet.GetTransactionsByHashes(ctx, []*chainhash.Hash{hash})
 	if err != nil {
 		return nil, err
@@ -314,7 +319,7 @@ func (fp *feePayment) schedule(name string, method func() error) {
 		fp.timer = nil
 	}
 	if method != nil {
-		log.Debugf("scheduling %q for ticket %s in %v", name, &fp.ticketHash, delay)
+		fp.log.Debugf("scheduling %q for ticket %s in %v", name, &fp.ticketHash, delay)
 		fp.timer = time.AfterFunc(delay, fp.task(name, method))
 	}
 }
@@ -356,7 +361,7 @@ func (fp *feePayment) task(name string, method func() error) func() {
 		fp.err = err
 		fp.mu.Unlock()
 		if err != nil {
-			log.Errorf("ticket %v: %v: %v", &fp.ticketHash, name, err)
+			fp.log.Errorf("ticket %v: %v: %v", &fp.ticketHash, name, err)
 		}
 	}
 }
@@ -416,7 +421,7 @@ func (fp *feePayment) receiveFeeAddress() error {
 		return fmt.Errorf("server fee address invalid: %w", err)
 	}
 
-	log.Infof("VSP requires fee %v", feeAmount)
+	fp.log.Infof("VSP requires fee %v", feeAmount)
 	if feeAmount > fp.policy.MaxFee {
 		return fmt.Errorf("server fee amount too high: %v > %v",
 			feeAmount, fp.policy.MaxFee)
@@ -518,7 +523,7 @@ func (fp *feePayment) makeFeeTx(tx *wire.MsgTx) error {
 
 	addr, err := w.NewChangeAddress(ctx, fp.policy.ChangeAcct)
 	if err != nil {
-		log.Warnf("failed to get new change address: %v", err)
+		fp.log.Warnf("failed to get new change address: %v", err)
 		return err
 	}
 	var changeOut *wire.TxOut
@@ -558,10 +563,10 @@ func (fp *feePayment) makeFeeTx(tx *wire.MsgTx) error {
 	// sign
 	sigErrs, err := w.SignTransaction(ctx, tx, txscript.SigHashAll, nil, nil, nil)
 	if err != nil || len(sigErrs) > 0 {
-		log.Errorf("failed to sign transaction: %v", err)
+		fp.log.Errorf("failed to sign transaction: %v", err)
 		sigErrStr := ""
 		for _, sigErr := range sigErrs {
-			log.Errorf("\t%v", sigErr)
+			fp.log.Errorf("\t%v", sigErr)
 			sigErrStr = fmt.Sprintf("\t%v", sigErr) + " "
 		}
 		if err != nil {
@@ -592,7 +597,7 @@ func (fp *feePayment) makeFeeTx(tx *wire.MsgTx) error {
 	return nil
 }
 
-func (c *Client) status(ctx context.Context, ticketHash *chainhash.Hash) (*types.TicketStatusResponse, error) {
+func (c *AutoClient) status(ctx context.Context, ticketHash *chainhash.Hash) (*types.TicketStatusResponse, error) {
 	w := c.wallet
 	params := w.ChainParams()
 
@@ -627,7 +632,7 @@ func (c *Client) status(ctx context.Context, ticketHash *chainhash.Hash) (*types
 	return resp, nil
 }
 
-func (c *Client) setVoteChoices(ctx context.Context, ticketHash *chainhash.Hash,
+func (c *AutoClient) setVoteChoices(ctx context.Context, ticketHash *chainhash.Hash,
 	choices map[string]string, tspendPolicy map[string]string, treasuryPolicy map[string]string) error {
 	w := c.wallet
 	params := w.ChainParams()
@@ -738,6 +743,8 @@ func (fp *feePayment) reconcilePayment() error {
 			fp.feeTx = nil
 			fp.mu.Unlock()
 			// err not nilled, so reconcile payment is rescheduled.
+		default:
+			// do nothing.
 		}
 	}
 	if err != nil {
@@ -833,7 +840,7 @@ func (fp *feePayment) submitPayment() (err error) {
 			feeHash := feeTx.TxHash()
 			err := w.AbandonTransaction(ctx, &feeHash)
 			if err != nil {
-				log.Errorf("error abandoning expired fee tx %v", err)
+				fp.log.Errorf("error abandoning expired fee tx %v", err)
 			}
 			fp.mu.Lock()
 			fp.feeTx = nil
@@ -844,7 +851,7 @@ func (fp *feePayment) submitPayment() (err error) {
 
 	// TODO - validate server timestamp?
 
-	log.Infof("successfully processed %v", fp.ticketHash)
+	fp.log.Infof("successfully processed %v", fp.ticketHash)
 	return nil
 }
 
@@ -866,8 +873,8 @@ func (fp *feePayment) confirmPayment() (err error) {
 
 	status, err := fp.client.status(ctx, &fp.ticketHash)
 	// Suppress log if the wallet is currently locked.
-	if err != nil && !errors.Is(err, errors.Locked) {
-		log.Warnf("Rescheduling status check for %v: %v", &fp.ticketHash, err)
+	if err != nil && !errors.Is(err, wallet_errs.Locked) {
+		fp.log.Warnf("Rescheduling status check for %v: %v", &fp.ticketHash, err)
 	}
 	if err != nil {
 		// Stop processing if the status check cannot be performed, but
@@ -903,7 +910,7 @@ func (fp *feePayment) confirmPayment() (err error) {
 		fp.schedule("confirm payment", fp.confirmPayment)
 		return nil
 	case "broadcast":
-		log.Infof("VSP has successfully sent the fee tx for %v", &fp.ticketHash)
+		fp.log.Infof("VSP has successfully sent the fee tx for %v", &fp.ticketHash)
 		// Broadcasted, but not confirmed.
 		fp.schedule("confirm payment", fp.confirmPayment)
 		return nil
@@ -919,13 +926,13 @@ func (fp *feePayment) confirmPayment() (err error) {
 		}
 		return nil
 	case "error":
-		log.Warnf("VSP failed to broadcast feetx for %v -- restarting payment",
+		fp.log.Warnf("VSP failed to broadcast feetx for %v -- restarting payment",
 			&fp.ticketHash)
 		fp.schedule("reconcile payment", fp.reconcilePayment)
 		return nil
 	default:
 		// XXX put in unknown state
-		log.Warnf("VSP responded with %v for %v", status.FeeTxStatus,
+		fp.log.Warnf("VSP responded with %v for %v", status.FeeTxStatus,
 			&fp.ticketHash)
 	}
 

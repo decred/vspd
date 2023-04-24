@@ -27,3 +27,18 @@ linters:
     - unparam
     - unused
     - vetshadow
+
+linters-settings:
+  # Disable rule SA1019 on staticcheck, it causes the build to fail if any
+  # deprecated func/var/const are referenced.
+  staticcheck:
+    checks: ["all", "-SA1019"]
+
+  exhaustive:
+    check:
+      - switch
+      - map
+    # Presence of "default" case in switch statements satisfies exhaustiveness,
+    # even if all enum members are not listed.
+    # Default: false
+    default-signifies-exhaustive: true
