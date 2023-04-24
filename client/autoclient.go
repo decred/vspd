@@ -408,7 +408,7 @@ type TicketInfo struct {
 	TicketHash     chainhash.Hash
 	CommitmentAddr stdaddr.StakeAddress
 	VotingAddr     stdaddr.StakeAddress
-	State          uint32
+	State          State
 	Fee            dcrutil.Amount
 	FeeHash        chainhash.Hash
 
@@ -436,7 +436,7 @@ func (c *AutoClient) TrackedTickets() []*TicketInfo {
 			TicketHash:     job.ticketHash,
 			CommitmentAddr: job.commitmentAddr,
 			VotingAddr:     job.votingAddr,
-			State:          uint32(job.state),
+			State:          job.state,
 			Fee:            job.fee,
 			FeeHash:        job.feeHash,
 		})

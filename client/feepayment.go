@@ -84,7 +84,7 @@ type feePayment struct {
 	feeAddr       stdaddr.Address
 	feeHash       chainhash.Hash
 	feeTx         *wire.MsgTx
-	state         state
+	state         State
 	err           error
 
 	timerMu sync.Mutex
@@ -93,14 +93,14 @@ type feePayment struct {
 	log slog.Logger
 }
 
-type state uint32
+type State uint32
 
 const (
-	_ state = iota
-	unprocessed
-	feePublished
+	_ State = iota
+	Unprocessed
+	FeePublished
 	_ // ...
-	ticketSpent
+	TicketSpent
 )
 
 func parseTicket(ticket *wire.MsgTx, params *chaincfg.Params) (
@@ -214,7 +214,7 @@ func (c *AutoClient) feePayment(ctx context.Context, ticketHash *chainhash.Hash,
 
 	// No VSP interaction is required for spent tickets.
 	if fp.ticketSpent() {
-		fp.state = ticketSpent
+		fp.state = TicketSpent
 		return fp
 	}
 
@@ -280,7 +280,7 @@ func (c *AutoClient) feePayment(ctx context.Context, ticketHash *chainhash.Hash,
 			return fp
 		}
 
-		fp.state = unprocessed // XXX fee created, but perhaps not submitted with vsp.
+		fp.state = Unprocessed // XXX fee created, but perhaps not submitted with vsp.
 		fp.fee = -1            // XXX fee amount (not needed anymore?)
 	}
 	return fp
