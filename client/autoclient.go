@@ -33,6 +33,9 @@ type Policy struct {
 	FeeAcct    uint32 // to pay fees from, if inputs are not provided to Process
 }
 
+// Ensure dcrwallet satisfies the Wallet interface.
+var _ Wallet = (*wallet.Wallet)(nil)
+
 type Wallet interface {
 	Spender(ctx context.Context, out *wire.OutPoint) (*wire.MsgTx, uint32, error)
 	MainChainTip(ctx context.Context) (hash chainhash.Hash, height int32)
