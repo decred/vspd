@@ -73,7 +73,7 @@ type feePayment struct {
 	ticketHash     chainhash.Hash
 	commitmentAddr stdaddr.StakeAddress
 	votingAddr     stdaddr.StakeAddress
-	policy         Policy
+	policy         *Policy
 
 	// Requires locking for all access outside of Client.feePayment
 	mu            sync.Mutex

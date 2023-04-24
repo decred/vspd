@@ -66,7 +66,7 @@ type Wallet interface {
 
 type AutoClient struct {
 	wallet Wallet
-	policy Policy
+	policy *Policy
 	*Client
 
 	mu   sync.Mutex
@@ -90,7 +90,7 @@ type Config struct {
 
 	// Default policy for fee payments unless another is provided by the
 	// caller.
-	Policy Policy
+	Policy *Policy
 }
 
 func New(cfg Config, log slog.Logger) (*AutoClient, error) {
