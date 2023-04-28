@@ -3,15 +3,15 @@ package client
 import (
 	"bytes"
 	"context"
-	cryptorand "crypto/rand"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 	"sync"
 	"time"
 
 	wallet_errs "decred.org/dcrwallet/v3/errors"
-	"decred.org/dcrwallet/v3/internal/uniformprng"
 	"decred.org/dcrwallet/v3/wallet"
 	"decred.org/dcrwallet/v3/wallet/txrules"
 	"decred.org/dcrwallet/v3/wallet/txsizes"
@@ -27,38 +27,24 @@ import (
 	"github.com/decred/vspd/types/v2"
 )
 
-var prng lockedRand
-
-type lockedRand struct {
-	mu   sync.Mutex
-	rand *uniformprng.Source
-}
-
-func (r *lockedRand) int63n(n int64) int64 {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.rand.Int63n(n)
-}
-
-// duration returns a random time.Duration in [0,d) with uniform distribution.
-func (r *lockedRand) duration(d time.Duration) time.Duration {
-	return time.Duration(r.int63n(int64(d)))
-}
-
-func (r *lockedRand) coinflip() bool {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return r.rand.Uint32n(2) == 0
-}
-
-func init() {
-	source, err := uniformprng.RandSource(cryptorand.Reader)
+// randomInt64 returns a random int64 in [0,n).
+func randomInt64(n int64) int64 {
+	i, err := rand.Int(rand.Reader, big.NewInt(n))
 	if err != nil {
-		panic(err)
+		// crypto/rand should never return an error if running on a supported platform.
+		panic(fmt.Sprintf("unhandled crypto/rand error: %v", err))
 	}
-	prng = lockedRand{
-		rand: source,
-	}
+	return i.Int64()
+}
+
+// randomDuration returns a random time.Duration in [0,d).
+func randomDuration(d time.Duration) time.Duration {
+	return time.Duration(randomInt64(int64(d)))
+}
+
+// coinflip returns a random bool.
+func coinflip() bool {
+	return randomInt64(2) == 0
 }
 
 var (
@@ -348,7 +334,7 @@ func (fp *feePayment) next() time.Duration {
 		jitter = unminedJitter
 	}
 
-	return prng.duration(jitter)
+	return randomDuration(jitter)
 }
 
 // task returns a function running a feePayment method.
@@ -553,7 +539,7 @@ func (fp *feePayment) makeFeeTx(tx *wire.MsgTx) error {
 		changeOut.Value = change
 		tx.TxOut = append(tx.TxOut, changeOut)
 		// randomize position
-		if prng.coinflip() {
+		if coinflip() {
 			tx.TxOut[0], tx.TxOut[1] = tx.TxOut[1], tx.TxOut[0]
 		}
 	}
