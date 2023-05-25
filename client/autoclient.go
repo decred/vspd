@@ -13,9 +13,9 @@ import (
 	"net/url"
 	"sync"
 
-	"decred.org/dcrwallet/v2/errors"
-	"decred.org/dcrwallet/v2/wallet"
-	"decred.org/dcrwallet/v2/wallet/udb"
+	"decred.org/dcrwallet/v3/errors"
+	"decred.org/dcrwallet/v3/wallet"
+	"decred.org/dcrwallet/v3/wallet/udb"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v4"
@@ -55,7 +55,7 @@ type Wallet interface {
 	AddTransaction(ctx context.Context, tx *wire.MsgTx, blockHash *chainhash.Hash) error
 	UpdateVspTicketFeeToPaid(ctx context.Context, ticketHash, feeHash *chainhash.Hash, host string, pubkey []byte) error
 	UpdateVspTicketFeeToErrored(ctx context.Context, ticketHash *chainhash.Hash, host string, pubkey []byte) error
-	AgendaChoices(ctx context.Context, ticketHash *chainhash.Hash) (choices []wallet.AgendaChoice, voteBits uint16, err error)
+	AgendaChoices(ctx context.Context, ticketHash *chainhash.Hash) (choices wallet.AgendaChoices, voteBits uint16, err error)
 	TSpendPolicyForTicket(ticketHash *chainhash.Hash) map[string]string
 	TreasuryKeyPolicyForTicket(ticketHash *chainhash.Hash) map[string]string
 	AbandonTransaction(ctx context.Context, hash *chainhash.Hash) error
