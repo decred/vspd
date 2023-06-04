@@ -445,12 +445,12 @@ func loadConfig() (*config, error) {
 		// Exit with success
 		os.Exit(0)
 
-	} else {
-		// If database does not exist, return error.
-		if !fileExists(cfg.dbPath) {
-			return nil, fmt.Errorf("no database exists in %s. Run vspd with the"+
-				" --feexpub option to initialize one", dataDir)
-		}
+	}
+
+	// If database does not exist, return error.
+	if !fileExists(cfg.dbPath) {
+		return nil, fmt.Errorf("no database exists in %s. Run vspd with the"+
+			" --feexpub option to initialize one", dataDir)
 	}
 
 	return &cfg, nil

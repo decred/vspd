@@ -97,7 +97,7 @@ func (w *dcrwallet) createFeeTx(feeAddress string, fee int64) (string, error) {
 	return signedTx.Hex, nil
 }
 
-func (w *dcrwallet) SignMessage(ctx context.Context, msg string, commitmentAddr stdaddr.Address) ([]byte, error) {
+func (w *dcrwallet) SignMessage(_ context.Context, msg string, commitmentAddr stdaddr.Address) ([]byte, error) {
 	var signature string
 	err := w.Call(context.TODO(), "signmessage", &signature, commitmentAddr.String(), msg)
 	if err != nil {
