@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	requiredWalletVersion = semver{Major: 8, Minor: 8, Patch: 0}
+	requiredWalletVersion = semver{Major: 9, Minor: 0, Patch: 0}
 )
 
 // WalletRPC provides methods for calling dcrwallet JSON-RPCs without exposing the details
