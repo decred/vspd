@@ -28,12 +28,14 @@ func bytesToStringMap(bytes []byte) (map[string]string, error) {
 	return stringMap, nil
 }
 
-func stringMapToBytes(stringMap map[string]string) ([]byte, error) {
+func stringMapToBytes(stringMap map[string]string) []byte {
+	// json.Marshal will only return an error if passed an invalid struct.
+	// Structs are all known and hard-coded, so errors are never expected here.
 	bytes, err := json.Marshal(stringMap)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return bytes, nil
+	return bytes
 }
 
 func int64ToBytes(i int64) []byte {

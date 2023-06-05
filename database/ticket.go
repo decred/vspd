@@ -164,28 +164,14 @@ func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 	if err = bkt.Put(confirmedK, boolToBytes(ticket.Confirmed)); err != nil {
 		return err
 	}
-
-	jsonTSpend, err := stringMapToBytes(ticket.TSpendPolicy)
-	if err != nil {
+	if err = bkt.Put(tSpendPolicyK, stringMapToBytes(ticket.TSpendPolicy)); err != nil {
 		return err
 	}
-	if err = bkt.Put(tSpendPolicyK, jsonTSpend); err != nil {
-		return err
-	}
-
-	jsonTreasury, err := stringMapToBytes(ticket.TreasuryPolicy)
-	if err != nil {
-		return err
-	}
-	if err = bkt.Put(treasuryPolicyK, jsonTreasury); err != nil {
+	if err = bkt.Put(treasuryPolicyK, stringMapToBytes(ticket.TreasuryPolicy)); err != nil {
 		return err
 	}
 
-	jsonVoteChoices, err := stringMapToBytes(ticket.VoteChoices)
-	if err != nil {
-		return err
-	}
-	return bkt.Put(voteChoicesK, jsonVoteChoices)
+	return bkt.Put(voteChoicesK, stringMapToBytes(ticket.VoteChoices))
 }
 
 func getTicketFromBkt(bkt *bolt.Bucket) (Ticket, error) {
