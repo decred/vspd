@@ -121,11 +121,11 @@ type testNode struct {
 	existsLiveTicketErr  error
 }
 
-func (n *testNode) ExistsLiveTicket(ticketHash string) (bool, error) {
+func (n *testNode) ExistsLiveTicket(_ string) (bool, error) {
 	return n.existsLiveTicket, n.existsLiveTicketErr
 }
 
-func (n *testNode) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, error) {
+func (n *testNode) GetRawTransaction(_ string) (*dcrdtypes.TxRawResult, error) {
 	return n.getRawTransaction, n.getRawTransactionErr
 }
 

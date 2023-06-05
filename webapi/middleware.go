@@ -227,44 +227,44 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 	}
 
 	_, err = dcrdClient.GetRawTransaction(parentHash.String())
-	var e *wsrpc.Error
-	if err == nil {
-		// No error means dcrd already knows the parent tx, nothing to do.
-	} else if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
-		// ErrNoTxInfo means local dcrd is not aware of the parent. We have
-		// the hex, so we can broadcast it here.
+	if err != nil {
+		var e *wsrpc.Error
+		if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
+			// ErrNoTxInfo means local dcrd is not aware of the parent. We have
+			// the hex, so we can broadcast it here.
 
-		// Before broadcasting, check that the provided parent hex is
-		// actually the parent of the ticket.
-		var found bool
-		for _, txIn := range msgTx.TxIn {
-			if !txIn.PreviousOutPoint.Hash.IsEqual(&parentHash) {
-				continue
+			// Before broadcasting, check that the provided parent hex is
+			// actually the parent of the ticket.
+			var found bool
+			for _, txIn := range msgTx.TxIn {
+				if !txIn.PreviousOutPoint.Hash.IsEqual(&parentHash) {
+					continue
+				}
+				found = true
+				break
 			}
-			found = true
-			break
-		}
 
-		if !found {
-			s.log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
-			s.sendErrorWithMsg("invalid ticket parent", types.ErrBadRequest, c)
-			return
-		}
+			if !found {
+				s.log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
+				s.sendErrorWithMsg("invalid ticket parent", types.ErrBadRequest, c)
+				return
+			}
 
-		s.log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
-		err = dcrdClient.SendRawTransaction(request.ParentHex)
-		if err != nil {
-			s.log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
+			s.log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
+			err = dcrdClient.SendRawTransaction(request.ParentHex)
+			if err != nil {
+				s.log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
+					funcName, request.TicketHash, err)
+				s.sendError(types.ErrCannotBroadcastTicket, c)
+				return
+			}
+
+		} else {
+			s.log.Errorf("%s: dcrd.GetRawTransaction for ticket parent failed (ticketHash=%s): %v",
 				funcName, request.TicketHash, err)
-			s.sendError(types.ErrCannotBroadcastTicket, c)
+			s.sendError(types.ErrInternalError, c)
 			return
 		}
-
-	} else {
-		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket parent failed (ticketHash=%s): %v",
-			funcName, request.TicketHash, err)
-		s.sendError(types.ErrInternalError, c)
-		return
 	}
 
 	// Check if local dcrd already knows the ticket.
@@ -276,6 +276,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 
 	// ErrNoTxInfo means local dcrd is not aware of the ticket. We have the
 	// hex, so we can broadcast it here.
+	var e *wsrpc.Error
 	if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
 		s.log.Debugf("%s: Broadcasting ticket (ticketHash=%s)", funcName, request.TicketHash)
 		err = dcrdClient.SendRawTransaction(request.TicketHex)
