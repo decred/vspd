@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Decred developers
+// Copyright (c) 2022-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -26,6 +26,14 @@ func bytesToStringMap(bytes []byte) (map[string]string, error) {
 	}
 
 	return stringMap, nil
+}
+
+func stringMapToBytes(stringMap map[string]string) ([]byte, error) {
+	bytes, err := json.Marshal(stringMap)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
 }
 
 func int64ToBytes(i int64) []byte {

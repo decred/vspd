@@ -5,7 +5,6 @@
 package database
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -166,7 +165,7 @@ func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 		return err
 	}
 
-	jsonTSpend, err := json.Marshal(ticket.TSpendPolicy)
+	jsonTSpend, err := stringMapToBytes(ticket.TSpendPolicy)
 	if err != nil {
 		return err
 	}
@@ -174,7 +173,7 @@ func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 		return err
 	}
 
-	jsonTreasury, err := json.Marshal(ticket.TreasuryPolicy)
+	jsonTreasury, err := stringMapToBytes(ticket.TreasuryPolicy)
 	if err != nil {
 		return err
 	}
@@ -182,7 +181,7 @@ func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 		return err
 	}
 
-	jsonVoteChoices, err := json.Marshal(ticket.VoteChoices)
+	jsonVoteChoices, err := stringMapToBytes(ticket.VoteChoices)
 	if err != nil {
 		return err
 	}
