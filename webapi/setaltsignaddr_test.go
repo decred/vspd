@@ -169,7 +169,7 @@ func TestSetAltSignAddress(t *testing.T) {
 			addr:           "xxx",
 			wantHTTPStatus: http.StatusBadRequest,
 			wantErrCode:    types.ErrBadRequest,
-			wantErrMsg:     "failed to decoded address \"xxx\": invalid format: version and/or checksum bytes missing",
+			wantErrMsg:     "failed to decode address \"xxx\": invalid format: version and/or checksum bytes missing",
 		},
 		"addr wrong type": {
 			addr:           "DkM3ZigNyiwHrsXRjkDQ8t8tW6uKGW9g61qEkG3bMqQPQWYEf5X3J",
