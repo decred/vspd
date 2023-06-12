@@ -29,12 +29,12 @@ VSP will add the ticket to a pool of always-online voting wallets.
   detail on the API and its usage, read [api.md](./docs/api.md)
 
 - **Web front-end** - A minimal website (no JavaScript) providing public pool
-  stats. An admin page enables searching for tickets and downloading database
-  backups.
+  stats. A password protected admin page provides an overview of system status,
+  enables searching for tickets and downloading database backups.
 
 - **Two-way accountability** - All vspd requests and responses are signed by
   their sender, which enables both the client and the server to hold each other
-  accountable in the case of misbehaviour. For more detail, and examples, read
+  accountable in the case of misbehaviour. For more detail and examples, read
   [two-way-accountability.md](./docs/two-way-accountability.md).
 
 - **Dynamic fees** - Clients must request a new fee address and amount for every
@@ -49,7 +49,7 @@ libraries:
 
 - [gin-gonic/gin](https://github.com/gin-gonic/gin) webserver.
 
-- [etcd-io/bbolt](https://github.com/etcd-io/bbolt) k/v database.
+- [etcd-io/bbolt](https://github.com/etcd-io/bbolt) key-value database.
 
 - [jrick/wsrpc](https://github.com/jrick/wsrpc) for RPC communication with dcrd
   and dcrwallet.

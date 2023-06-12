@@ -46,7 +46,7 @@ func (s *Server) setVoteChoices(c *gin.Context) {
 		return
 	}
 
-	// Only allow vote choices to be updated for live/immature tickets.
+	// Only allow vote choices to be updated for mempool/immature/live tickets.
 	if ticket.Outcome != "" {
 		s.log.Warnf("%s: Ticket not eligible to vote (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)

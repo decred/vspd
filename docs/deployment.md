@@ -57,8 +57,8 @@ A wallet should be created to collect VSP fees. Ideally this would be a cold
 wallet which is not used for any other purpose, and it should be completely
 separate from the vspd infrastructure. The dcrwallet `getmasterpubkey` RPC
 should be used to export an extended public (xpub) key from one of the wallet
-accounts. This xpub key will be provided to vspd via config, and vspd will use
-it to derive a new addresses for receiving fee payments.
+accounts. This xpub key will be provided to vspd through a CLI flag, and it will
+be used to derive addresses for receiving fee payments.
 
 ## Voting Servers
 
@@ -67,14 +67,16 @@ servers hosting these wallets should ideally be in geographically separate
 locations.
 
 Each voting server should be running an instance of dcrd and dcrwallet. The
-wallet on these servers should be completely empty and not used for any other
-purpose. dcrwallet should be permanently unlocked and have voting enabled
+wallet on these servers should be completely empty and not used for any purpose
+other than voting tickets added by vspd.
+dcrwallet should be permanently unlocked and have voting enabled
 (`--enablevoting`). dcrwallet is also required to have the manual tickets
 option (`--manualtickets`) enabled which disables dcrwallet adding tickets
-arriving over the network.  Without this option set, a user could reuse
-voting addresses the VSP's voting wallets already have private keys for,
-resulting in the VSP voting tickets without a fee paid. vspd on the
-front-end server must be able to reach each instance of dcrwallet over RPC.
+arriving over the network.
+This prevents a user from reusing a voting address and the VSP voting multiple
+tickets with only a single fee payment.
+vspd on the front-end server must be able to reach each instance of dcrwallet
+over RPC.
 
 ## Front-end Server
 
@@ -188,11 +190,11 @@ the path `{homedir}/data/{network}/vspd.db`. vspd keeps a file lock on this
 file, so it cannot be opened by any other processes while vspd is running.
 
 To facilitate back-ups, vspd will periodically write a copy of the bbolt
-database to the path `{homedir}/data/{network}/vspd.db-backup`. A copy of the
-database file will also be written to this path when vspd shuts down. This file
-should be backed up often and regularly (probably at least hourly). Backups
-should be transferred off-site, ideally to a server which is not part of the
-vspd deployment.
+database to the path `{homedir}/data/{network}/vspd.db-backup`.
+The backup file will also be written when vspd shuts down.
+This file should be backed up often and regularly (probably at least hourly).
+Backups should be transferred off-site, ideally to a server which is not part of
+the vspd deployment.
 
 It is also possible to generate and download a database backup on demand from
 the admin page of the vspd web front-end.
