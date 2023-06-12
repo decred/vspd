@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@ package webapi
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -16,6 +17,13 @@ import (
 
 	"github.com/decred/slog"
 	"github.com/gin-gonic/gin"
+)
+
+var (
+	dunno     = []byte("???")
+	centerDot = []byte("·")
+	dot       = []byte(".")
+	slash     = []byte("/")
 )
 
 // Recovery returns a middleware that recovers from any panics which occur in
@@ -30,9 +38,11 @@ func Recovery(log slog.Logger) gin.HandlerFunc {
 				// condition that warrants a panic stack trace.
 				var brokenPipe bool
 				if ne, ok := err.(*net.OpError); ok {
-					if se, ok := ne.Err.(*os.SyscallError); ok {
-						if strings.Contains(strings.ToLower(se.Error()), "broken pipe") ||
-							strings.Contains(strings.ToLower(se.Error()), "connection reset by peer") {
+					var se *os.SyscallError
+					if errors.As(ne, &se) {
+						seStr := strings.ToLower(se.Error())
+						if strings.Contains(seStr, "broken pipe") ||
+							strings.Contains(seStr, "connection reset by peer") {
 							brokenPipe = true
 						}
 					}
@@ -90,7 +100,7 @@ func formattedStack() []byte {
 func source(lines [][]byte, n int) []byte {
 	n-- // in stack trace, lines are 1-indexed but our array is 0-indexed
 	if n < 0 || n >= len(lines) {
-		return []byte("???")
+		return dunno
 	}
 	return bytes.TrimSpace(lines[n])
 }
@@ -99,7 +109,7 @@ func source(lines [][]byte, n int) []byte {
 func function(pc uintptr) []byte {
 	fn := runtime.FuncForPC(pc)
 	if fn == nil {
-		return []byte("???")
+		return dunno
 	}
 	name := []byte(fn.Name())
 	// The name includes the path name to the package, which is unnecessary
@@ -110,12 +120,12 @@ func function(pc uintptr) []byte {
 	//	*T.ptrmethod
 	// Also the package path might contain dot (e.g. code.google.com/...),
 	// so first eliminate the path prefix
-	if lastSlash := bytes.LastIndex(name, []byte("/")); lastSlash >= 0 {
+	if lastSlash := bytes.LastIndex(name, slash); lastSlash >= 0 {
 		name = name[lastSlash+1:]
 	}
-	if period := bytes.Index(name, []byte(".")); period >= 0 {
+	if period := bytes.Index(name, dot); period >= 0 {
 		name = name[period+1:]
 	}
-	name = bytes.Replace(name, []byte("·"), []byte("."), -1)
+	name = bytes.ReplaceAll(name, centerDot, dot)
 	return name
 }
