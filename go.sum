@@ -1,5 +1,5 @@
-decred.org/dcrwallet/v3 v3.0.0-20230519033517-96817277627d h1:Gov8SXYPsw6eyIBhzLP6+kjfDHdv6Q/ifIMt8fKtoYc=
-decred.org/dcrwallet/v3 v3.0.0-20230519033517-96817277627d/go.mod h1:JGNFyWBroylUUf973eIHsdHN7PuJdCUVkIOMyWVv+y0=
+decred.org/dcrwallet/v3 v3.0.1 h1:+OLi+u/MvKc3Ubcnf19oyG/a5hJ/qp4OtezdiQZnLIs=
+decred.org/dcrwallet/v3 v3.0.1/go.mod h1:a+R8BZIOKVpWVPat5VZoBWNh/cnIciwcRkPtrzfS/tw=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7ISrnJIXKzwaspym5BTKGx93EI=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
 github.com/bytedance/sonic v1.5.0/go.mod h1:ED5hyg4y6t3/9Ku1R6dU/4KyJ48DZ4jPhfY1O2AihPM=
