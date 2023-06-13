@@ -1,7 +1,7 @@
 decred.org/cspp/v2 v2.1.0 h1:HeHb9+BFqrBaAPc6CsPiUpPFmC1uyBM2mJZUAbUXkRw=
 decred.org/cspp/v2 v2.1.0/go.mod h1:9nO3bfvCheOPIFZw5f6sRQ42CjBFB5RKSaJ9Iq6G4MA=
-decred.org/dcrwallet/v3 v3.0.0 h1:EdI7D9U7fnvfoWexWvlhPNri+Ws9RdvjP0A5Sc38TWs=
-decred.org/dcrwallet/v3 v3.0.0/go.mod h1:a+R8BZIOKVpWVPat5VZoBWNh/cnIciwcRkPtrzfS/tw=
+decred.org/dcrwallet/v3 v3.0.1 h1:+OLi+u/MvKc3Ubcnf19oyG/a5hJ/qp4OtezdiQZnLIs=
+decred.org/dcrwallet/v3 v3.0.1/go.mod h1:a+R8BZIOKVpWVPat5VZoBWNh/cnIciwcRkPtrzfS/tw=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 h1:w1UutsfOrms1J05zt7ISrnJIXKzwaspym5BTKGx93EI=
 github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412/go.mod h1:WPjqKcmVOxf0XSf3YxCJs6N6AOSrOx3obionmG7T0y0=
 github.com/companyzero/sntrup4591761 v0.0.0-20220309191932-9e0f3af2f07a h1:clYxJ3Os0EQUKDDVU8M0oipllX0EkuFNBfhVQuIfyF0=

@@ -3,7 +3,7 @@ module github.com/decred/vspd
 go 1.19
 
 require (
-	decred.org/dcrwallet/v3 v3.0.0
+	decred.org/dcrwallet/v3 v3.0.1
 	github.com/decred/dcrd/blockchain/stake/v5 v5.0.0
 	github.com/decred/dcrd/blockchain/standalone/v2 v2.2.0
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.4
@@ -26,8 +26,6 @@ require (
 	github.com/jrick/wsrpc/v2 v2.3.5
 	go.etcd.io/bbolt v1.3.7
 )
-
-replace decred.org/dcrwallet/v3 => decred.org/dcrwallet/v3 v3.0.0-20230519033517-96817277627d
 
 require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
