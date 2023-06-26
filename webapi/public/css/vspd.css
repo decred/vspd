@@ -9,6 +9,13 @@ body {
     flex-direction: column;
 }
 
+/* Bootstrap adds ugly outlines to search inputs. Setting outline-offset and
+appearance makes them look the same as text inputs. */
+input[type="search"] {
+    outline-offset: 0;
+    appearance: auto;
+}
+
 .navbar {
     background-color: #F9FAFA;
 }

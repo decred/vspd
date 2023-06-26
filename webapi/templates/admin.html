@@ -178,7 +178,7 @@
                         
                         <section>
                             <form class="mt-2 mb-4" action="/admin/ticket" method="post">
-                                <input type="text" name="hash" size="64" minlength="64" maxlength="64" required placeholder="Ticket hash" autocomplete="off"
+                                <input type="search" name="hash" size="64" minlength="64" maxlength="64" spellcheck="false" required placeholder="Ticket hash" autocomplete="off"
                                 {{ with .SearchResult }}
                                 value="{{ .Ticket.Hash }}"
                                 {{ end }}>
