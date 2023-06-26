@@ -75,7 +75,22 @@
             </tr>
             <tr>
                 <th>Fee Tx</th>
-                <td>{{ .Ticket.FeeTxHex }}</td>
+                <td>
+                    {{ if .Ticket.FeeTxHex }}
+                    <details>
+                        <summary>Raw Bytes</summary>
+                        <div class="small-text">
+                            {{ .Ticket.FeeTxHex }}
+                        </div>
+                    </details>
+                    <details>
+                        <summary>Decoded</summary>
+                        <div class="small-text">
+                            <pre>{{ indentJSON .FeeTxDecoded }}</pre>
+                        </div>
+                    </details>
+                    {{ end }}
+                </td>
             </tr>
             <tr>
                 <th>Fee Tx Status</th>
