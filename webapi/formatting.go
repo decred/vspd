@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"strings"
 	"time"
 
@@ -40,16 +39,19 @@ func stripWss(input string) string {
 	return input
 }
 
-func indentJSON(log slog.Logger) func(string) template.HTML {
-	return func(input string) template.HTML {
+// indentJSON returns a func which uses whitespace to format a provided JSON
+// string. If the parameter is invalid JSON, an error will be logged and the
+// param will be returned unaltered.
+func indentJSON(log slog.Logger) func(string) string {
+	return func(input string) string {
 		var indented bytes.Buffer
-		err := json.Indent(&indented, []byte(input), "<br/>", "&nbsp;&nbsp;&nbsp;&nbsp;")
+		err := json.Indent(&indented, []byte(input), "", "    ")
 		if err != nil {
 			log.Errorf("Failed to indent JSON: %w", err)
-			return template.HTML(input)
+			return input
 		}
 
-		return template.HTML(indented.String())
+		return indented.String()
 	}
 }
 
