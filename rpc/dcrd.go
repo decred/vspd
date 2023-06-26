@@ -150,6 +150,17 @@ func (c *DcrdRPC) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, erro
 	return &resp, nil
 }
 
+// DecodeRawTransaction uses decoderawtransaction RPC to decode raw transaction bytes.
+func (c *DcrdRPC) DecodeRawTransaction(txHex string) (*dcrdtypes.TxRawDecodeResult, error) {
+	var resp dcrdtypes.TxRawDecodeResult
+	err := c.Call(c.ctx, "decoderawtransaction", &resp, txHex)
+	if err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
 // SendRawTransaction uses sendrawtransaction RPC to broadcast a transaction to
 // the network. It ignores errors caused by duplicate transactions.
 func (c *DcrdRPC) SendRawTransaction(txHex string) error {

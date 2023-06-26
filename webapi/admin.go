@@ -5,6 +5,7 @@
 package webapi
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/decred/vspd/database"
@@ -41,6 +42,7 @@ type searchResult struct {
 	Hash            string
 	Found           bool
 	Ticket          database.Ticket
+	FeeTxDecoded    string
 	AltSignAddrData *database.AltSignAddrData
 	VoteChanges     map[uint32]database.VoteChangeRecord
 	MaxVoteChanges  int
@@ -176,11 +178,42 @@ func (s *Server) ticketSearch(c *gin.Context) {
 		return
 	}
 
+	// Decode the fee tx so it can be displayed human-readable. Fee tx hex may
+	// be null because it is removed from the DB if the tx is already mined and
+	// confirmed.
+	var feeTxDecoded string
+	if ticket.FeeTxHex != "" {
+		dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
+		dcrdErr := c.MustGet(dcrdErrorKey)
+		if dcrdErr != nil {
+			s.log.Errorf("Could not get dcrd client: %v", dcrdErr.(error))
+			c.String(http.StatusInternalServerError, "Could not get dcrd client")
+			return
+		}
+
+		resp, err := dcrdClient.DecodeRawTransaction(ticket.FeeTxHex)
+		if err != nil {
+			s.log.Errorf("dcrd.DecodeRawTransaction error: %w", err)
+			c.String(http.StatusInternalServerError, "Error decoding fee transaction")
+			return
+		}
+
+		decoded, err := json.Marshal(resp)
+		if err != nil {
+			s.log.Errorf("Unmarshal fee tx error: %w", err)
+			c.String(http.StatusInternalServerError, "Error unmarshalling fee tx")
+			return
+		}
+
+		feeTxDecoded = string(decoded)
+	}
+
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"SearchResult": searchResult{
 			Hash:            hash,
 			Found:           found,
 			Ticket:          ticket,
+			FeeTxDecoded:    feeTxDecoded,
 			AltSignAddrData: altSignAddrData,
 			VoteChanges:     voteChanges,
 			MaxVoteChanges:  s.cfg.MaxVoteChangeRecords,

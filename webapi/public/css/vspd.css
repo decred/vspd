@@ -158,6 +158,11 @@ footer .code {
     font-size: 12px;
 }
 
+#ticket-table .small-text {
+    padding: 10px 16px;
+    font-size: 12px;
+}
+
 #ticket-table pre {
     color: #3D5873;
     font-size: 12px;
