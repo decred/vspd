@@ -158,6 +158,12 @@ footer .code {
     font-size: 12px;
 }
 
+#ticket-table pre {
+    color: #3D5873;
+    font-size: 12px;
+    white-space: pre-wrap;
+}
+
 .vsp-status {
     padding: 10px;
 }

@@ -128,7 +128,7 @@
                         <table class="my-2">
                             <tr>
                                 <th>Request</th>
-                                <td>{{ indentJSON $value.Request }}</td>
+                                <td><pre>{{ indentJSON $value.Request }}</pre></td>
                             </tr>
                             <tr>
                                 <th>Request<br />Signature</th>
@@ -136,7 +136,7 @@
                             </tr>
                             <tr>
                                 <th>Response</th>
-                                <td>{{ indentJSON $value.Response }}</td>
+                                <td><pre>{{ indentJSON $value.Response }}</pre></td>
                             </tr>
                             <tr>
                                 <th>Response<br />Signature</th>
@@ -172,7 +172,7 @@
                         <table class="my-2">
                             <tr>
                                 <th>Request</th>
-                                <td>{{ indentJSON .AltSignAddrData.Req }}</td>
+                                <td><pre>{{ indentJSON .AltSignAddrData.Req }}</pre></td>
                             </tr>
                             <tr>
                                 <th>Request<br />Signature</th>
@@ -180,7 +180,7 @@
                             </tr>
                             <tr>
                                 <th>Response</th>
-                                <td>{{ indentJSON .AltSignAddrData.Resp }}</td>
+                                <td><pre>{{ indentJSON .AltSignAddrData.Resp }}</pre></td>
                             </tr>
                             <tr>
                                 <th>Response<br />Signature</th>
