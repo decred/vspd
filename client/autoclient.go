@@ -13,13 +13,9 @@ import (
 	"net/url"
 	"sync"
 
-	"decred.org/dcrwallet/v4/errors"
-	"decred.org/dcrwallet/v4/wallet"
-	"decred.org/dcrwallet/v4/wallet/udb"
 	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v4"
-	"github.com/decred/dcrd/txscript/v4"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/slog"
@@ -33,40 +29,6 @@ type Policy struct {
 	FeeAcct    uint32 // to pay fees from, if inputs are not provided to Process
 }
 
-// Ensure dcrwallet satisfies the Wallet interface.
-var _ Wallet = (*wallet.Wallet)(nil)
-
-type Wallet interface {
-	Spender(ctx context.Context, out *wire.OutPoint) (*wire.MsgTx, uint32, error)
-	MainChainTip(ctx context.Context) (hash chainhash.Hash, height int32)
-	ChainParams() *chaincfg.Params
-	TxBlock(ctx context.Context, hash *chainhash.Hash) (chainhash.Hash, int32, error)
-	DumpWIFPrivateKey(ctx context.Context, addr stdaddr.Address) (string, error)
-	VSPFeeHashForTicket(ctx context.Context, ticketHash *chainhash.Hash) (chainhash.Hash, error)
-	UpdateVspTicketFeeToStarted(ctx context.Context, ticketHash, feeHash *chainhash.Hash, host string, pubkey []byte) error
-	GetTransactionsByHashes(ctx context.Context, txHashes []*chainhash.Hash) (txs []*wire.MsgTx, notFound []*wire.InvVect, err error)
-	ReserveOutputsForAmount(ctx context.Context, account uint32, amount dcrutil.Amount, minconf int32) ([]wallet.Input, error)
-	UnlockOutpoint(txHash *chainhash.Hash, index uint32)
-	NewChangeAddress(ctx context.Context, account uint32) (stdaddr.Address, error)
-	RelayFee() dcrutil.Amount
-	SignTransaction(ctx context.Context, tx *wire.MsgTx, hashType txscript.SigHashType, additionalPrevScripts map[wire.OutPoint][]byte,
-		additionalKeysByAddress map[string]*dcrutil.WIF, p2shRedeemScriptsByAddress map[string][]byte) ([]wallet.SignatureError, error)
-	SetPublished(ctx context.Context, hash *chainhash.Hash, published bool) error
-	AddTransaction(ctx context.Context, tx *wire.MsgTx, blockHash *chainhash.Hash) error
-	UpdateVspTicketFeeToPaid(ctx context.Context, ticketHash, feeHash *chainhash.Hash, host string, pubkey []byte) error
-	UpdateVspTicketFeeToErrored(ctx context.Context, ticketHash *chainhash.Hash, host string, pubkey []byte) error
-	AgendaChoices(ctx context.Context, ticketHash *chainhash.Hash) (choices wallet.AgendaChoices, voteBits uint16, err error)
-	TSpendPolicyForTicket(ticketHash *chainhash.Hash) map[string]string
-	TreasuryKeyPolicyForTicket(ticketHash *chainhash.Hash) map[string]string
-	AbandonTransaction(ctx context.Context, hash *chainhash.Hash) error
-	TxConfirms(ctx context.Context, hash *chainhash.Hash) (int32, error)
-	ForUnspentUnexpiredTickets(ctx context.Context, f func(hash *chainhash.Hash) error) error
-	IsVSPTicketConfirmed(ctx context.Context, ticketHash *chainhash.Hash) (bool, error)
-	UpdateVspTicketFeeToConfirmed(ctx context.Context, ticketHash, feeHash *chainhash.Hash, host string, pubkey []byte) error
-	VSPTicketInfo(ctx context.Context, ticketHash *chainhash.Hash) (*wallet.VSPTicket, error)
-	SignMessage(ctx context.Context, msg string, addr stdaddr.Address) (sig []byte, err error)
-}
-
 type AutoClient struct {
 	wallet Wallet
 	policy *Policy
@@ -75,7 +37,8 @@ type AutoClient struct {
 	mu   sync.Mutex
 	jobs map[chainhash.Hash]*feePayment
 
-	log slog.Logger
+	log    slog.Logger
+	params *chaincfg.Params
 }
 
 type Config struct {
@@ -94,6 +57,8 @@ type Config struct {
 	// Default policy for fee payments unless another is provided by the
 	// caller.
 	Policy *Policy
+
+	Params *chaincfg.Params
 }
 
 func New(cfg Config, log slog.Logger) (*AutoClient, error) {
@@ -107,6 +72,10 @@ func New(cfg Config, log slog.Logger) (*AutoClient, error) {
 	}
 	if cfg.Wallet == nil {
 		return nil, fmt.Errorf("wallet option not set")
+	}
+
+	if cfg.Params == nil {
+		return nil, fmt.Errorf("params option not set")
 	}
 
 	client := &Client{
@@ -125,6 +94,7 @@ func New(cfg Config, log slog.Logger) (*AutoClient, error) {
 		Client: client,
 		jobs:   make(map[chainhash.Hash]*feePayment),
 		log:    log,
+		params: cfg.Params,
 	}
 	return v, nil
 }
@@ -137,8 +107,9 @@ func (c *AutoClient) FeePercentage(ctx context.Context) (float64, error) {
 	return resp.FeePercentage, nil
 }
 
-// ProcessUnprocessedTickets processes all tickets that don't currently have
-// any association with a VSP.
+// ProcessUnprocessedTickets queries the wallet for all immature/live tickets
+// that don't currently have any association with a VSP. A background goroutine
+// is started to process the fee payment for each ticket.
 func (c *AutoClient) ProcessUnprocessedTickets(ctx context.Context) {
 	var wg sync.WaitGroup
 	_ = c.wallet.ForUnspentUnexpiredTickets(ctx, func(hash *chainhash.Hash) error {
@@ -149,7 +120,7 @@ func (c *AutoClient) ProcessUnprocessedTickets(ctx context.Context) {
 			return nil
 		}
 		confirmed, err := c.wallet.IsVSPTicketConfirmed(ctx, hash)
-		if err != nil && !errors.Is(err, errors.NotExist) {
+		if err != nil {
 			c.log.Error(err)
 			return nil
 		}
@@ -181,15 +152,6 @@ func (c *AutoClient) ProcessUnprocessedTickets(ctx context.Context) {
 	wg.Wait()
 }
 
-// ProcessTicket attempts to process a given ticket based on the hash provided.
-func (c *AutoClient) ProcessTicket(ctx context.Context, hash *chainhash.Hash) error {
-	err := c.Process(ctx, hash, nil)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // ProcessManagedTickets discovers tickets which were previously registered with
 // a VSP and begins syncing them in the background.  This is used to recover VSP
 // tracking after seed restores, and is only performed on unspent and unexpired
@@ -198,7 +160,7 @@ func (c *AutoClient) ProcessManagedTickets(ctx context.Context) error {
 	err := c.wallet.ForUnspentUnexpiredTickets(ctx, func(hash *chainhash.Hash) error {
 		// We only want to process tickets that haven't been confirmed yet.
 		confirmed, err := c.wallet.IsVSPTicketConfirmed(ctx, hash)
-		if err != nil && !errors.Is(err, errors.NotExist) {
+		if err != nil {
 			c.log.Error(err)
 			return nil
 		}
@@ -218,10 +180,7 @@ func (c *AutoClient) ProcessManagedTickets(ctx context.Context) error {
 		// for processing a new ticket.
 		status, err := c.status(ctx, hash)
 		if err != nil {
-			if errors.Is(err, errors.Locked) {
-				return err
-			}
-			return nil
+			return err
 		}
 
 		if status.FeeTxStatus == "confirmed" {
@@ -258,24 +217,19 @@ func (c *AutoClient) ProcessManagedTickets(ctx context.Context) error {
 // inputs, is used to pay the VSP fee.  Otherwise, new inputs are selected and
 // locked to prevent double spending the fee.
 //
-// feeTx must not be nil, but may point to an empty transaction, and is modified
-// with the inputs and the fee and change outputs before returning without an
-// error.  The fee transaction is also recorded as unpublised in the wallet, and
-// the fee hash is associated with the ticket.
+// feeTx may be nil or may point to an empty transaction. It is modified with
+// the inputs and the fee and change outputs before returning without an error.
+// The fee transaction is also recorded as unpublised in the wallet, and the fee
+// hash is associated with the ticket.
 func (c *AutoClient) Process(ctx context.Context, ticketHash *chainhash.Hash, feeTx *wire.MsgTx) error {
 	vspTicket, err := c.wallet.VSPTicketInfo(ctx, ticketHash)
-	if err != nil && !errors.Is(err, errors.NotExist) {
+	if err != nil {
 		return err
 	}
-	feeStatus := udb.VSPFeeProcessStarted // Will be used if the ticket isn't registered to the vsp yet.
-	if vspTicket != nil {
-		feeStatus = udb.FeeStatus(vspTicket.FeeTxStatus)
-	}
 
-	switch feeStatus {
-	case udb.VSPFeeProcessStarted, udb.VSPFeeProcessErrored:
-		// If VSPTicket has been started or errored then attempt to create a new fee
-		// transaction, submit it then confirm.
+	if vspTicket == nil || vspTicket.FeeTxStarted() || vspTicket.FeeTxErrored() {
+		// If ticket is unrecognized, has been started, or errored, then attempt
+		// to create a new fee transaction, submit it then confirm.
 		fp := c.feePayment(ctx, ticketHash, false)
 		if fp == nil {
 			err := c.wallet.UpdateVspTicketFeeToErrored(ctx, ticketHash, c.Client.URL, c.Client.PubKey)
@@ -309,9 +263,9 @@ func (c *AutoClient) Process(ctx context.Context, ticketHash *chainhash.Hash, fe
 			return err
 		}
 		return fp.submitPayment()
-	case udb.VSPFeeProcessPaid:
-		// If a VSP ticket has been paid, but confirm payment.
-		if len(vspTicket.Host) > 0 && vspTicket.Host != c.Client.URL {
+
+	} else if vspTicket.FeeTxPaid() {
+		if len(vspTicket.Host2()) > 0 && vspTicket.Host2() != c.Client.URL {
 			// Cannot confirm a paid ticket that is already with another VSP.
 			return fmt.Errorf("ticket already paid or confirmed with another vsp")
 		}
@@ -323,7 +277,8 @@ func (c *AutoClient) Process(ctx context.Context, ticketHash *chainhash.Hash, fe
 		}
 
 		return fp.confirmPayment()
-	case udb.VSPFeeProcessConfirmed:
+
+	} else if vspTicket.FeeTxConfirmed() {
 		// VSPTicket has already been confirmed, there is nothing to process.
 		return nil
 	}
@@ -340,9 +295,6 @@ func (c *AutoClient) SetVoteChoice(ctx context.Context, hash *chainhash.Hash,
 	// Retrieve current voting preferences from VSP.
 	status, err := c.status(ctx, hash)
 	if err != nil {
-		if errors.Is(err, errors.Locked) {
-			return err
-		}
 		c.log.Errorf("Could not check status of VSP ticket %s: %v", hash, err)
 		return nil
 	}

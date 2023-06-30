@@ -15,7 +15,7 @@ require (
 	github.com/decred/dcrd/txscript/v4 v4.1.0
 	github.com/decred/dcrd/wire v1.6.0
 	github.com/decred/slog v1.2.0
-	github.com/decred/vspd/client/v2 v2.0.0
+	github.com/decred/vspd/client/v2 v2.1.0
 	github.com/decred/vspd/types/v2 v2.0.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-gonic/gin v1.9.1
@@ -27,10 +27,15 @@ require (
 	go.etcd.io/bbolt v1.3.7
 )
 
+replace decred.org/dcrwallet/v4 => ../dcrwallet
+
 require (
+	decred.org/cspp/v2 v2.1.0 // indirect
+	decred.org/dcrwallet/v3 v3.0.0-20230519033517-96817277627d // indirect
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+	github.com/companyzero/sntrup4591761 v0.0.0-20220309191932-9e0f3af2f07a // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
 	github.com/decred/base58 v1.0.5 // indirect
 	github.com/decred/dcrd/crypto/blake256 v1.0.1 // indirect
@@ -39,6 +44,8 @@ require (
 	github.com/decred/dcrd/dcrec v1.0.1 // indirect
 	github.com/decred/dcrd/dcrec/edwards/v2 v2.0.3 // indirect
 	github.com/decred/dcrd/dcrjson/v4 v4.0.1 // indirect
+	github.com/decred/dcrd/gcs/v4 v4.0.0 // indirect
+	github.com/decred/go-socks v1.1.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -59,6 +66,7 @@ require (
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.9.0 // indirect
 	golang.org/x/text v0.10.0 // indirect
 	golang.org/x/time v0.3.0
