@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
@@ -22,11 +23,14 @@ var (
 	requiredDcrdVersion = semver{Major: 8, Minor: 0, Patch: 0}
 )
 
-// These error codes are defined in dcrd/dcrjson. They are copied here so we
-// dont need to import the whole package.
 const (
+	// These numerical error codes are defined in dcrd/dcrjson. Copied here so
+	// we dont need to import the whole package.
 	ErrRPCDuplicateTx = -40
 	ErrNoTxInfo       = -5
+	// This error string is defined in dcrd/internal/mempool. Copied here
+	// because it is not exported.
+	ErrUnknownOutputs = "references outputs of unknown or fully-spent transaction"
 )
 
 // DcrdRPC provides methods for calling dcrd JSON-RPCs without exposing the details
@@ -156,14 +160,24 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 	allowHighFees := false
 	err := c.Call(c.ctx, "sendrawtransaction", nil, txHex, allowHighFees)
 	if err != nil {
-		// sendrawtransaction returns error code -40 (ErrRPCDuplicateTx) if the
-		// provided transaction already exists in the mempool or in a mined
-		// block.
-		// It's not a problem if the transaction has already been broadcast, so
-		// we will capture this error and return nil.
+
+		// Ignore errors caused by the transaction already existing in the
+		// mempool or in a mined block.
+
+		// Error code -40 (ErrRPCDuplicateTx) is completely ignorable because it
+		// indicates that dcrd definitely already has this transaction.
 		var e *wsrpc.Error
 		if errors.As(err, &e) && e.Code == ErrRPCDuplicateTx {
 			return nil
+		}
+
+		// Errors about orphan/spent outputs indicate that dcrd *might* already
+		// have this transaction. Use getrawtransaction to confirm.
+		if strings.Contains(err.Error(), ErrUnknownOutputs) {
+			_, getErr := c.GetRawTransaction(txHex)
+			if getErr == nil {
+				return nil
+			}
 		}
 
 		return err
