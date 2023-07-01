@@ -257,8 +257,8 @@ func (s *Server) payFee(c *gin.Context) {
 
 			ticket.FeeTxStatus = database.FeeError
 
-			if strings.Contains(err.Error(),
-				"references outputs of unknown or fully-spent transaction") {
+			// Send the client an explicit error if the issue is unknown outputs.
+			if strings.Contains(err.Error(), rpc.ErrUnknownOutputs) {
 				s.sendError(types.ErrCannotBroadcastFeeUnknownOutputs, c)
 			} else {
 				s.sendError(types.ErrCannotBroadcastFee, c)
