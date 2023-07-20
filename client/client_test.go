@@ -86,7 +86,7 @@ func TestErrorDetails(t *testing.T) {
 				Log:    slog.Disabled,
 			}
 
-			var resp interface{}
+			var resp any
 			err := client.do(context.TODO(), http.MethodGet, "", nil, &resp, nil)
 
 			testServer.Close()
@@ -171,7 +171,7 @@ func TestSignatureValidation(t *testing.T) {
 				Log:    slog.Disabled,
 			}
 
-			var resp interface{}
+			var resp any
 			err := client.do(context.TODO(), http.MethodGet, "", nil, &resp, nil)
 
 			testServer.Close()

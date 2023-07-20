@@ -263,7 +263,7 @@ func (s *Server) downloadDatabaseBackup(c *gin.Context) {
 
 // setAdminStatus stores the authentication status of the current session and
 // redirects the client to GET /admin.
-func (s *Server) setAdminStatus(admin interface{}, c *gin.Context) {
+func (s *Server) setAdminStatus(admin any, c *gin.Context) {
 	session := c.MustGet(sessionKey).(*sessions.Session)
 	session.Values["admin"] = admin
 	err := session.Save(c.Request, c.Writer)

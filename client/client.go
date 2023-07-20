@@ -129,15 +129,15 @@ func (c *Client) SetVoteChoices(ctx context.Context, req types.SetVoteChoicesReq
 	return resp, nil
 }
 
-func (c *Client) post(ctx context.Context, path string, addr stdaddr.Address, resp, req interface{}) error {
+func (c *Client) post(ctx context.Context, path string, addr stdaddr.Address, resp, req any) error {
 	return c.do(ctx, http.MethodPost, path, addr, resp, req)
 }
 
-func (c *Client) get(ctx context.Context, path string, resp interface{}) error {
+func (c *Client) get(ctx context.Context, path string, resp any) error {
 	return c.do(ctx, http.MethodGet, path, nil, resp, nil)
 }
 
-func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Address, resp, req interface{}) error {
+func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Address, resp, req any) error {
 	var reqBody io.Reader
 	var sig []byte
 

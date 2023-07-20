@@ -283,7 +283,7 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 // sendJSONResponse serializes the provided response, signs it, and sends the
 // response to the client with a 200 OK status. Returns the seralized response
 // and the signature.
-func (s *Server) sendJSONResponse(resp interface{}, c *gin.Context) (string, string) {
+func (s *Server) sendJSONResponse(resp any, c *gin.Context) (string, string) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
 		s.log.Errorf("JSON marshal error: %v", err)
