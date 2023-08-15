@@ -23,6 +23,9 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// This is a hard-coded string from the securecookie library.
+const invalidCookieErr = "securecookie: the value is not valid"
+
 // rateLimit middleware limits how many requests each client IP can submit per
 // second. If the limit is exceeded the limitExceeded handler will be executed
 // and the context will be aborted.
@@ -67,7 +70,7 @@ func (s *Server) withSession(store *sessions.CookieStore) gin.HandlerFunc {
 			// "value is not valid" occurs if the cookie secret changes. This is
 			// common during development (eg. when using the test harness) but
 			// it should not occur in production.
-			if strings.Contains(err.Error(), "securecookie: the value is not valid") {
+			if strings.Contains(err.Error(), invalidCookieErr) {
 				s.log.Warn("Cookie secret has changed. Generating new session.")
 
 				// Persist the newly generated session.
