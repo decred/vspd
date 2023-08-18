@@ -91,6 +91,25 @@ type Ticket struct {
 	Outcome TicketOutcome
 }
 
+type TicketList []Ticket
+
+// EarliestPurchaseHeight returns the lowest non-zero purchase height in the
+// list of tickets. Zero will be returned if the list is empty, or if every
+// ticket in the list has zero purchase height.
+func (t TicketList) EarliestPurchaseHeight() int64 {
+	var oldestHeight int64
+	for _, ticket := range t {
+		// Skip unconfirmed tickets.
+		if ticket.PurchaseHeight == 0 {
+			continue
+		}
+		if oldestHeight == 0 || oldestHeight > ticket.PurchaseHeight {
+			oldestHeight = ticket.PurchaseHeight
+		}
+	}
+	return oldestHeight
+}
+
 func (t *Ticket) FeeExpired() bool {
 	now := time.Now()
 	return now.After(time.Unix(t.FeeExpiration, 0))
@@ -315,7 +334,7 @@ func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 }
 
 // GetUnconfirmedTickets returns tickets which are not yet confirmed.
-func (vdb *VspDatabase) GetUnconfirmedTickets() ([]Ticket, error) {
+func (vdb *VspDatabase) GetUnconfirmedTickets() (TicketList, error) {
 	vdb.ticketsMtx.RLock()
 	defer vdb.ticketsMtx.RUnlock()
 
@@ -326,7 +345,7 @@ func (vdb *VspDatabase) GetUnconfirmedTickets() ([]Ticket, error) {
 
 // GetPendingFees returns tickets which are confirmed and have a fee tx which is
 // not yet broadcast.
-func (vdb *VspDatabase) GetPendingFees() ([]Ticket, error) {
+func (vdb *VspDatabase) GetPendingFees() (TicketList, error) {
 	vdb.ticketsMtx.RLock()
 	defer vdb.ticketsMtx.RUnlock()
 
@@ -337,7 +356,7 @@ func (vdb *VspDatabase) GetPendingFees() ([]Ticket, error) {
 
 // GetUnconfirmedFees returns tickets with a fee tx that is broadcast but not
 // confirmed yet.
-func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
+func (vdb *VspDatabase) GetUnconfirmedFees() (TicketList, error) {
 	vdb.ticketsMtx.RLock()
 	defer vdb.ticketsMtx.RUnlock()
 
@@ -348,14 +367,14 @@ func (vdb *VspDatabase) GetUnconfirmedFees() ([]Ticket, error) {
 
 // GetVotableTickets returns tickets with a confirmed fee tx and no outcome (ie.
 // not expired/voted/missed).
-func (vdb *VspDatabase) GetVotableTickets() ([]Ticket, error) {
+func (vdb *VspDatabase) GetVotableTickets() (TicketList, error) {
 	return vdb.filterTickets(func(t *bolt.Bucket) bool {
 		return FeeStatus(t.Get(feeTxStatusK)) == FeeConfirmed && TicketOutcome(t.Get(outcomeK)) == ""
 	})
 }
 
 // GetVotedTickets returns tickets with a confirmed fee tx and outcome == voted.
-func (vdb *VspDatabase) GetVotedTickets() ([]Ticket, error) {
+func (vdb *VspDatabase) GetVotedTickets() (TicketList, error) {
 	return vdb.filterTickets(func(t *bolt.Bucket) bool {
 		return FeeStatus(t.Get(feeTxStatusK)) == FeeConfirmed && TicketOutcome(t.Get(outcomeK)) == Voted
 	})
@@ -363,7 +382,7 @@ func (vdb *VspDatabase) GetVotedTickets() ([]Ticket, error) {
 
 // GetMissingPurchaseHeight returns tickets which are confirmed but do not have
 // a purchase height.
-func (vdb *VspDatabase) GetMissingPurchaseHeight() ([]Ticket, error) {
+func (vdb *VspDatabase) GetMissingPurchaseHeight() (TicketList, error) {
 	return vdb.filterTickets(func(t *bolt.Bucket) bool {
 		return bytesToBool(t.Get(confirmedK)) && bytesToInt64(t.Get(purchaseHeightK)) == 0
 	})
@@ -373,8 +392,8 @@ func (vdb *VspDatabase) GetMissingPurchaseHeight() ([]Ticket, error) {
 // database which match the filter.
 //
 // This function must be called with the lock held.
-func (vdb *VspDatabase) filterTickets(filter func(*bolt.Bucket) bool) ([]Ticket, error) {
-	var tickets []Ticket
+func (vdb *VspDatabase) filterTickets(filter func(*bolt.Bucket) bool) (TicketList, error) {
+	var tickets TicketList
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
