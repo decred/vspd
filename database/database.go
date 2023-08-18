@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -406,41 +406,51 @@ func (vdb *VspDatabase) BackupDB(w http.ResponseWriter) error {
 	return err
 }
 
-// CheckIntegrity will ensure that all data in the database is present and up to
-// date.
+// CheckIntegrity will ensure that all data expected to be in the database is
+// present and up to date.
 func (vdb *VspDatabase) CheckIntegrity(dcrd rpc.DcrdConnect) error {
 
-	// Ensure all confirmed tickets have a purchase height.
-	// This is necessary because of an old bug which, in some circumstances,
-	// would prevent purchase height from being stored.
+	// Ensure a purchase height is recorded for all confirmed tickets in the
+	// database. This is necessary because of an old bug which, in some
+	// circumstances, would prevent purchase height from being stored.
 
 	missing, err := vdb.GetMissingPurchaseHeight()
 	if err != nil {
-		return fmt.Errorf("GetMissingPurchaseHeight error: %w", err)
+		// Cannot proceed if this fails, return.
+		return fmt.Errorf("db.GetMissingPurchaseHeight error: %w", err)
 	}
 
 	if len(missing) == 0 {
+		// Nothing to do, return.
 		return nil
 	}
 
+	vdb.log.Warnf("%d tickets are missing purchase heights", len(missing))
+
 	dcrdClient, _, err := dcrd.Client()
 	if err != nil {
+		// Cannot proceed if this fails, return.
 		return err
 	}
 
+	fixed := 0
 	for _, ticket := range missing {
 		tktTx, err := dcrdClient.GetRawTransaction(ticket.Hash)
 		if err != nil {
-			return fmt.Errorf("dcrd.GetRawTransaction error: %w", err)
+			// Just log and continue, other tickets might succeed.
+			vdb.log.Errorf("Could not get raw tx for ticket %s: %v", ticket.Hash, err)
+			continue
 		}
 		ticket.PurchaseHeight = tktTx.BlockHeight
 		err = vdb.UpdateTicket(ticket)
 		if err != nil {
-			return fmt.Errorf("UpdateTicket error: %w", err)
+			// Just log and continue, other tickets might succeed.
+			vdb.log.Errorf("Could not insert purchase height for ticket %s: %v", ticket.Hash, err)
+			continue
 		}
+		fixed++
 	}
 
-	vdb.log.Infof("Added missing purchase height to %d tickets", len(missing))
-
+	vdb.log.Infof("Added missing purchase height to %d tickets", fixed)
 	return nil
 }
