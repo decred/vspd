@@ -228,9 +228,19 @@ func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, 
 		return nil, err
 	}
 
+	blockHeader, err := c.GetBlockHeaderVerbose(bestBlockHash)
+	if err != nil {
+		return nil, err
+	}
+	return blockHeader, nil
+}
+
+// GetBlockHeaderVerbose uses getblockheader RPC with verbose=true to retrieve
+// the header of the requested block.
+func (c *DcrdRPC) GetBlockHeaderVerbose(blockHash string) (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
 	verbose := true
 	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
-	err = c.Call(c.ctx, "getblockheader", &blockHeader, bestBlockHash, verbose)
+	err := c.Call(c.ctx, "getblockheader", &blockHeader, blockHash, verbose)
 	if err != nil {
 		return nil, err
 	}
