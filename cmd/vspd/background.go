@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -239,7 +239,7 @@ func blockConnected(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect, db *da
 		}
 
 		// Find the oldest block height from confirmed tickets.
-		oldestHeight := findOldestHeight(votableTickets)
+		oldestHeight := votableTickets.EarliestPurchaseHeight()
 
 		ticketInfo, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
@@ -319,7 +319,7 @@ func checkWalletConsistency(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect
 	}
 
 	// Find the oldest block height from confirmed tickets.
-	oldestHeight := findOldestHeight(votableTickets)
+	oldestHeight := votableTickets.EarliestPurchaseHeight()
 
 	// Iterate over each wallet and add any missing tickets.
 	for _, walletClient := range walletClients {
@@ -439,18 +439,4 @@ func checkWalletConsistency(dcrdRPC rpc.DcrdConnect, walletRPC rpc.WalletConnect
 			// TODO - tspend and treasury policy consistency checking.
 		}
 	}
-}
-
-func findOldestHeight(tickets []database.Ticket) int64 {
-	var oldestHeight int64
-	for _, ticket := range tickets {
-		// skip unconfirmed tickets
-		if ticket.PurchaseHeight == 0 {
-			continue
-		}
-		if oldestHeight == 0 || oldestHeight > ticket.PurchaseHeight {
-			oldestHeight = ticket.PurchaseHeight
-		}
-	}
-	return oldestHeight
 }
