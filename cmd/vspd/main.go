@@ -51,11 +51,6 @@ func run() int {
 	apiLog := cfg.logger("API")
 	rpcLog := cfg.logger("RPC")
 
-	// Create a context that is cancelled when a shutdown request is received
-	// through an interrupt signal.
-	shutdownCtx := withShutdownCancel(context.Background())
-	go shutdownListener(log)
-
 	// Show version at startup.
 	log.Criticalf("Version %s (Go version %s %s/%s)", version.String(), runtime.Version(),
 		runtime.GOOS, runtime.GOARCH)
@@ -73,21 +68,25 @@ func run() int {
 		log.Warnf("")
 	}
 
-	// WaitGroup for services to signal when they have shutdown cleanly.
-	var shutdownWg sync.WaitGroup
 	defer log.Criticalf("Shutdown complete")
 
 	// Open database.
 	db, err := database.Open(cfg.dbPath, dbLog, maxVoteChangeRecords)
 	if err != nil {
 		log.Errorf("Database error: %v", err)
-		requestShutdown()
-		shutdownWg.Wait()
 		return 1
 	}
 
 	writeBackup := true
 	defer db.Close(writeBackup)
+
+	// Create a context that is cancelled when a shutdown request is received
+	// through an interrupt signal.
+	shutdownCtx := withShutdownCancel(context.Background())
+	go shutdownListener(log)
+
+	// WaitGroup for services to signal when they have shutdown cleanly.
+	var shutdownWg sync.WaitGroup
 
 	db.WritePeriodicBackups(shutdownCtx, &shutdownWg, cfg.BackupInterval)
 
