@@ -100,44 +100,6 @@ func run() int {
 	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.netParams.Params, rpcLog)
 	defer wallets.Close()
 
-	// Create a channel to receive blockConnected notifications from dcrd.
-	notifChan := make(chan *wire.BlockHeader)
-	shutdownWg.Add(1)
-	go func() {
-		for {
-			select {
-			case <-shutdownCtx.Done():
-				shutdownWg.Done()
-				return
-			case header := <-notifChan:
-				log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
-				blockConnected(dcrd, wallets, db, log)
-			}
-		}
-	}()
-
-	// Attach notification listener to dcrd client.
-	dcrd.BlockConnectedHandler(notifChan)
-
-	// Loop forever attempting ensuring a dcrd connection is available, so
-	// notifications are received.
-	shutdownWg.Add(1)
-	go func() {
-		for {
-			select {
-			case <-shutdownCtx.Done():
-				shutdownWg.Done()
-				return
-			case <-time.After(time.Second * 15):
-				// Ensure dcrd client is still connected.
-				_, _, err := dcrd.Client()
-				if err != nil {
-					log.Errorf("dcrd connect error: %v", err)
-				}
-			}
-		}
-	}()
-
 	// Ensure all data in database is present and up-to-date.
 	err = db.CheckIntegrity(dcrd)
 	if err != nil {
@@ -189,6 +151,44 @@ func run() int {
 		shutdownWg.Wait()
 		return 1
 	}
+
+	// Create a channel to receive blockConnected notifications from dcrd.
+	notifChan := make(chan *wire.BlockHeader)
+	shutdownWg.Add(1)
+	go func() {
+		for {
+			select {
+			case <-shutdownCtx.Done():
+				shutdownWg.Done()
+				return
+			case header := <-notifChan:
+				log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
+				blockConnected(dcrd, wallets, db, log)
+			}
+		}
+	}()
+
+	// Attach notification listener to dcrd client.
+	dcrd.BlockConnectedHandler(notifChan)
+
+	// Loop forever attempting ensuring a dcrd connection is available, so
+	// notifications are received.
+	shutdownWg.Add(1)
+	go func() {
+		for {
+			select {
+			case <-shutdownCtx.Done():
+				shutdownWg.Done()
+				return
+			case <-time.After(time.Second * 15):
+				// Ensure dcrd client is still connected.
+				_, _, err := dcrd.Client()
+				if err != nil {
+					log.Errorf("dcrd connect error: %v", err)
+				}
+			}
+		}
+	}()
 
 	// Wait for shutdown tasks to complete before running deferred tasks and
 	// returning.
