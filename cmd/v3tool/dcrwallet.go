@@ -76,7 +76,7 @@ func (w *dcrwallet) createFeeTx(feeAddress string, fee int64) (string, error) {
 	}
 
 	var locked bool
-	unlock := false
+	const unlock = false
 	err = w.Call(context.TODO(), "lockunspent", &locked, unlock, transactions)
 	if err != nil {
 		return "", err
@@ -118,7 +118,7 @@ func (w *dcrwallet) dumpPrivKey(addr stdaddr.Address) (string, error) {
 
 func (w *dcrwallet) getTickets() (*wallettypes.GetTicketsResult, error) {
 	var tickets wallettypes.GetTicketsResult
-	includeImmature := true
+	const includeImmature = true
 	err := w.Call(context.TODO(), "gettickets", &tickets, includeImmature)
 	if err != nil {
 		return nil, err
