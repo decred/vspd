@@ -170,9 +170,9 @@ func (c *WalletRPC) WalletInfo() (*wallettypes.WalletInfoResult, error) {
 // AddTicketForVoting uses importprivkey RPC, followed by addtransaction RPC, to
 // add a new ticket to a voting wallet.
 func (c *WalletRPC) AddTicketForVoting(votingWIF, blockHash, txHex string) error {
-	label := "imported"
-	rescan := false
-	scanFrom := 0
+	const label = "imported"
+	const rescan = false
+	const scanFrom = 0
 	err := c.Call(c.ctx, "importprivkey", nil, votingWIF, label, rescan, scanFrom)
 	if err != nil {
 		return fmt.Errorf("importprivkey failed: %w", err)

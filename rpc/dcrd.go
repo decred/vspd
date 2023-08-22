@@ -168,7 +168,7 @@ func (c *DcrdRPC) DecodeRawTransaction(txHex string) (*dcrdtypes.TxRawDecodeResu
 // SendRawTransaction uses sendrawtransaction RPC to broadcast a transaction to
 // the network. It ignores errors caused by duplicate transactions.
 func (c *DcrdRPC) SendRawTransaction(txHex string) error {
-	allowHighFees := false
+	const allowHighFees = false
 	err := c.Call(c.ctx, "sendrawtransaction", nil, txHex, allowHighFees)
 	if err != nil {
 
@@ -238,7 +238,7 @@ func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, 
 // GetBlockHeaderVerbose uses getblockheader RPC with verbose=true to retrieve
 // the header of the requested block.
 func (c *DcrdRPC) GetBlockHeaderVerbose(blockHash string) (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
-	verbose := true
+	const verbose = true
 	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
 	err := c.Call(c.ctx, "getblockheader", &blockHeader, blockHash, verbose)
 	if err != nil {

@@ -77,7 +77,7 @@ func run() int {
 		return 1
 	}
 
-	writeBackup := true
+	const writeBackup = true
 	defer db.Close(writeBackup)
 
 	// Create a context that is cancelled when a shutdown request is received
