@@ -1,11 +1,10 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"runtime"
@@ -82,8 +81,7 @@ func run() int {
 
 	// Create a context that is cancelled when a shutdown request is received
 	// through an interrupt signal.
-	shutdownCtx := withShutdownCancel(context.Background())
-	go shutdownListener(log)
+	shutdownCtx := shutdownListener(log)
 
 	// WaitGroup for services to signal when they have shutdown cleanly.
 	var shutdownWg sync.WaitGroup
