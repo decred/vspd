@@ -42,6 +42,8 @@ type vspd struct {
 	db      *database.VspDatabase
 	dcrd    rpc.DcrdConnect
 	wallets rpc.WalletConnect
+
+	blockNotifChan chan *wire.BlockHeader
 }
 
 // newVspd creates the essential resources required by vspd - a database, logger
@@ -56,9 +58,12 @@ func newVspd(cfg *config) (*vspd, error) {
 	log := cfg.logger("VSP")
 	rpcLog := cfg.logger("RPC")
 
+	// Create a channel to receive blockConnected notifications from dcrd.
+	blockNotifChan := make(chan *wire.BlockHeader)
+
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
-	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, cfg.netParams.Params, rpcLog)
+	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, cfg.netParams.Params, rpcLog, blockNotifChan)
 
 	// Create RPC client for remote dcrwallet instances (used for voting).
 	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.netParams.Params, rpcLog)
@@ -69,6 +74,8 @@ func newVspd(cfg *config) (*vspd, error) {
 		db:      db,
 		dcrd:    dcrd,
 		wallets: wallets,
+
+		blockNotifChan: blockNotifChan,
 	}
 
 	return v, nil
@@ -162,8 +169,7 @@ func (v *vspd) run() int {
 		return 1
 	}
 
-	// Create a channel to receive blockConnected notifications from dcrd.
-	notifChan := make(chan *wire.BlockHeader)
+	// Start handling blockConnected notifications from dcrd.
 	shutdownWg.Add(1)
 	go func() {
 		for {
@@ -171,15 +177,12 @@ func (v *vspd) run() int {
 			case <-shutdownCtx.Done():
 				shutdownWg.Done()
 				return
-			case header := <-notifChan:
+			case header := <-v.blockNotifChan:
 				v.log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
 				v.blockConnected()
 			}
 		}
 	}()
-
-	// Attach notification listener to dcrd client.
-	v.dcrd.BlockConnectedHandler(notifChan)
 
 	// Loop forever attempting ensuring a dcrd connection is available, so
 	// notifications are received.
