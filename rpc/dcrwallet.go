@@ -23,7 +23,6 @@ var (
 // of JSON encoding.
 type WalletRPC struct {
 	Caller
-	ctx context.Context
 }
 
 type WalletConnect struct {
@@ -73,7 +72,7 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 		// If this is a reused connection, we don't need to validate the
 		// dcrwallet config again.
 		if !newConnection {
-			walletClients = append(walletClients, &WalletRPC{c, ctx})
+			walletClients = append(walletClients, &WalletRPC{c})
 			continue
 		}
 
@@ -123,7 +122,7 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 		}
 
 		// Verify dcrwallet is voting and unlocked.
-		walletRPC := &WalletRPC{c, ctx}
+		walletRPC := &WalletRPC{c}
 		walletInfo, err := walletRPC.WalletInfo()
 		if err != nil {
 			w.log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", c.String(), err)
@@ -160,7 +159,7 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 // dcrwallet instance is configured.
 func (c *WalletRPC) WalletInfo() (*wallettypes.WalletInfoResult, error) {
 	var walletInfo wallettypes.WalletInfoResult
-	err := c.Call(c.ctx, "walletinfo", &walletInfo)
+	err := c.Call(context.TODO(), "walletinfo", &walletInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -173,12 +172,12 @@ func (c *WalletRPC) AddTicketForVoting(votingWIF, blockHash, txHex string) error
 	const label = "imported"
 	const rescan = false
 	const scanFrom = 0
-	err := c.Call(c.ctx, "importprivkey", nil, votingWIF, label, rescan, scanFrom)
+	err := c.Call(context.TODO(), "importprivkey", nil, votingWIF, label, rescan, scanFrom)
 	if err != nil {
 		return fmt.Errorf("importprivkey failed: %w", err)
 	}
 
-	err = c.Call(c.ctx, "addtransaction", nil, blockHash, txHex)
+	err = c.Call(context.TODO(), "addtransaction", nil, blockHash, txHex)
 	if err != nil {
 		return fmt.Errorf("addtransaction failed: %w", err)
 	}
@@ -189,14 +188,14 @@ func (c *WalletRPC) AddTicketForVoting(votingWIF, blockHash, txHex string) error
 // SetVoteChoice uses setvotechoice RPC to set the vote choice on the given
 // agenda, for the given ticket.
 func (c *WalletRPC) SetVoteChoice(agenda, choice, ticketHash string) error {
-	return c.Call(c.ctx, "setvotechoice", nil, agenda, choice, ticketHash)
+	return c.Call(context.TODO(), "setvotechoice", nil, agenda, choice, ticketHash)
 }
 
 // GetBestBlockHeight uses getblockcount RPC to query the height of the best
 // block known by the dcrwallet instance.
 func (c *WalletRPC) GetBestBlockHeight() (int64, error) {
 	var height int64
-	err := c.Call(c.ctx, "getblockcount", &height)
+	err := c.Call(context.TODO(), "getblockcount", &height)
 	if err != nil {
 		return 0, err
 	}
@@ -207,7 +206,7 @@ func (c *WalletRPC) GetBestBlockHeight() (int64, error) {
 // known by this dcrwallet instance.
 func (c *WalletRPC) TicketInfo(startHeight int64) (map[string]*wallettypes.TicketInfoResult, error) {
 	var result []*wallettypes.TicketInfoResult
-	err := c.Call(c.ctx, "ticketinfo", &result, startHeight)
+	err := c.Call(context.TODO(), "ticketinfo", &result, startHeight)
 	if err != nil {
 		return nil, err
 	}
@@ -225,17 +224,17 @@ func (c *WalletRPC) TicketInfo(startHeight int64) (map[string]*wallettypes.Ticke
 // RescanFrom uses rescanwallet RPC to trigger the wallet to perform a rescan
 // from the specified block height.
 func (c *WalletRPC) RescanFrom(fromHeight int64) error {
-	return c.Call(c.ctx, "rescanwallet", nil, fromHeight)
+	return c.Call(context.TODO(), "rescanwallet", nil, fromHeight)
 }
 
 // SetTreasuryPolicy sets the specified tickets voting policy for all tspends
 // published by the given treasury key.
 func (c *WalletRPC) SetTreasuryPolicy(key, policy, ticket string) error {
-	return c.Call(c.ctx, "settreasurypolicy", nil, key, policy, ticket)
+	return c.Call(context.TODO(), "settreasurypolicy", nil, key, policy, ticket)
 }
 
 // SetTSpendPolicy sets the specified tickets voting policy for a single tspend
 // identified by its hash.
 func (c *WalletRPC) SetTSpendPolicy(tSpend, policy, ticket string) error {
-	return c.Call(c.ctx, "settspendpolicy", nil, tSpend, policy, ticket)
+	return c.Call(context.TODO(), "settspendpolicy", nil, tSpend, policy, ticket)
 }
