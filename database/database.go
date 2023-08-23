@@ -58,7 +58,7 @@ const (
 	backupFileMode = 0600
 )
 
-// backupMtx should be held when writing to the database backup file
+// backupMtx should be held when writing to the database backup file.
 var backupMtx sync.Mutex
 
 // writeHotBackupFile writes a backup of the database file while the database
