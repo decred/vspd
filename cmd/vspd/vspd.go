@@ -109,11 +109,12 @@ func (v *vspd) run() int {
 
 	v.db.WritePeriodicBackups(shutdownCtx, &shutdownWg, v.cfg.BackupInterval)
 
-	// Ensure all data in database is present and up-to-date.
-	err := v.db.CheckIntegrity(v.dcrd)
+	// Run database integrity checks to ensure all data in database is present
+	// and up-to-date.
+	err := v.checkDatabaseIntegrity()
 	if err != nil {
 		// vspd should still start if this fails, so just log an error.
-		v.log.Errorf("Could not check database integrity: %v", err)
+		v.log.Errorf("Database integrity check failed: %v", err)
 	}
 
 	// Run the block connected handler now to catch up with any blocks mined
@@ -204,6 +205,62 @@ func (v *vspd) run() int {
 	shutdownWg.Wait()
 
 	return 0
+}
+
+// checkDatabaseIntegrity starts the process of ensuring that all data expected
+// to be in the database is present and up to date.
+func (v *vspd) checkDatabaseIntegrity() error {
+	err := v.checkPurchaseHeights()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// checkPurchaseHeights ensures a purchase height is recorded for all confirmed
+// tickets in the database. This is necessary because of an old bug which, in
+// some circumstances, would prevent purchase height from being stored.
+func (v *vspd) checkPurchaseHeights() error {
+	missing, err := v.db.GetMissingPurchaseHeight()
+	if err != nil {
+		// Cannot proceed if this fails, return.
+		return fmt.Errorf("db.GetMissingPurchaseHeight error: %w", err)
+	}
+
+	if len(missing) == 0 {
+		// Nothing to do, return.
+		return nil
+	}
+
+	v.log.Warnf("%d tickets are missing purchase heights", len(missing))
+
+	dcrdClient, _, err := v.dcrd.Client()
+	if err != nil {
+		// Cannot proceed if this fails, return.
+		return err
+	}
+
+	fixed := 0
+	for _, ticket := range missing {
+		tktTx, err := dcrdClient.GetRawTransaction(ticket.Hash)
+		if err != nil {
+			// Just log and continue, other tickets might succeed.
+			v.log.Errorf("Could not get raw tx for ticket %s: %v", ticket.Hash, err)
+			continue
+		}
+		ticket.PurchaseHeight = tktTx.BlockHeight
+		err = v.db.UpdateTicket(ticket)
+		if err != nil {
+			// Just log and continue, other tickets might succeed.
+			v.log.Errorf("Could not insert purchase height for ticket %s: %v", ticket.Hash, err)
+			continue
+		}
+		fixed++
+	}
+
+	v.log.Infof("Added missing purchase height to %d tickets", fixed)
+	return nil
 }
 
 // blockConnected is called once when vspd starts up, and once each time a
