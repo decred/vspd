@@ -46,21 +46,19 @@ type DcrdConnect struct {
 	log    slog.Logger
 }
 
-func SetupDcrd(user, pass, addr string, cert []byte, params *chaincfg.Params, log slog.Logger) DcrdConnect {
+func SetupDcrd(user, pass, addr string, cert []byte, params *chaincfg.Params, log slog.Logger,
+	blockConnectedChan chan *wire.BlockHeader) DcrdConnect {
+	client := setup(user, pass, addr, cert, log)
+
+	client.notifier = &blockConnectedHandler{
+		blockConnected: blockConnectedChan,
+		log:            log,
+	}
+
 	return DcrdConnect{
-		client: setup(user, pass, addr, cert, log),
+		client: client,
 		params: params,
 		log:    log,
-	}
-}
-
-// BlockConnectedHandler attaches a blockconnected notification handler to the
-// dcrd client. Every time a notification is received, the header of the
-// connected block is sent to the provided channel.
-func (d *DcrdConnect) BlockConnectedHandler(blockConnected chan *wire.BlockHeader) {
-	d.client.notifier = &blockConnectedHandler{
-		blockConnected: blockConnected,
-		log:            d.log,
 	}
 }
 
