@@ -37,7 +37,6 @@ const (
 // of JSON encoding.
 type DcrdRPC struct {
 	Caller
-	ctx context.Context
 }
 
 type DcrdConnect struct {
@@ -81,7 +80,7 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 	// If this is a reused connection, we don't need to validate the dcrd config
 	// again.
 	if !newConnection {
-		return &DcrdRPC{c, ctx}, d.client.addr, nil
+		return &DcrdRPC{c}, d.client.addr, nil
 	}
 
 	// Verify dcrd is at the required api version.
@@ -139,7 +138,7 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 
 	d.log.Debugf("Connected to dcrd")
 
-	return &DcrdRPC{c, ctx}, d.client.addr, nil
+	return &DcrdRPC{c}, d.client.addr, nil
 }
 
 // GetRawTransaction uses getrawtransaction RPC to retrieve details about the
@@ -147,7 +146,7 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 func (c *DcrdRPC) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, error) {
 	verbose := 1
 	var resp dcrdtypes.TxRawResult
-	err := c.Call(c.ctx, "getrawtransaction", &resp, txHash, verbose)
+	err := c.Call(context.TODO(), "getrawtransaction", &resp, txHash, verbose)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +156,7 @@ func (c *DcrdRPC) GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, erro
 // DecodeRawTransaction uses decoderawtransaction RPC to decode raw transaction bytes.
 func (c *DcrdRPC) DecodeRawTransaction(txHex string) (*dcrdtypes.TxRawDecodeResult, error) {
 	var resp dcrdtypes.TxRawDecodeResult
-	err := c.Call(c.ctx, "decoderawtransaction", &resp, txHex)
+	err := c.Call(context.TODO(), "decoderawtransaction", &resp, txHex)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +168,7 @@ func (c *DcrdRPC) DecodeRawTransaction(txHex string) (*dcrdtypes.TxRawDecodeResu
 // the network. It ignores errors caused by duplicate transactions.
 func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 	const allowHighFees = false
-	err := c.Call(c.ctx, "sendrawtransaction", nil, txHex, allowHighFees)
+	err := c.Call(context.TODO(), "sendrawtransaction", nil, txHex, allowHighFees)
 	if err != nil {
 
 		// Ignore errors caused by the transaction already existing in the
@@ -200,7 +199,7 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 // agenda has activated on the current network.
 func (c *DcrdRPC) IsDCP0010Active() (bool, error) {
 	var info dcrdtypes.GetBlockChainInfoResult
-	err := c.Call(c.ctx, "getblockchaininfo", &info)
+	err := c.Call(context.TODO(), "getblockchaininfo", &info)
 	if err != nil {
 		return false, err
 	}
@@ -216,14 +215,14 @@ func (c *DcrdRPC) IsDCP0010Active() (bool, error) {
 
 // NotifyBlocks uses notifyblocks RPC to request new block notifications from dcrd.
 func (c *DcrdRPC) NotifyBlocks() error {
-	return c.Call(c.ctx, "notifyblocks", nil)
+	return c.Call(context.TODO(), "notifyblocks", nil)
 }
 
 // GetBestBlockHeader uses getbestblockhash RPC, followed by getblockheader RPC,
 // to retrieve the header of the best block known to the dcrd instance.
 func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
 	var bestBlockHash string
-	err := c.Call(c.ctx, "getbestblockhash", &bestBlockHash)
+	err := c.Call(context.TODO(), "getbestblockhash", &bestBlockHash)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +239,7 @@ func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, 
 func (c *DcrdRPC) GetBlockHeaderVerbose(blockHash string) (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
 	const verbose = true
 	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
-	err := c.Call(c.ctx, "getblockheader", &blockHeader, blockHash, verbose)
+	err := c.Call(context.TODO(), "getblockheader", &blockHeader, blockHash, verbose)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +250,7 @@ func (c *DcrdRPC) GetBlockHeaderVerbose(blockHash string) (*dcrdtypes.GetBlockHe
 // hash is a live ticket known to the dcrd instance.
 func (c *DcrdRPC) ExistsLiveTicket(ticketHash string) (bool, error) {
 	var exists string
-	err := c.Call(c.ctx, "existslivetickets", &exists, []string{ticketHash})
+	err := c.Call(context.TODO(), "existslivetickets", &exists, []string{ticketHash})
 	if err != nil {
 		return false, err
 	}
