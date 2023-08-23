@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/wire"
+	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
 	"github.com/decred/vspd/version"
@@ -28,89 +29,110 @@ const maxVoteChangeRecords = 10
 const consistencyInterval = 30 * time.Minute
 
 func main() {
-	// Run until an exit code is returned.
-	os.Exit(run())
-}
-
-// run is the main startup and teardown logic performed by the main package. It
-// is responsible for parsing the config, creating dcrd and dcrwallet RPC clients,
-// opening the database, starting the webserver, and stopping all started
-// services when a shutdown is requested.
-func run() int {
-
 	// Load config file and parse CLI args.
 	cfg, err := loadConfig()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Config error: %v\n", err)
-		return 1
+		fmt.Fprintf(os.Stderr, "loadConfig error: %v\n", err)
+		os.Exit(1)
+	}
+
+	vspd, err := newVspd(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "newVspd error: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Run until an exit code is returned.
+	os.Exit(vspd.run())
+}
+
+type vspd struct {
+	cfg     *config
+	log     slog.Logger
+	db      *database.VspDatabase
+	dcrd    rpc.DcrdConnect
+	wallets rpc.WalletConnect
+}
+
+// newVspd creates the essential resources required by vspd - a database, logger
+// and RPC clients - then returns an instance of vspd which is ready to be run.
+func newVspd(cfg *config) (*vspd, error) {
+	// Open database.
+	db, err := database.Open(cfg.dbPath, cfg.logger(" DB"), maxVoteChangeRecords)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
 	log := cfg.logger("VSP")
-	dbLog := cfg.logger(" DB")
-	apiLog := cfg.logger("API")
 	rpcLog := cfg.logger("RPC")
-
-	// Show version at startup.
-	log.Criticalf("Version %s (Go version %s %s/%s)", version.String(), runtime.Version(),
-		runtime.GOOS, runtime.GOARCH)
-
-	if cfg.netParams == &mainNetParams &&
-		version.PreRelease != "" {
-		log.Warnf("")
-		log.Warnf("\tWARNING: This is a pre-release version of vspd which should not be used on mainnet.")
-		log.Warnf("")
-	}
-
-	if cfg.VspClosed {
-		log.Warnf("")
-		log.Warnf("\tWARNING: Config --vspclosed is set. This will prevent vspd from accepting new tickets.")
-		log.Warnf("")
-	}
-
-	defer log.Criticalf("Shutdown complete")
-
-	// Open database.
-	db, err := database.Open(cfg.dbPath, dbLog, maxVoteChangeRecords)
-	if err != nil {
-		log.Errorf("Database error: %v", err)
-		return 1
-	}
-
-	const writeBackup = true
-	defer db.Close(writeBackup)
-
-	// Create a context that is cancelled when a shutdown request is received
-	// through an interrupt signal.
-	shutdownCtx := shutdownListener(log)
-
-	// WaitGroup for services to signal when they have shutdown cleanly.
-	var shutdownWg sync.WaitGroup
-
-	db.WritePeriodicBackups(shutdownCtx, &shutdownWg, cfg.BackupInterval)
 
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
 	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, cfg.netParams.Params, rpcLog)
-	defer dcrd.Close()
 
-	// Create RPC client for remote dcrwallet instance (used for voting).
+	// Create RPC client for remote dcrwallet instances (used for voting).
 	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.netParams.Params, rpcLog)
-	defer wallets.Close()
+
+	v := &vspd{
+		cfg:     cfg,
+		log:     log,
+		db:      db,
+		dcrd:    dcrd,
+		wallets: wallets,
+	}
+
+	return v, nil
+}
+
+// run starts all of vspds background services including the web server, and
+// stops all started services when a shutdown is requested.
+func (v *vspd) run() int {
+	v.log.Criticalf("Version %s (Go version %s %s/%s)", version.String(), runtime.Version(),
+		runtime.GOOS, runtime.GOARCH)
+
+	if v.cfg.netParams == &mainNetParams &&
+		version.PreRelease != "" {
+		v.log.Warnf("")
+		v.log.Warnf("\tWARNING: This is a pre-release version of vspd which should not be used on mainnet.")
+		v.log.Warnf("")
+	}
+
+	if v.cfg.VspClosed {
+		v.log.Warnf("")
+		v.log.Warnf("\tWARNING: Config --vspclosed is set. This will prevent vspd from accepting new tickets.")
+		v.log.Warnf("")
+	}
+
+	// Defer shutdown tasks.
+	defer v.log.Criticalf("Shutdown complete")
+	const writeBackup = true
+	defer v.db.Close(writeBackup)
+	defer v.dcrd.Close()
+	defer v.wallets.Close()
+
+	// Create a context that is cancelled when a shutdown request is received
+	// through an interrupt signal.
+	shutdownCtx := shutdownListener(v.log)
+
+	// WaitGroup for services to signal when they have shutdown cleanly.
+	var shutdownWg sync.WaitGroup
+
+	v.db.WritePeriodicBackups(shutdownCtx, &shutdownWg, v.cfg.BackupInterval)
 
 	// Ensure all data in database is present and up-to-date.
-	err = db.CheckIntegrity(dcrd)
+	err := v.db.CheckIntegrity(v.dcrd)
 	if err != nil {
 		// vspd should still start if this fails, so just log an error.
-		log.Errorf("Could not check database integrity: %v", err)
+		v.log.Errorf("Could not check database integrity: %v", err)
 	}
 
 	// Run the block connected handler now to catch up with any blocks mined
 	// while vspd was shut down.
-	blockConnected(dcrd, wallets, db, log)
+	v.blockConnected()
 
 	// Run voting wallet consistency check now to ensure all wallets are up to
 	// date.
-	checkWalletConsistency(dcrd, wallets, db, log)
+	v.checkWalletConsistency()
 
 	// Run voting wallet consistency check periodically.
 	shutdownWg.Add(1)
@@ -121,29 +143,29 @@ func run() int {
 				shutdownWg.Done()
 				return
 			case <-time.After(consistencyInterval):
-				checkWalletConsistency(dcrd, wallets, db, log)
+				v.checkWalletConsistency()
 			}
 		}
 	}()
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
-		VSPFee:               cfg.VSPFee,
-		NetParams:            cfg.netParams.Params,
-		BlockExplorerURL:     cfg.netParams.blockExplorerURL,
-		SupportEmail:         cfg.SupportEmail,
-		VspClosed:            cfg.VspClosed,
-		VspClosedMsg:         cfg.VspClosedMsg,
-		AdminPass:            cfg.AdminPass,
-		Debug:                cfg.WebServerDebug,
-		Designation:          cfg.Designation,
+		VSPFee:               v.cfg.VSPFee,
+		NetParams:            v.cfg.netParams.Params,
+		BlockExplorerURL:     v.cfg.netParams.blockExplorerURL,
+		SupportEmail:         v.cfg.SupportEmail,
+		VspClosed:            v.cfg.VspClosed,
+		VspClosedMsg:         v.cfg.VspClosedMsg,
+		AdminPass:            v.cfg.AdminPass,
+		Debug:                v.cfg.WebServerDebug,
+		Designation:          v.cfg.Designation,
 		MaxVoteChangeRecords: maxVoteChangeRecords,
 		VspdVersion:          version.String(),
 	}
-	err = webapi.Start(shutdownCtx, requestShutdown, &shutdownWg, cfg.Listen, db, apiLog,
-		dcrd, wallets, apiCfg)
+	err = webapi.Start(shutdownCtx, requestShutdown, &shutdownWg, v.cfg.Listen, v.db, v.cfg.logger("API"),
+		v.dcrd, v.wallets, apiCfg)
 	if err != nil {
-		log.Errorf("Failed to initialize webapi: %v", err)
+		v.log.Errorf("Failed to initialize webapi: %v", err)
 		requestShutdown()
 		shutdownWg.Wait()
 		return 1
@@ -159,14 +181,14 @@ func run() int {
 				shutdownWg.Done()
 				return
 			case header := <-notifChan:
-				log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
-				blockConnected(dcrd, wallets, db, log)
+				v.log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
+				v.blockConnected()
 			}
 		}
 	}()
 
 	// Attach notification listener to dcrd client.
-	dcrd.BlockConnectedHandler(notifChan)
+	v.dcrd.BlockConnectedHandler(notifChan)
 
 	// Loop forever attempting ensuring a dcrd connection is available, so
 	// notifications are received.
@@ -179,9 +201,9 @@ func run() int {
 				return
 			case <-time.After(time.Second * 15):
 				// Ensure dcrd client is still connected.
-				_, _, err := dcrd.Client()
+				_, _, err := v.dcrd.Client()
 				if err != nil {
-					log.Errorf("dcrd connect error: %v", err)
+					v.log.Errorf("dcrd connect error: %v", err)
 				}
 			}
 		}
