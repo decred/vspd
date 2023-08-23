@@ -220,7 +220,7 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 
 	err = ValidateServerSignature(reply, respBody, c.PubKey)
 	if err != nil {
-		return fmt.Errorf("authenticate server response: %v", err)
+		return fmt.Errorf("authenticate server response: %w", err)
 	}
 
 	err = json.Unmarshal(respBody, resp)
