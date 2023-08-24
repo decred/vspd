@@ -6,19 +6,28 @@ linters:
   enable:
     - asciicheck
     - bidichk
+    - containedctx
+    - dupword
     - durationcheck
     - errcheck
     - errchkjson
+    - errorlint
     - exhaustive
     - exportloopref
     - goconst
+    - godot
     - gofmt
     - goimports
     - gosimple
     - govet
     - ineffassign
+    - makezero
     - misspell
     - nilerr
+    - nosprintfhostport
+    - prealloc
+    - predeclared
+    - reassign
     - revive
     - staticcheck
     - tparallel
