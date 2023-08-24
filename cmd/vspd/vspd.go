@@ -44,6 +44,10 @@ type vspd struct {
 	wallets rpc.WalletConnect
 
 	blockNotifChan chan *wire.BlockHeader
+
+	// lastScannedBlock is the height of the most recent block which has been
+	// scanned for spent tickets.
+	lastScannedBlock int64
 }
 
 // newVspd creates the essential resources required by vspd - a database, logger
@@ -466,63 +470,54 @@ func (v *vspd) blockConnected() {
 
 	// Step 4/4: Set ticket outcome in database if any tickets are voted/revoked.
 
-	// Ticket status needs to be checked on every wallet. This is because only
-	// one of the voting wallets will actually succeed in voting/revoking
-	// tickets (the others will get errors like "tx already exists"). Only the
-	// successful wallet will have the most up-to-date ticket status, the others
-	// will be outdated.
-	for _, walletClient := range walletClients {
-		votableTickets, err := v.db.GetVotableTickets()
-		if err != nil {
-			v.log.Errorf("%s: db.GetVotableTickets failed: %v", funcName, err)
-			continue
-		}
-
-		// If the database has no votable tickets, there is nothing more to do
-		if len(votableTickets) == 0 {
-			break
-		}
-
-		// Find the oldest block height from confirmed tickets.
-		oldestHeight := votableTickets.EarliestPurchaseHeight()
-
-		ticketInfo, err := walletClient.TicketInfo(oldestHeight)
-		if err != nil {
-			v.log.Errorf("%s: dcrwallet.TicketInfo failed (startHeight=%d, wallet=%s): %v",
-				funcName, oldestHeight, walletClient.String(), err)
-			continue
-		}
-
-		for _, dbTicket := range votableTickets {
-			tInfo, ok := ticketInfo[dbTicket.Hash]
-			if !ok {
-				v.log.Warnf("%s: TicketInfo response did not include expected ticket (wallet=%s, ticketHash=%s)",
-					funcName, walletClient.String(), dbTicket.Hash)
-				continue
-			}
-
-			switch tInfo.Status {
-			case "missed", "expired", "revoked":
-				dbTicket.Outcome = database.Revoked
-			case "voted":
-				dbTicket.Outcome = database.Voted
-			default:
-				// Skip to next ticket.
-				continue
-			}
-
-			err = v.db.UpdateTicket(dbTicket)
-			if err != nil {
-				v.log.Errorf("%s: db.UpdateTicket error, failed to set ticket outcome (ticketHash=%s): %v",
-					funcName, dbTicket.Hash, err)
-				continue
-			}
-
-			v.log.Infof("%s: Ticket no longer votable: outcome=%s, ticketHash=%s", funcName,
-				dbTicket.Outcome, dbTicket.Hash)
-		}
+	votableTickets, err := v.db.GetVotableTickets()
+	if err != nil {
+		v.log.Errorf("%s: db.GetVotableTickets failed: %v", funcName, err)
+		return
 	}
 
+	// If the database has no votable tickets, there is nothing more to do.
+	if len(votableTickets) == 0 {
+		return
+	}
+
+	var startHeight int64
+	if v.lastScannedBlock == 0 {
+		// Use the earliest height at which a votable ticket matured if vspd has
+		// not performed a scan for spent tickets since it started. This will
+		// catch any tickets which were spent whilst vspd was offline.
+		startHeight = votableTickets.EarliestPurchaseHeight() + int64(v.cfg.netParams.TicketMaturity)
+	} else {
+		startHeight = v.lastScannedBlock
+	}
+
+	spent, endHeight, err := v.findSpentTickets(votableTickets, startHeight)
+	if err != nil {
+		v.log.Errorf("%s: findSpentTickets error: %v", funcName, err)
+		return
+	}
+
+	v.lastScannedBlock = endHeight
+
+	for _, spentTicket := range spent {
+		dbTicket := spentTicket.dbTicket
+
+		if spentTicket.voted() {
+			dbTicket.Outcome = database.Voted
+		} else {
+			dbTicket.Outcome = database.Revoked
+		}
+
+		err = v.db.UpdateTicket(dbTicket)
+		if err != nil {
+			v.log.Errorf("%s: db.UpdateTicket error, failed to set ticket outcome (ticketHash=%s): %v",
+				funcName, dbTicket.Hash, err)
+			continue
+		}
+
+		v.log.Infof("%s: Ticket %s %s at height %d", funcName,
+			dbTicket.Hash, dbTicket.Outcome, spentTicket.heightSpent)
+	}
 }
 
 // checkWalletConsistency will retrieve all votable tickets from the database

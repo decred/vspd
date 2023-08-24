@@ -5,13 +5,18 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/decred/dcrd/blockchain/standalone/v2"
+	"github.com/decred/dcrd/chaincfg/chainhash"
 	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/dcrd/gcs/v4"
+	"github.com/decred/dcrd/gcs/v4/blockcf2"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/slog"
@@ -232,6 +237,32 @@ func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, 
 	return blockHeader, nil
 }
 
+// GetBlockHeader uses getblockheader RPC with verbose=false to retrieve
+// the header of the requested block.
+func (c *DcrdRPC) GetBlockHeader(blockHash string) (*wire.BlockHeader, error) {
+	const verbose = false
+	var resp string
+	err := c.Call(context.TODO(), "getblockheader", &resp, blockHash, verbose)
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode the serialized block header hex to raw bytes.
+	headerBytes, err := hex.DecodeString(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	// Deserialize the block header and return it.
+	var blockHeader wire.BlockHeader
+	err = blockHeader.Deserialize(bytes.NewReader(headerBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	return &blockHeader, nil
+}
+
 // GetBlockHeaderVerbose uses getblockheader RPC with verbose=true to retrieve
 // the header of the requested block.
 func (c *DcrdRPC) GetBlockHeaderVerbose(blockHash string) (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
@@ -260,4 +291,88 @@ func (c *DcrdRPC) ExistsLiveTicket(ticketHash string) (bool, error) {
 	}
 
 	return bitset.Bytes(existsBytes).Get(0), nil
+}
+
+func (c *DcrdRPC) GetBlock(hash string) (*wire.MsgBlock, error) {
+	var resp string
+	const verbose = false
+	const verboseTx = false
+	err := c.Call(context.TODO(), "getblock", &resp, hash, verbose, verboseTx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode the serialized block hex to raw bytes.
+	blockBytes, err := hex.DecodeString(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	// Deserialize the block and return it.
+	var msgBlock wire.MsgBlock
+	err = msgBlock.Deserialize(bytes.NewReader(blockBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	return &msgBlock, nil
+}
+
+func (c *DcrdRPC) GetBlockCount() (int64, error) {
+	var count int64
+	err := c.Call(context.TODO(), "getblockcount", &count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (c *DcrdRPC) GetBlockHash(height int64) (string, error) {
+	var resp string
+	err := c.Call(context.TODO(), "getblockhash", &resp, height)
+	if err != nil {
+		return "", err
+	}
+	return resp, nil
+}
+
+// GetCFilterV2 retrieves the GCS filter for the provided block header,
+// optionally verifies the inclusion proof, then returns the filter along with
+// its key.
+func (c *DcrdRPC) GetCFilterV2(header *wire.BlockHeader, verifyProof bool) ([gcs.KeySize]byte, *gcs.FilterV2, error) {
+	var key [gcs.KeySize]byte
+	var resp dcrdtypes.GetCFilterV2Result
+	err := c.Call(context.TODO(), "getcfilterv2", &resp, header.BlockHash().String())
+	if err != nil {
+		return key, nil, fmt.Errorf("getcfilterv2 error: %w", err)
+	}
+
+	filterB, err := hex.DecodeString(resp.Data)
+	if err != nil {
+		return key, nil, fmt.Errorf("error decoding block filter: %w", err)
+	}
+
+	filter, err := gcs.FromBytesV2(blockcf2.B, blockcf2.M, filterB)
+	if err != nil {
+		return key, nil, fmt.Errorf("error decoding block filter: %w", err)
+	}
+
+	if verifyProof {
+		filterHash := filter.Hash()
+
+		proofHashes := make([]chainhash.Hash, len(resp.ProofHashes))
+		for i, proofHash := range resp.ProofHashes {
+			h, err := chainhash.NewHashFromStr(proofHash)
+			if err != nil {
+				return key, nil, err
+			}
+			proofHashes[i] = *h
+		}
+
+		if !standalone.VerifyInclusionProof(&header.StakeRoot, &filterHash, resp.ProofIndex, proofHashes) {
+			return key, nil, fmt.Errorf("failed to verify inclusion proof: %w", err)
+		}
+	}
+
+	return blockcf2.Key(&header.MerkleRoot), filter, nil
 }
