@@ -34,11 +34,3 @@ var testNet3Params = netParams{
 	blockExplorerURL:    "https://testnet.dcrdata.org",
 	minWallets:          1,
 }
-
-var simNetParams = netParams{
-	Params:              chaincfg.SimNetParams(),
-	dcrdRPCServerPort:   "19556",
-	walletRPCServerPort: "19557",
-	blockExplorerURL:    "...",
-	minWallets:          1,
-}

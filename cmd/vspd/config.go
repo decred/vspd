@@ -51,7 +51,7 @@ type config struct {
 	LogLevel        string        `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
 	MaxLogSize      int64         `long:"maxlogsize" ini-name:"maxlogsize" description:"File size threshold for log file rotation (MB)."`
 	LogsToKeep      int           `long:"logstokeep" ini-name:"logstokeep" description:"The number of rotated log files to keep."`
-	Network         string        `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
+	Network         string        `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet"`
 	VSPFee          float64       `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 2.0 (2%), 0.5 (0.5%)."`
 	DcrdHost        string        `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where vspd is running."`
 	DcrdUser        string        `long:"dcrduser" ini-name:"dcrduser" description:"Username for dcrd RPC connections."`
@@ -283,8 +283,6 @@ func loadConfig() (*config, error) {
 		cfg.netParams = &testNet3Params
 	case "mainnet":
 		cfg.netParams = &mainNetParams
-	case "simnet":
-		cfg.netParams = &simNetParams
 	}
 
 	// Ensure backup interval is greater than 30 seconds.
