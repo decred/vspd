@@ -86,7 +86,7 @@ func (vdb *VspDatabase) writeHotBackupFile() error {
 
 	vdb.log.Tracef("Database backup written to %s", backupPath)
 
-	return err
+	return nil
 }
 
 // CreateNew intializes a new bbolt database with all of the necessary vspd
