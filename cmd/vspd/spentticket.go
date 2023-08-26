@@ -25,6 +25,39 @@ func (s *spentTicket) voted() bool {
 	return stake.IsSSGen(s.spendingTx)
 }
 
+func (s *spentTicket) missed() bool {
+	// The following switch statement is a heuristic to estimate whether a
+	// ticket was missed or expired based on its revoke height. Absolute
+	// precision is not needed here as this status is only used to report VSP
+	// stats via /vspinfo, which could be forged by a malicious VSP operator
+	// anyway.
+	switch {
+	case s.heightSpent < s.expiryHeight:
+		// A ticket revoked before expiry height was definitely missed.
+		return true
+	case s.heightSpent == s.expiryHeight:
+		// If a ticket was revoked on exactly expiry height, assume it expired.
+		// This might be incorrect if DCP-0009 was not active and a missed
+		// ticket was coincidentally revoked on exactly the expiry height.
+		return false
+	case s.heightSpent == s.expiryHeight+1:
+		// Revoking after the expiry height was only possible before DCP-0009
+		// activated. Cannot be certain if missed or expired, but if it was
+		// revoked exactly in the first block an expired ticket could have
+		// possibly been revoked, there is a high probability the voter was
+		// online and didn't miss the vote, so assume expired.
+		return false
+	default:
+		// Revoking after the expiry height was only possible before DCP-0009
+		// activated. Cannot be certain if missed or expired, but if it was
+		// revoked later than the first block an expired ticket could have
+		// possibly been revoked, it is probably because the voter was offline
+		// and there is a much higher probability that the ticket was missed, so
+		// assume missed.
+		return true
+	}
+}
+
 // findSpentTickets attempts to find transactions that vote/revoke the provided
 // tickets by matching the payment script of the ticket's commitment address
 // against the block filters of the mainchain blocks between the provided start
