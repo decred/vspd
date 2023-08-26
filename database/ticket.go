@@ -31,11 +31,17 @@ const (
 type TicketOutcome string
 
 const (
-	// Revoked indicates the ticket has been revoked, either because it was
-	// missed or it expired.
-	Revoked TicketOutcome = "revoked"
+	// Expired indicates the ticket expired and has been revoked.
+	Expired TicketOutcome = "expired"
+	// Missed indicates the ticket was missed and has been revoked.
+	Missed TicketOutcome = "missed"
 	// Voted indicates the ticket has already voted.
 	Voted TicketOutcome = "voted"
+
+	// Revoked is a deprecated status which should no longer be used. It was
+	// used before vspd was able to distinguish between expired and missed
+	// tickets.
+	Revoked TicketOutcome = "revoked"
 )
 
 // The keys used to store ticket values in the database.
@@ -319,7 +325,7 @@ func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 				switch TicketOutcome(tBkt.Get(outcomeK)) {
 				case Voted:
 					voted++
-				case Revoked:
+				case Revoked, Expired, Missed:
 					revoked++
 				default:
 					voting++
@@ -377,6 +383,13 @@ func (vdb *VspDatabase) GetVotableTickets() (TicketList, error) {
 func (vdb *VspDatabase) GetVotedTickets() (TicketList, error) {
 	return vdb.filterTickets(func(t *bolt.Bucket) bool {
 		return FeeStatus(t.Get(feeTxStatusK)) == FeeConfirmed && TicketOutcome(t.Get(outcomeK)) == Voted
+	})
+}
+
+// GetRevokedTickets returns all tickets which have outcome == revoked.
+func (vdb *VspDatabase) GetRevokedTickets() (TicketList, error) {
+	return vdb.filterTickets(func(t *bolt.Bucket) bool {
+		return TicketOutcome(t.Get(outcomeK)) == Revoked
 	})
 }
 

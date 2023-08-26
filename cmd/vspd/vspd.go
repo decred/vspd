@@ -219,7 +219,12 @@ func (v *vspd) run() int {
 func (v *vspd) checkDatabaseIntegrity() error {
 	err := v.checkPurchaseHeights()
 	if err != nil {
-		return err
+		return fmt.Errorf("checkPurchaseHeights error: %w", err)
+	}
+
+	err = v.checkRevoked()
+	if err != nil {
+		return fmt.Errorf("checkRevoked error: %w", err)
 	}
 
 	return nil
@@ -267,6 +272,62 @@ func (v *vspd) checkPurchaseHeights() error {
 	}
 
 	v.log.Infof("Added missing purchase height to %d tickets", fixed)
+	return nil
+}
+
+// checkRevoked ensures that any tickets in the database with outcome set to
+// revoked are updated to either expired or missed.
+func (v *vspd) checkRevoked() error {
+	revoked, err := v.db.GetRevokedTickets()
+	if err != nil {
+		return fmt.Errorf("db.GetRevoked error: %w", err)
+	}
+
+	if len(revoked) == 0 {
+		// Nothing to do, return.
+		return nil
+	}
+
+	v.log.Warnf("Updating %s in revoked status, this may take a while...",
+		pluralize(len(revoked), "ticket"))
+
+	// Search for the transactions which spend these tickets, starting at the
+	// earliest height one of them matured.
+	startHeight := revoked.EarliestPurchaseHeight() + int64(v.cfg.netParams.TicketMaturity)
+
+	spent, _, err := v.findSpentTickets(revoked, startHeight)
+	if err != nil {
+		return fmt.Errorf("findSpentTickets error: %w", err)
+	}
+
+	fixedMissed := 0
+	fixedExpired := 0
+
+	// Update database with correct voted status.
+	for hash, spentTicket := range spent {
+		switch {
+		case spentTicket.voted():
+			v.log.Errorf("Ticket voted but was recorded as revoked. Please contact "+
+				"developers so this can be investigated (ticketHash=%s)", hash)
+			continue
+		case spentTicket.missed():
+			spentTicket.dbTicket.Outcome = database.Missed
+			fixedMissed++
+		default:
+			spentTicket.dbTicket.Outcome = database.Expired
+			fixedExpired++
+		}
+
+		err = v.db.UpdateTicket(spentTicket.dbTicket)
+		if err != nil {
+			v.log.Errorf("Could not update status of ticket %s: %v", hash, err)
+		}
+	}
+
+	v.log.Infof("%s updated (%d missed, %d expired)",
+		pluralize(fixedExpired+fixedMissed, "revoked ticket"),
+		fixedMissed, fixedExpired)
+
 	return nil
 }
 
@@ -502,10 +563,13 @@ func (v *vspd) blockConnected() {
 	for _, spentTicket := range spent {
 		dbTicket := spentTicket.dbTicket
 
-		if spentTicket.voted() {
+		switch {
+		case spentTicket.voted():
 			dbTicket.Outcome = database.Voted
-		} else {
-			dbTicket.Outcome = database.Revoked
+		case spentTicket.missed():
+			dbTicket.Outcome = database.Missed
+		default:
+			dbTicket.Outcome = database.Expired
 		}
 
 		err = v.db.UpdateTicket(dbTicket)
