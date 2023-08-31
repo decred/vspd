@@ -29,6 +29,8 @@ func (s *Server) vspInfo(c *gin.Context) {
 		TotalVotingWallets:  cachedStats.TotalVotingWallets,
 		VotingWalletsOnline: cachedStats.VotingWalletsOnline,
 		Revoked:             cachedStats.Expired + cachedStats.Missed,
+		Expired:             cachedStats.Expired,
+		Missed:              cachedStats.Missed,
 		BlockHeight:         cachedStats.BlockHeight,
 		NetworkProportion:   cachedStats.NetworkProportion,
 	}, c)
