@@ -223,14 +223,14 @@ func (c *DcrdRPC) NotifyBlocks() error {
 
 // GetBestBlockHeader uses getbestblockhash RPC, followed by getblockheader RPC,
 // to retrieve the header of the best block known to the dcrd instance.
-func (c *DcrdRPC) GetBestBlockHeader() (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
+func (c *DcrdRPC) GetBestBlockHeader() (*wire.BlockHeader, error) {
 	var bestBlockHash string
 	err := c.Call(context.TODO(), "getbestblockhash", &bestBlockHash)
 	if err != nil {
 		return nil, err
 	}
 
-	blockHeader, err := c.GetBlockHeaderVerbose(bestBlockHash)
+	blockHeader, err := c.GetBlockHeader(bestBlockHash)
 	if err != nil {
 		return nil, err
 	}
@@ -260,18 +260,6 @@ func (c *DcrdRPC) GetBlockHeader(blockHash string) (*wire.BlockHeader, error) {
 		return nil, err
 	}
 
-	return &blockHeader, nil
-}
-
-// GetBlockHeaderVerbose uses getblockheader RPC with verbose=true to retrieve
-// the header of the requested block.
-func (c *DcrdRPC) GetBlockHeaderVerbose(blockHash string) (*dcrdtypes.GetBlockHeaderVerboseResult, error) {
-	const verbose = true
-	var blockHeader dcrdtypes.GetBlockHeaderVerboseResult
-	err := c.Call(context.TODO(), "getblockheader", &blockHeader, blockHash, verbose)
-	if err != nil {
-		return nil, err
-	}
 	return &blockHeader, nil
 }
 
