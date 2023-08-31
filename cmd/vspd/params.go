@@ -44,6 +44,16 @@ var testNet3Params = netParams{
 	dcp0005Height: 323328,
 }
 
+var simNetParams = netParams{
+	Params:              chaincfg.SimNetParams(),
+	dcrdRPCServerPort:   "19556",
+	walletRPCServerPort: "19557",
+	blockExplorerURL:    "...",
+	minWallets:          1,
+	// dcp0005Height on simnet is 1 because the agenda will always be active.
+	dcp0005Height: 1,
+}
+
 // dcp5Active returns true if the DCP-0005 block header commitments agenda is
 // active on this network at the provided height, otherwise false.
 func (n *netParams) dcp5Active(height int64) bool {
