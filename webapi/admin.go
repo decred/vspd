@@ -61,14 +61,14 @@ func (s *Server) dcrdStatus(c *gin.Context) DcrdStatus {
 
 	status.Connected = true
 
-	bestBlock, err := dcrdClient.GetBestBlockHeader()
+	bestBlock, err := dcrdClient.GetBlockCount()
 	if err != nil {
-		s.log.Errorf("Could not get dcrd best block header: %v", err)
+		s.log.Errorf("Could not get dcrd block count: %v", err)
 		status.BestBlockError = true
 		return status
 	}
 
-	status.BestBlockHeight = bestBlock.Height
+	status.BestBlockHeight = uint32(bestBlock)
 
 	return status
 }
