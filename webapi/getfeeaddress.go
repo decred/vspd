@@ -49,10 +49,7 @@ func (s *Server) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) 
 		return 0, err
 	}
 
-	sDiff, err := dcrutil.NewAmount(bestBlock.SBits)
-	if err != nil {
-		return 0, err
-	}
+	sDiff := dcrutil.Amount(bestBlock.SBits)
 
 	// Using a hard-coded amount for relay fee is acceptable here because this
 	// amount is never actually used to construct or broadcast transactions. It
