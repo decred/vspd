@@ -24,9 +24,13 @@ type VspInfoResponse struct {
 	Voted               int64   `json:"voted"`
 	TotalVotingWallets  int64   `json:"totalvotingwallets"`
 	VotingWalletsOnline int64   `json:"votingwalletsonline"`
-	Revoked             int64   `json:"revoked"`
-	BlockHeight         uint32  `json:"blockheight"`
-	NetworkProportion   float32 `json:"estimatednetworkproportion"`
+	// Deprecated: Revoked will be removed in the next major version bump.
+	// Revoked is simply the sum of Expired and Missed, so use those instead.
+	Revoked           int64   `json:"revoked"`
+	Expired           int64   `json:"expired"`
+	Missed            int64   `json:"missed"`
+	BlockHeight       uint32  `json:"blockheight"`
+	NetworkProportion float32 `json:"estimatednetworkproportion"`
 }
 
 type FeeAddressRequest struct {
