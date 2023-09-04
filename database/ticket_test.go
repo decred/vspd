@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -228,8 +228,8 @@ func testFilterTickets(t *testing.T) {
 }
 
 func testCountTickets(t *testing.T) {
-	count := func(test string, expectedVoting, expectedVoted, expectedRevoked int64) {
-		voting, voted, revoked, err := db.CountTickets()
+	count := func(test string, expectedVoting, expectedVoted, expectedExpired, expectedMissed int64) {
+		voting, voted, expired, missed, err := db.CountTickets()
 		if err != nil {
 			t.Fatalf("error counting tickets: %v", err)
 		}
@@ -242,14 +242,18 @@ func testCountTickets(t *testing.T) {
 			t.Fatalf("test %s: expected %d voted tickets, got %d",
 				test, expectedVoted, voted)
 		}
-		if revoked != expectedRevoked {
-			t.Fatalf("test %s: expected %d revoked tickets, got %d",
-				test, expectedRevoked, revoked)
+		if expired != expectedExpired {
+			t.Fatalf("test %s: expected %d expired tickets, got %d",
+				test, expectedExpired, expired)
+		}
+		if missed != expectedMissed {
+			t.Fatalf("test %s: expected %d missed tickets, got %d",
+				test, expectedMissed, missed)
 		}
 	}
 
 	// Initial counts should all be zero.
-	count("empty db", 0, 0, 0)
+	count("empty db", 0, 0, 0, 0)
 
 	// Insert a ticket with non-confirmed fee into the database.
 	// This should not be counted.
@@ -260,7 +264,7 @@ func testCountTickets(t *testing.T) {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
-	count("unconfirmed fee", 0, 0, 0)
+	count("unconfirmed fee", 0, 0, 0, 0)
 
 	// Insert a ticket with confirmed fee into the database.
 	// This should be counted.
@@ -271,7 +275,7 @@ func testCountTickets(t *testing.T) {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
-	count("confirmed fee", 1, 0, 0)
+	count("confirmed fee", 1, 0, 0, 0)
 
 	// Insert a voted ticket into the database.
 	// This should be counted.
@@ -283,17 +287,41 @@ func testCountTickets(t *testing.T) {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
-	count("voted", 1, 1, 0)
+	count("voted", 1, 1, 0, 0)
 
-	// Insert a revoked ticket into the database.
+	// Insert an expired ticket into the database.
 	// This should be counted.
 	ticket4 := exampleTicket()
 	ticket4.FeeTxStatus = FeeConfirmed
-	ticket4.Outcome = Revoked
+	ticket4.Outcome = Expired
 	err = db.InsertNewTicket(ticket4)
 	if err != nil {
 		t.Fatalf("error storing ticket in database: %v", err)
 	}
 
-	count("revoked", 1, 1, 1)
+	count("expired", 1, 1, 1, 0)
+
+	// Insert a missed ticket into the database.
+	// This should be counted.
+	ticket5 := exampleTicket()
+	ticket5.FeeTxStatus = FeeConfirmed
+	ticket5.Outcome = Missed
+	err = db.InsertNewTicket(ticket5)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	count("missed", 1, 1, 1, 1)
+
+	// Insert a revoked ticket into the database.
+	// This should be counted as expired.
+	ticket6 := exampleTicket()
+	ticket6.FeeTxStatus = FeeConfirmed
+	ticket6.Outcome = Revoked
+	err = db.InsertNewTicket(ticket6)
+	if err != nil {
+		t.Fatalf("error storing ticket in database: %v", err)
+	}
+
+	count("revoked", 1, 1, 2, 1)
 }
