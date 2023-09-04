@@ -146,28 +146,32 @@ func (v *vspd) findSpentTickets(toCheck database.TicketList, startHeight int64) 
 			return nil, 0, err
 		}
 
-		for i, ticket := range tickets {
+		for i := range tickets {
 			// The regular transaction tree does not need to be checked because
 			// tickets can only be spent by vote or revoke transactions which
 			// are always in the stake tree.
 			for _, blkTx := range iBlock.STransactions {
-				if !txSpendsTicket(blkTx, ticket.hash) {
+				if !txSpendsTicket(blkTx, tickets[i].hash) {
 					continue
 				}
 
 				// Confirmed - ticket is spent in block.
 
 				spent = append(spent, spentTicket{
-					dbTicket:     ticket.dbTicket,
-					expiryHeight: ticket.dbTicket.PurchaseHeight + int64(params.TicketMaturity) + int64(params.TicketExpiry),
+					dbTicket:     tickets[i].dbTicket,
+					expiryHeight: tickets[i].dbTicket.PurchaseHeight + int64(params.TicketMaturity) + int64(params.TicketExpiry),
 					heightSpent:  iHeight,
 					spendingTx:   blkTx,
 				})
 
-				// Remove this ticket and it's script before continuing with the
+				// Remove this ticket and its script before continuing with the
 				// next one.
 				tickets = nonOrderPreservingRemove(tickets, i)
 				scripts = nonOrderPreservingRemove(scripts, i)
+
+				// Current index has been removed which means everything else
+				// moved up one and thus the same index needed to be repeated.
+				i--
 			}
 		}
 
