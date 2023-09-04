@@ -89,13 +89,16 @@ func (v *vspd) findSpentTickets(toCheck database.TicketList, startHeight int64) 
 			numBlocks, pluralize(len(toCheck), "spent ticket"))
 	}
 
-	// Get commitment address payment script for each ticket.
+	// Get commitment address payment scripts and parse hashes for each ticket
+	// prior to the main loop. Two slices are needed because payment scripts
+	// must be in their own slice to be passed into the MatchAny func.
 	type ticketTuple struct {
 		dbTicket database.Ticket
-		pkScript []byte
+		hash     chainhash.Hash
 	}
 
-	tickets := make(map[chainhash.Hash]ticketTuple)
+	tickets := make([]ticketTuple, 0, len(toCheck))
+	scripts := make([][]byte, 0, len(toCheck))
 	for _, ticket := range toCheck {
 		parsedAddr, err := stdaddr.DecodeAddress(ticket.CommitmentAddress, params)
 		if err != nil {
@@ -108,10 +111,8 @@ func (v *vspd) findSpentTickets(toCheck database.TicketList, startHeight int64) 
 			return nil, 0, err
 		}
 
-		tickets[*hash] = ticketTuple{
-			dbTicket: ticket,
-			pkScript: script,
-		}
+		tickets = append(tickets, ticketTuple{ticket, *hash})
+		scripts = append(scripts, script)
 	}
 
 	spent := make([]spentTicket, 0)
@@ -133,42 +134,44 @@ func (v *vspd) findSpentTickets(toCheck database.TicketList, startHeight int64) 
 			return nil, 0, err
 		}
 
-		var iBlock *wire.MsgBlock
-	outer:
-		for ticketHash, ticket := range tickets {
-			if filter.Match(key, ticket.pkScript) {
-				// Filter match means the ticket is likely spent in block. Get
-				// the full block to confirm.
-				if iBlock == nil {
-					iBlock, err = dcrdClient.GetBlock(iHash)
-					if err != nil {
-						return nil, 0, err
-					}
+		if !filter.MatchAny(key, scripts) {
+			// No tickets are spent in this block, continue to the next one.
+			continue
+		}
+
+		// Filter match means a ticket is likely spent in this block. Get the
+		// full block to confirm.
+		iBlock, err := dcrdClient.GetBlock(iHash)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		for i := range tickets {
+			// The regular transaction tree does not need to be checked because
+			// tickets can only be spent by vote or revoke transactions which
+			// are always in the stake tree.
+			for _, blkTx := range iBlock.STransactions {
+				if !txSpendsTicket(blkTx, tickets[i].hash) {
+					continue
 				}
 
-				// The regular transaction tree does not need to be checked
-				// because tickets can only be spent by vote or revoke
-				// transactions which are always in the stake tree.
-				for _, blkTx := range iBlock.STransactions {
-					if !txSpendsTicket(blkTx, ticketHash) {
-						continue
-					}
+				// Confirmed - ticket is spent in block.
 
-					// Confirmed - ticket is spent in block.
+				spent = append(spent, spentTicket{
+					dbTicket:     tickets[i].dbTicket,
+					expiryHeight: tickets[i].dbTicket.PurchaseHeight + int64(params.TicketMaturity) + int64(params.TicketExpiry),
+					heightSpent:  iHeight,
+					spendingTx:   blkTx,
+				})
 
-					spent = append(spent, spentTicket{
-						dbTicket:     ticket.dbTicket,
-						expiryHeight: ticket.dbTicket.PurchaseHeight + int64(params.TicketMaturity) + int64(params.TicketExpiry),
-						heightSpent:  iHeight,
-						spendingTx:   blkTx,
-					})
+				// Remove this ticket and its script before continuing with the
+				// next one.
+				tickets = nonOrderPreservingRemove(tickets, i)
+				scripts = nonOrderPreservingRemove(scripts, i)
 
-					// Remove this ticket and continue with the next one.
-					delete(tickets, ticketHash)
-					continue outer
-				}
-
-				// Ticket is not spent in block.
+				// Current index has been removed which means everything else
+				// moved up one and thus the same index needs to be repeated.
+				i--
 			}
 		}
 
@@ -191,6 +194,16 @@ func txSpendsTicket(tx *wire.MsgTx, outputHash chainhash.Hash) bool {
 		}
 	}
 	return false
+}
+
+// nonOrderPreservingRemove removes index i from slice s. The order of the slice
+// is not preserved, however the important property of the function is that
+// removing the same index from two slices of identical length will modify the
+// order of each slice in the same way. This allows a 1-to-1 mapping between two
+// (or more) slices to be preserved.
+func nonOrderPreservingRemove[T any](s []T, i int) []T {
+	s[i] = s[len(s)-1]
+	return s[:len(s)-1]
 }
 
 // pluralize suffixes the provided noun with "s" if n is not 1, then
