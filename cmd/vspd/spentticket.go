@@ -170,7 +170,7 @@ func (v *vspd) findSpentTickets(toCheck database.TicketList, startHeight int64) 
 				scripts = nonOrderPreservingRemove(scripts, i)
 
 				// Current index has been removed which means everything else
-				// moved up one and thus the same index needed to be repeated.
+				// moved up one and thus the same index needs to be repeated.
 				i--
 			}
 		}
