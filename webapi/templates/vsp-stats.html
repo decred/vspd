@@ -13,10 +13,18 @@
     </div>
 
     <div class="col-6 col-sm-4 col-lg-2 py-3">
-        <div class="stat-title">Revoked tickets</div>
+        <div class="stat-title">Expired tickets</div>
         <div class="stat-value">
-            {{ comma .WebApiCache.Revoked }}
-            <span class="text-muted">({{ float32ToPercent .WebApiCache.RevokedProportion }})</span>
+            {{ comma .WebApiCache.Expired }}
+            <span class="text-muted">({{ float32ToPercent .WebApiCache.ExpiredProportion }})</span>
+        </div>
+    </div>
+
+    <div class="col-6 col-sm-4 col-lg-2 py-3">
+        <div class="stat-title">Missed tickets</div>
+        <div class="stat-value">
+            {{ comma .WebApiCache.Missed }}
+            <span class="text-muted">({{ float32ToPercent .WebApiCache.MissedProportion }})</span>
         </div>
     </div>
 

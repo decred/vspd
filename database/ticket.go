@@ -308,13 +308,14 @@ func (vdb *VspDatabase) Size() (uint64, error) {
 	return size, err
 }
 
-// CountTickets returns the total number of voted, revoked, and currently voting
-// tickets. This func iterates over every ticket so should be used sparingly.
-func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
+// CountTickets returns the total number of voted, expired, missed, and
+// currently voting tickets. This func iterates over every ticket so should be
+// used sparingly.
+func (vdb *VspDatabase) CountTickets() (int64, int64, int64, int64, error) {
 	vdb.ticketsMtx.RLock()
 	defer vdb.ticketsMtx.RUnlock()
 
-	var voting, voted, revoked int64
+	var voting, voted, expired, missed int64
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
@@ -325,8 +326,15 @@ func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 				switch TicketOutcome(tBkt.Get(outcomeK)) {
 				case Voted:
 					voted++
-				case Revoked, Expired, Missed:
-					revoked++
+				case Expired:
+					expired++
+				case Missed:
+					missed++
+				case Revoked:
+					// There shouldn't be any revoked tickets in the db, they
+					// should have been updated to expired/missed. Give benefit
+					// of doubt to VSP admin and count these as expired.
+					expired++
 				default:
 					voting++
 				}
@@ -336,7 +344,7 @@ func (vdb *VspDatabase) CountTickets() (int64, int64, int64, error) {
 		})
 	})
 
-	return voting, voted, revoked, err
+	return voting, voted, expired, missed, err
 }
 
 // GetUnconfirmedTickets returns tickets which are not yet confirmed.

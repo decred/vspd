@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -31,12 +31,14 @@ type cacheData struct {
 	DatabaseSize        string
 	Voting              int64
 	Voted               int64
-	Revoked             int64
+	Expired             int64
+	Missed              int64
 	VotingWalletsOnline int64
 	TotalVotingWallets  int64
 	BlockHeight         uint32
 	NetworkProportion   float32
-	RevokedProportion   float32
+	ExpiredProportion   float32
+	MissedProportion    float32
 }
 
 func (c *cache) getData() cacheData {
@@ -66,8 +68,8 @@ func (c *cache) update(db *database.VspDatabase, dcrd rpc.DcrdConnect,
 		return err
 	}
 
-	// Get latest counts of voting, voted and revoked tickets.
-	voting, voted, revoked, err := db.CountTickets()
+	// Get latest counts of voting, voted, expired and missed tickets.
+	voting, voted, expired, missed, err := db.CountTickets()
 	if err != nil {
 		return err
 	}
@@ -104,17 +106,20 @@ func (c *cache) update(db *database.VspDatabase, dcrd rpc.DcrdConnect,
 	c.data.Voted = voted
 	c.data.TotalVotingWallets = int64(len(clients) + len(failedConnections))
 	c.data.VotingWalletsOnline = int64(len(clients))
-	c.data.Revoked = revoked
+	c.data.Expired = expired
+	c.data.Missed = missed
 	c.data.BlockHeight = bestBlock.Height
 	c.data.NetworkProportion = float32(voting) / float32(bestBlock.PoolSize)
 
-	total := voted + revoked
+	total := voted + expired + missed
 
-	// Prevent dividing by zero when pool has no voted/revoked tickets.
+	// Prevent dividing by zero when pool has no voted/expired/missed tickets.
 	if total == 0 {
-		c.data.RevokedProportion = 0
+		c.data.ExpiredProportion = 0
+		c.data.MissedProportion = 0
 	} else {
-		c.data.RevokedProportion = float32(revoked) / float32(total)
+		c.data.ExpiredProportion = float32(expired) / float32(total)
+		c.data.MissedProportion = float32(missed) / float32(total)
 	}
 
 	return nil
