@@ -108,16 +108,13 @@ func (c *cache) update(db *database.VspDatabase, dcrd rpc.DcrdConnect,
 	c.data.BlockHeight = bestBlock.Height
 	c.data.NetworkProportion = float32(voting) / float32(bestBlock.PoolSize)
 
-	// Prevent dividing by zero when pool has no voted tickets.
-	switch voted {
-	case 0:
-		if revoked == 0 {
-			c.data.RevokedProportion = 0
-		} else {
-			c.data.RevokedProportion = 1
-		}
-	default:
-		c.data.RevokedProportion = float32(revoked) / float32(voted)
+	total := voted + revoked
+
+	// Prevent dividing by zero when pool has no voted/revoked tickets.
+	if total == 0 {
+		c.data.RevokedProportion = 0
+	} else {
+		c.data.RevokedProportion = float32(revoked) / float32(total)
 	}
 
 	return nil
