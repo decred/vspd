@@ -34,6 +34,9 @@ const (
 
 	// consistencyInterval is the time period between wallet consistency checks.
 	consistencyInterval = 30 * time.Minute
+
+	// dcrdInterval is the time period between dcrd connection checks.
+	dcrdInterval = time.Second * 15
 )
 
 type vspd struct {
@@ -197,7 +200,7 @@ func (v *vspd) run() int {
 			case <-shutdownCtx.Done():
 				shutdownWg.Done()
 				return
-			case <-time.After(time.Second * 15):
+			case <-time.After(dcrdInterval):
 				// Ensure dcrd client is still connected.
 				_, _, err := v.dcrd.Client()
 				if err != nil {
