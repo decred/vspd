@@ -116,7 +116,7 @@ func (v *vspd) run() int {
 
 	// Create a context that is cancelled when a shutdown request is received
 	// through an interrupt signal.
-	shutdownCtx := shutdownListener(v.log)
+	ctx := shutdownListener(v.log)
 
 	// Run database integrity checks to ensure all data in database is present
 	// and up-to-date.
@@ -151,7 +151,7 @@ func (v *vspd) run() int {
 		MaxVoteChangeRecords: maxVoteChangeRecords,
 		VspdVersion:          version.String(),
 	}
-	err = webapi.Start(shutdownCtx, requestShutdown, &shutdownWg, v.cfg.Listen, v.db, v.cfg.logger("API"),
+	err = webapi.Start(ctx, requestShutdown, &shutdownWg, v.cfg.Listen, v.db, v.cfg.logger("API"),
 		v.dcrd, v.wallets, apiCfg)
 	if err != nil {
 		v.log.Errorf("Failed to initialize webapi: %v", err)
@@ -194,7 +194,7 @@ func (v *vspd) run() int {
 				v.blockConnected()
 
 			// Handle shutdown request.
-			case <-shutdownCtx.Done():
+			case <-ctx.Done():
 				backupTicker.Stop()
 				consistencyTicker.Stop()
 				dcrdTicker.Stop()
