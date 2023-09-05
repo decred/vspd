@@ -172,6 +172,9 @@ func (v *vspd) findSpentTickets(toCheck database.TicketList, startHeight int64) 
 				// Current index has been removed which means everything else
 				// moved up one and thus the same index needs to be repeated.
 				i--
+
+				// Check next ticket.
+				break
 			}
 		}
 
