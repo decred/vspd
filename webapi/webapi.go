@@ -75,7 +75,7 @@ type Server struct {
 	signPubKey  ed25519.PublicKey
 }
 
-func Start(shutdownCtx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup,
+func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup,
 	listen string, vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
 	wallets rpc.WalletConnect, config Config) error {
 
@@ -123,7 +123,7 @@ func Start(shutdownCtx context.Context, requestShutdown func(), shutdownWg *sync
 
 	// Create TCP listener.
 	var listenConfig net.ListenConfig
-	listener, err := listenConfig.Listen(shutdownCtx, "tcp", listen)
+	listener, err := listenConfig.Listen(ctx, "tcp", listen)
 	if err != nil {
 		return err
 	}
@@ -139,7 +139,7 @@ func Start(shutdownCtx context.Context, requestShutdown func(), shutdownWg *sync
 	shutdownWg.Add(1)
 	go func() {
 		// Wait until shutdown is signaled before shutting down.
-		<-shutdownCtx.Done()
+		<-ctx.Done()
 
 		log.Debug("Stopping webserver...")
 		// Give the webserver 5 seconds to finish what it is doing.
@@ -176,7 +176,7 @@ func Start(shutdownCtx context.Context, requestShutdown func(), shutdownWg *sync
 	go func() {
 		for {
 			select {
-			case <-shutdownCtx.Done():
+			case <-ctx.Done():
 				shutdownWg.Done()
 				return
 			case <-time.After(refresh):
