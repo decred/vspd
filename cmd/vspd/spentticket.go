@@ -146,7 +146,7 @@ func (v *vspd) findSpentTickets(toCheck database.TicketList, startHeight int64) 
 			return nil, 0, err
 		}
 
-		for i := range tickets {
+		for i := 0; i < len(tickets); i++ {
 			// The regular transaction tree does not need to be checked because
 			// tickets can only be spent by vote or revoke transactions which
 			// are always in the stake tree.
