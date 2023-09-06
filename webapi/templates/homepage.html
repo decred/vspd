@@ -20,7 +20,7 @@
 
         {{ if not (eq .WebApiCfg.NetParams.Name "mainnet") }}
             <div class="alert alert-warning mb-3">
-                    This Voting Service Provider is running on testnet.
+                    This Voting Service Provider is running on {{ .WebApiCfg.NetParams.Name }}.
                     Visit <a href="https://decred.org/vsp/" class="alert-link" target="_blank" rel="noopener noreferrer">decred.org</a> to find a list of mainnet VSPs.
             </div>
         {{ end }}
