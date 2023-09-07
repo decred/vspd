@@ -369,6 +369,11 @@ func (v *vspd) blockConnected(ctx context.Context) {
 	}
 
 	for _, ticket := range unconfirmed {
+		// Exit early if context has been cancelled.
+		if ctx.Err() != nil {
+			return
+		}
+
 		tktTx, err := dcrdClient.GetRawTransaction(ticket.Hash)
 		if err != nil {
 			// ErrNoTxInfo here probably indicates a tx which was never mined
@@ -423,6 +428,11 @@ func (v *vspd) blockConnected(ctx context.Context) {
 	}
 
 	for _, ticket := range pending {
+		// Exit early if context has been cancelled.
+		if ctx.Err() != nil {
+			return
+		}
+
 		err = dcrdClient.SendRawTransaction(ticket.FeeTxHex)
 		if err != nil {
 			v.log.Errorf("%s: dcrd.SendRawTransaction for fee tx failed (ticketHash=%s): %v",
@@ -459,6 +469,11 @@ func (v *vspd) blockConnected(ctx context.Context) {
 	}
 
 	for _, ticket := range unconfirmedFees {
+		// Exit early if context has been cancelled.
+		if ctx.Err() != nil {
+			return
+		}
+
 		feeTx, err := dcrdClient.GetRawTransaction(ticket.FeeTxHash)
 		if err != nil {
 			v.log.Errorf("%s: dcrd.GetRawTransaction for fee tx failed (feeTxHash=%s, ticketHash=%s): %v",
@@ -584,6 +599,11 @@ func (v *vspd) blockConnected(ctx context.Context) {
 	v.lastScannedBlock = endHeight
 
 	for _, spentTicket := range spent {
+		// Exit early if context has been cancelled.
+		if ctx.Err() != nil {
+			return
+		}
+
 		dbTicket := spentTicket.dbTicket
 
 		switch {
