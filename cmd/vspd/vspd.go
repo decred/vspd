@@ -118,11 +118,6 @@ func (v *vspd) run() int {
 	// through an interrupt signal.
 	shutdownCtx := shutdownListener(v.log)
 
-	// WaitGroup for services to signal when they have shutdown cleanly.
-	var shutdownWg sync.WaitGroup
-
-	v.db.WritePeriodicBackups(shutdownCtx, &shutdownWg, v.cfg.BackupInterval)
-
 	// Run database integrity checks to ensure all data in database is present
 	// and up-to-date.
 	err := v.checkDatabaseIntegrity()
@@ -139,19 +134,8 @@ func (v *vspd) run() int {
 	// date.
 	v.checkWalletConsistency()
 
-	// Run voting wallet consistency check periodically.
-	shutdownWg.Add(1)
-	go func() {
-		for {
-			select {
-			case <-shutdownCtx.Done():
-				shutdownWg.Done()
-				return
-			case <-time.After(consistencyInterval):
-				v.checkWalletConsistency()
-			}
-		}
-	}()
+	// WaitGroup for services to signal when they have shutdown cleanly.
+	var shutdownWg sync.WaitGroup
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
@@ -176,36 +160,46 @@ func (v *vspd) run() int {
 		return 1
 	}
 
-	// Start handling blockConnected notifications from dcrd.
+	// Start all background tasks and notification handlers.
 	shutdownWg.Add(1)
 	go func() {
-		for {
-			select {
-			case <-shutdownCtx.Done():
-				shutdownWg.Done()
-				return
-			case header := <-v.blockNotifChan:
-				v.log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
-				v.blockConnected()
-			}
-		}
-	}()
+		backupTicker := time.NewTicker(v.cfg.BackupInterval)
+		defer backupTicker.Stop()
+		consistencyTicker := time.NewTicker(consistencyInterval)
+		defer consistencyTicker.Stop()
+		dcrdTicker := time.NewTicker(dcrdInterval)
+		defer dcrdTicker.Stop()
 
-	// Loop forever attempting ensuring a dcrd connection is available, so
-	// notifications are received.
-	shutdownWg.Add(1)
-	go func() {
 		for {
 			select {
-			case <-shutdownCtx.Done():
-				shutdownWg.Done()
-				return
-			case <-time.After(dcrdInterval):
-				// Ensure dcrd client is still connected.
+
+			// Periodically write a database backup file.
+			case <-backupTicker.C:
+				err := v.db.WriteHotBackupFile()
+				if err != nil {
+					v.log.Errorf("Failed to write database backup: %v", err)
+				}
+
+			// Run voting wallet consistency check periodically.
+			case <-consistencyTicker.C:
+				v.checkWalletConsistency()
+
+			// Ensure dcrd client is connected so notifications are received.
+			case <-dcrdTicker.C:
 				_, _, err := v.dcrd.Client()
 				if err != nil {
 					v.log.Errorf("dcrd connect error: %v", err)
 				}
+
+			// Handle blockconnected notifications from dcrd.
+			case header := <-v.blockNotifChan:
+				v.log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
+				v.blockConnected()
+
+			// Handle shutdown request.
+			case <-shutdownCtx.Done():
+				shutdownWg.Done()
+				return
 			}
 		}
 	}()

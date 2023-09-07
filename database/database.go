@@ -5,7 +5,6 @@
 package database
 
 import (
-	"context"
 	"crypto/ed25519"
 	"crypto/rand"
 	"fmt"
@@ -61,9 +60,9 @@ const (
 // backupMtx should be held when writing to the database backup file.
 var backupMtx sync.Mutex
 
-// writeHotBackupFile writes a backup of the database file while the database
+// WriteHotBackupFile writes a backup of the database file while the database
 // is still open.
-func (vdb *VspDatabase) writeHotBackupFile() error {
+func (vdb *VspDatabase) WriteHotBackupFile() error {
 	backupMtx.Lock()
 	defer backupMtx.Unlock()
 
@@ -214,29 +213,6 @@ func Open(dbFile string, log slog.Logger, maxVoteChangeRecords int) (*VspDatabas
 	}
 
 	return vdb, nil
-}
-
-// WritePeriodicBackups starts a goroutine to periodically write a database backup file.
-// It can be stopped by cancelling the provided context, and uses the provided
-// WaitGroup to signal that it has finished.
-func (vdb *VspDatabase) WritePeriodicBackups(shutdownCtx context.Context, shutdownWg *sync.WaitGroup,
-	backupInterval time.Duration) {
-
-	shutdownWg.Add(1)
-	go func() {
-		for {
-			select {
-			case <-time.After(backupInterval):
-				err := vdb.writeHotBackupFile()
-				if err != nil {
-					vdb.log.Errorf("Failed to write database backup: %v", err)
-				}
-			case <-shutdownCtx.Done():
-				shutdownWg.Done()
-				return
-			}
-		}
-	}()
 }
 
 // Close will close the database and, if requested, make a copy of the database
