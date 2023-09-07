@@ -126,13 +126,28 @@ func (v *vspd) run() int {
 		v.log.Errorf("Database integrity check failed: %v", err)
 	}
 
+	// Stop if shutdown requested.
+	if ctx.Err() != nil {
+		return 0
+	}
+
 	// Run the block connected handler now to catch up with any blocks mined
 	// while vspd was shut down.
 	v.blockConnected()
 
+	// Stop if shutdown requested.
+	if ctx.Err() != nil {
+		return 0
+	}
+
 	// Run voting wallet consistency check now to ensure all wallets are up to
 	// date.
 	v.checkWalletConsistency()
+
+	// Stop if shutdown requested.
+	if ctx.Err() != nil {
+		return 0
+	}
 
 	// WaitGroup for services to signal when they have shutdown cleanly.
 	var shutdownWg sync.WaitGroup
