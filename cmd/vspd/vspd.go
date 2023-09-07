@@ -148,7 +148,7 @@ func (v *vspd) run() int {
 
 	// Run voting wallet consistency check now to ensure all wallets are up to
 	// date.
-	v.checkWalletConsistency()
+	v.checkWalletConsistency(ctx)
 
 	// Stop if shutdown requested.
 	if ctx.Err() != nil {
@@ -203,7 +203,7 @@ func (v *vspd) run() int {
 
 			// Run voting wallet consistency check periodically.
 			case <-consistencyTicker.C:
-				v.checkWalletConsistency()
+				v.checkWalletConsistency(ctx)
 
 			// Ensure dcrd client is connected so notifications are received.
 			case <-dcrdTicker.C:
@@ -630,7 +630,7 @@ func (v *vspd) blockConnected(ctx context.Context) {
 // checkWalletConsistency will retrieve all votable tickets from the database
 // and ensure they are all added to voting wallets with the correct vote
 // choices.
-func (v *vspd) checkWalletConsistency() {
+func (v *vspd) checkWalletConsistency(ctx context.Context) {
 	const funcName = "checkWalletConsistency"
 
 	v.log.Info("Checking voting wallet consistency")
@@ -669,6 +669,11 @@ func (v *vspd) checkWalletConsistency() {
 
 	// Iterate over each wallet and add any missing tickets.
 	for _, walletClient := range walletClients {
+		// Exit early if context has been cancelled.
+		if ctx.Err() != nil {
+			return
+		}
+
 		// Get all tickets the wallet is aware of.
 		walletTickets, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
@@ -727,6 +732,11 @@ func (v *vspd) checkWalletConsistency() {
 	// all wallets.
 
 	for _, walletClient := range walletClients {
+		// Exit early if context has been cancelled.
+		if ctx.Err() != nil {
+			return
+		}
+
 		// Get all tickets the wallet is aware of.
 		walletTickets, err := walletClient.TicketInfo(oldestHeight)
 		if err != nil {
@@ -736,6 +746,11 @@ func (v *vspd) checkWalletConsistency() {
 		}
 
 		for _, dbTicket := range votableTickets {
+			// Exit early if context has been cancelled.
+			if ctx.Err() != nil {
+				return
+			}
+
 			// All tickets should be added to all wallets at this point, so log
 			// a warning if any are still missing.
 			walletTicket, exists := walletTickets[dbTicket.Hash]
