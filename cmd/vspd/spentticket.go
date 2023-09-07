@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/decred/dcrd/blockchain/stake/v5"
@@ -63,7 +64,8 @@ func (s *spentTicket) missed() bool {
 // against the block filters of the mainchain blocks between the provided start
 // block and the current best block. Returns any found spent tickets and the
 // height of the most recent scanned block.
-func (v *vspd) findSpentTickets(toCheck database.TicketList, startHeight int64) ([]spentTicket, int64, error) {
+func (v *vspd) findSpentTickets(ctx context.Context, toCheck database.TicketList,
+	startHeight int64) ([]spentTicket, int64, error) {
 	params := v.cfg.netParams
 
 	dcrdClient, _, err := v.dcrd.Client()
@@ -118,6 +120,11 @@ func (v *vspd) findSpentTickets(toCheck database.TicketList, startHeight int64) 
 	spent := make([]spentTicket, 0)
 
 	for iHeight := startHeight; iHeight <= endHeight; iHeight++ {
+		// Exit early if context has been cancelled.
+		if ctx.Err() != nil {
+			return nil, 0, context.Canceled
+		}
+
 		iHash, err := dcrdClient.GetBlockHash(iHeight)
 		if err != nil {
 			return nil, 0, err
