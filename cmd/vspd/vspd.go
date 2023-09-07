@@ -5,6 +5,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"runtime"
@@ -120,8 +121,13 @@ func (v *vspd) run() int {
 
 	// Run database integrity checks to ensure all data in database is present
 	// and up-to-date.
-	err := v.checkDatabaseIntegrity()
+	err := v.checkDatabaseIntegrity(ctx)
 	if err != nil {
+		// Don't log error if shutdown was requested, just return.
+		if errors.Is(err, context.Canceled) {
+			return 0
+		}
+
 		// vspd should still start if this fails, so just log an error.
 		v.log.Errorf("Database integrity check failed: %v", err)
 	}
@@ -133,7 +139,7 @@ func (v *vspd) run() int {
 
 	// Run the block connected handler now to catch up with any blocks mined
 	// while vspd was shut down.
-	v.blockConnected()
+	v.blockConnected(ctx)
 
 	// Stop if shutdown requested.
 	if ctx.Err() != nil {
@@ -209,7 +215,7 @@ func (v *vspd) run() int {
 			// Handle blockconnected notifications from dcrd.
 			case header := <-v.blockNotifChan:
 				v.log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
-				v.blockConnected()
+				v.blockConnected(ctx)
 
 			// Handle shutdown request.
 			case <-ctx.Done():
@@ -228,13 +234,13 @@ func (v *vspd) run() int {
 
 // checkDatabaseIntegrity starts the process of ensuring that all data expected
 // to be in the database is present and up to date.
-func (v *vspd) checkDatabaseIntegrity() error {
+func (v *vspd) checkDatabaseIntegrity(ctx context.Context) error {
 	err := v.checkPurchaseHeights()
 	if err != nil {
 		return fmt.Errorf("checkPurchaseHeights error: %w", err)
 	}
 
-	err = v.checkRevoked()
+	err = v.checkRevoked(ctx)
 	if err != nil {
 		return fmt.Errorf("checkRevoked error: %w", err)
 	}
@@ -289,7 +295,7 @@ func (v *vspd) checkPurchaseHeights() error {
 
 // checkRevoked ensures that any tickets in the database with outcome set to
 // revoked are updated to either expired or missed.
-func (v *vspd) checkRevoked() error {
+func (v *vspd) checkRevoked(ctx context.Context) error {
 	revoked, err := v.db.GetRevokedTickets()
 	if err != nil {
 		return fmt.Errorf("db.GetRevoked error: %w", err)
@@ -307,7 +313,7 @@ func (v *vspd) checkRevoked() error {
 	// earliest height one of them matured.
 	startHeight := revoked.EarliestPurchaseHeight() + int64(v.cfg.netParams.TicketMaturity)
 
-	spent, _, err := v.findSpentTickets(revoked, startHeight)
+	spent, _, err := v.findSpentTickets(ctx, revoked, startHeight)
 	if err != nil {
 		return fmt.Errorf("findSpentTickets error: %w", err)
 	}
@@ -345,7 +351,7 @@ func (v *vspd) checkRevoked() error {
 
 // blockConnected is called once when vspd starts up, and once each time a
 // blockconnected notification is received from dcrd.
-func (v *vspd) blockConnected() {
+func (v *vspd) blockConnected(ctx context.Context) {
 	const funcName = "blockConnected"
 
 	dcrdClient, _, err := v.dcrd.Client()
@@ -564,8 +570,13 @@ func (v *vspd) blockConnected() {
 		startHeight = v.lastScannedBlock
 	}
 
-	spent, endHeight, err := v.findSpentTickets(votableTickets, startHeight)
+	spent, endHeight, err := v.findSpentTickets(ctx, votableTickets, startHeight)
 	if err != nil {
+		// Don't log error if shutdown was requested, just return.
+		if errors.Is(err, context.Canceled) {
+			return
+		}
+
 		v.log.Errorf("%s: findSpentTickets error: %v", funcName, err)
 		return
 	}
