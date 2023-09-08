@@ -120,7 +120,7 @@ func (v *vspd) findSpentTickets(ctx context.Context, toCheck database.TicketList
 	spent := make([]spentTicket, 0)
 
 	for iHeight := startHeight; iHeight <= endHeight; iHeight++ {
-		// Exit early if context has been cancelled.
+		// Exit early if context has been canceled.
 		if ctx.Err() != nil {
 			return nil, 0, context.Canceled
 		}
