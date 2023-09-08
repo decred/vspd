@@ -10,19 +10,24 @@ import (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+// run is the real main function for vspd. It is necessary to work around the
+// fact that deferred functions do not run when os.Exit() is called.
+func run() int {
 	// Load config file and parse CLI args.
 	cfg, err := loadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "loadConfig error: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
 	vspd, err := newVspd(cfg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "newVspd error: %v\n", err)
-		os.Exit(1)
+		return 1
 	}
 
-	// Run until an exit code is returned.
-	os.Exit(vspd.run())
+	return vspd.run()
 }
