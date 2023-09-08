@@ -96,7 +96,7 @@ func (v *vspd) run() int {
 	defer v.dcrd.Close()
 	defer v.wallets.Close()
 
-	// Create a context that is cancelled when a shutdown request is received
+	// Create a context that is canceled when a shutdown request is received
 	// through an interrupt signal.
 	ctx := shutdownListener(v.log)
 
@@ -350,7 +350,7 @@ func (v *vspd) blockConnected(ctx context.Context) {
 	}
 
 	for _, ticket := range unconfirmed {
-		// Exit early if context has been cancelled.
+		// Exit early if context has been canceled.
 		if ctx.Err() != nil {
 			return
 		}
@@ -409,7 +409,7 @@ func (v *vspd) blockConnected(ctx context.Context) {
 	}
 
 	for _, ticket := range pending {
-		// Exit early if context has been cancelled.
+		// Exit early if context has been canceled.
 		if ctx.Err() != nil {
 			return
 		}
@@ -450,7 +450,7 @@ func (v *vspd) blockConnected(ctx context.Context) {
 	}
 
 	for _, ticket := range unconfirmedFees {
-		// Exit early if context has been cancelled.
+		// Exit early if context has been canceled.
 		if ctx.Err() != nil {
 			return
 		}
@@ -580,7 +580,7 @@ func (v *vspd) blockConnected(ctx context.Context) {
 	v.lastScannedBlock = endHeight
 
 	for _, spentTicket := range spent {
-		// Exit early if context has been cancelled.
+		// Exit early if context has been canceled.
 		if ctx.Err() != nil {
 			return
 		}
@@ -650,7 +650,7 @@ func (v *vspd) checkWalletConsistency(ctx context.Context) {
 
 	// Iterate over each wallet and add any missing tickets.
 	for _, walletClient := range walletClients {
-		// Exit early if context has been cancelled.
+		// Exit early if context has been canceled.
 		if ctx.Err() != nil {
 			return
 		}
@@ -713,7 +713,7 @@ func (v *vspd) checkWalletConsistency(ctx context.Context) {
 	// all wallets.
 
 	for _, walletClient := range walletClients {
-		// Exit early if context has been cancelled.
+		// Exit early if context has been canceled.
 		if ctx.Err() != nil {
 			return
 		}
@@ -727,7 +727,7 @@ func (v *vspd) checkWalletConsistency(ctx context.Context) {
 		}
 
 		for _, dbTicket := range votableTickets {
-			// Exit early if context has been cancelled.
+			// Exit early if context has been canceled.
 			if ctx.Err() != nil {
 				return
 			}
