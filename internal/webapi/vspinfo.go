@@ -13,7 +13,7 @@ import (
 )
 
 // vspInfo is the handler for "GET /api/v3/vspinfo".
-func (s *Server) vspInfo(c *gin.Context) {
+func (s *server) vspInfo(c *gin.Context) {
 	cachedStats := s.cache.getData()
 	s.sendJSONResponse(types.VspInfoResponse{
 		APIVersions:         []int64{3},

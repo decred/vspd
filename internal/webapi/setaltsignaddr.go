@@ -17,21 +17,21 @@ import (
 )
 
 // Ensure that Node is satisfied by *rpc.DcrdRPC.
-var _ Node = (*rpc.DcrdRPC)(nil)
+var _ node = (*rpc.DcrdRPC)(nil)
 
-// Node is satisfied by *rpc.DcrdRPC and retrieves data from the blockchain.
-type Node interface {
+// node is satisfied by *rpc.DcrdRPC and retrieves data from the blockchain.
+type node interface {
 	ExistsLiveTicket(ticketHash string) (bool, error)
 	GetRawTransaction(txHash string) (*dcrdtypes.TxRawResult, error)
 }
 
 // setAltSignAddr is the handler for "POST /api/v3/setaltsignaddr".
-func (s *Server) setAltSignAddr(c *gin.Context) {
+func (s *server) setAltSignAddr(c *gin.Context) {
 
 	const funcName = "setAltSignAddr"
 
 	// Get values which have been added to context by middleware.
-	dcrdClient := c.MustGet(dcrdKey).(Node)
+	dcrdClient := c.MustGet(dcrdKey).(node)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
 		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))

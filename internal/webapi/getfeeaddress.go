@@ -24,11 +24,11 @@ var addrMtx sync.Mutex
 // the last used address index in the database. In order to maintain consistency
 // between the internal counter of address generator and the database, this func
 // uses a mutex to ensure it is not run concurrently.
-func (s *Server) getNewFeeAddress() (string, uint32, error) {
+func (s *server) getNewFeeAddress() (string, uint32, error) {
 	addrMtx.Lock()
 	defer addrMtx.Unlock()
 
-	addr, idx, err := s.addrGen.NextAddress()
+	addr, idx, err := s.addrGen.nextAddress()
 	if err != nil {
 		return "", 0, err
 	}
@@ -43,7 +43,7 @@ func (s *Server) getNewFeeAddress() (string, uint32, error) {
 
 // getCurrentFee returns the minimum fee amount a client should pay in order to
 // register a ticket with the VSP at the current block height.
-func (s *Server) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
+func (s *server) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 	bestBlock, err := dcrdClient.GetBestBlockHeader()
 	if err != nil {
 		return 0, err
@@ -70,7 +70,7 @@ func (s *Server) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) 
 }
 
 // feeAddress is the handler for "POST /api/v3/feeaddress".
-func (s *Server) feeAddress(c *gin.Context) {
+func (s *server) feeAddress(c *gin.Context) {
 
 	const funcName = "feeAddress"
 

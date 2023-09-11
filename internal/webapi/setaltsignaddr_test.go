@@ -39,7 +39,7 @@ var (
 	seededRand           = rand.New(rand.NewSource(time.Now().UnixNano()))
 	feeXPub              = "feexpub"
 	maxVoteChangeRecords = 3
-	api                  *Server
+	api                  *server
 )
 
 // randBytes returns a byte slice of size n filled with random bytes.
@@ -84,7 +84,7 @@ func TestMain(m *testing.M) {
 		panic(fmt.Errorf("error opening test database: %w", err))
 	}
 
-	api = &Server{
+	api = &server{
 		cfg:         cfg,
 		signPrivKey: signPrivKey,
 		db:          db,
@@ -112,7 +112,7 @@ func randString(length int, charset string) string {
 }
 
 // Ensure that testNode satisfies Node.
-var _ Node = (*testNode)(nil)
+var _ node = (*testNode)(nil)
 
 type testNode struct {
 	getRawTransaction    *dcrdtypes.TxRawResult

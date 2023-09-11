@@ -14,7 +14,7 @@ import (
 )
 
 // ticketStatus is the handler for "POST /api/v3/ticketstatus".
-func (s *Server) ticketStatus(c *gin.Context) {
+func (s *server) ticketStatus(c *gin.Context) {
 	const funcName = "ticketStatus"
 
 	// Get values which have been added to context by middleware.

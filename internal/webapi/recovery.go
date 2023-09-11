@@ -26,11 +26,11 @@ var (
 	slash     = []byte("/")
 )
 
-// Recovery returns a middleware that recovers from any panics which occur in
+// recovery returns a middleware that recovers from any panics which occur in
 // request handlers. It logs the panic, a stack trace, and the full request
 // details. It also ensure the client receives a 500 response rather than no
 // response at all.
-func Recovery(log slog.Logger) gin.HandlerFunc {
+func recovery(log slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {

@@ -21,7 +21,7 @@ import (
 )
 
 // payFee is the handler for "POST /api/v3/payfee".
-func (s *Server) payFee(c *gin.Context) {
+func (s *server) payFee(c *gin.Context) {
 	const funcName = "payFee"
 
 	// Get values which have been added to context by middleware.

@@ -172,7 +172,7 @@ func validateTicketHash(hash string) error {
 // canTicketVote checks determines whether a ticket is able to vote at some
 // point in the future by checking that it is currently either in the mempool,
 // immature or live.
-func canTicketVote(rawTx *dcrdtypes.TxRawResult, dcrdClient Node, netParams *chaincfg.Params) (bool, error) {
+func canTicketVote(rawTx *dcrdtypes.TxRawResult, dcrdClient node, netParams *chaincfg.Params) (bool, error) {
 
 	// Tickets which have more than (TicketMaturity+TicketExpiry+1)
 	// confirmations are too old to vote.
