@@ -7,8 +7,8 @@ package webapi
 import (
 	"time"
 
+	"github.com/decred/vspd/internal/version"
 	"github.com/decred/vspd/types/v2"
-	"github.com/decred/vspd/version"
 	"github.com/gin-gonic/gin"
 )
 

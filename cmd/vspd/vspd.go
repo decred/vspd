@@ -16,9 +16,9 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/internal/version"
 	"github.com/decred/vspd/internal/webapi"
 	"github.com/decred/vspd/rpc"
-	"github.com/decred/vspd/version"
 	"github.com/jrick/wsrpc/v2"
 )
 
