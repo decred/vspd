@@ -20,7 +20,7 @@ import (
 	"github.com/decred/dcrd/hdkeychain/v3"
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
-	"github.com/decred/vspd/version"
+	"github.com/decred/vspd/internal/version"
 	flags "github.com/jessevdk/go-flags"
 )
 
