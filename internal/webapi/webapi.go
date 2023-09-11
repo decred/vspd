@@ -213,7 +213,7 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 		"comma":            humanize.Comma,
 	})
 
-	router.LoadHTMLGlob("webapi/templates/*.html")
+	router.LoadHTMLGlob("internal/webapi/templates/*.html")
 
 	// Recovery middleware handles any go panics generated while processing web
 	// requests. Ensures a 500 response is sent to the client rather than
@@ -227,7 +227,7 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	}
 
 	// Serve static web resources
-	router.Static("/public", "webapi/public/")
+	router.Static("/public", "internal/webapi/public/")
 
 	// Create a cookie store for persisting admin session information.
 	cookieStore := sessions.NewCookieStore(cookieSecret)
