@@ -23,7 +23,7 @@ vspd-harness/
 cov.out
 *cpu.out
 *mem.out
-webapi/test.db
+internal/webapi/test.db
 database/test.db
 
 # Go workspace
