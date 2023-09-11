@@ -96,7 +96,7 @@ func (v *vspd) run() int {
 		runtime.GOOS, runtime.GOARCH)
 
 	if v.cfg.netParams == &mainNetParams &&
-		version.PreRelease != "" {
+		version.IsPreRelease() {
 		v.log.Warnf("")
 		v.log.Warnf("\tWARNING: This is a pre-release version of vspd which should not be used on mainnet.")
 		v.log.Warnf("")
