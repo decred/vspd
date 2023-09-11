@@ -17,28 +17,32 @@ const semverAlphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrst
 
 // Constants defining the application version number.
 const (
-	Major = 1
-	Minor = 3
-	Patch = 0
+	major = 1
+	minor = 3
+	patch = 0
 )
 
-// PreRelease contains the prerelease name of the application. It is a variable
+// preRelease contains the prerelease name of the application. It is a variable
 // so it can be modified at link time (e.g.
-// `-ldflags "-X decred.org/vspd/version.PreRelease=rc1"`).
+// `-ldflags "-X decred.org/vspd/version.preRelease=rc1"`).
 // It must only contain characters from the semantic version alphabet.
-var PreRelease = "pre"
+var preRelease = "pre"
+
+func IsPreRelease() bool {
+	return preRelease != ""
+}
 
 // String returns the application version as a properly formed string per the
 // semantic versioning 2.0.0 spec (https://semver.org/).
 func String() string {
 	// Start with the major, minor, and path versions.
-	version := fmt.Sprintf("%d.%d.%d", Major, Minor, Patch)
+	version := fmt.Sprintf("%d.%d.%d", major, minor, patch)
 
 	// Append pre-release version if there is one. The hyphen called for
 	// by the semantic versioning spec is automatically appended and should
 	// not be contained in the pre-release string. The pre-release version
 	// is not appended if it contains invalid characters.
-	preRelease := normalizeVerString(PreRelease)
+	preRelease := normalizeVerString(preRelease)
 	if preRelease != "" {
 		version = version + "-" + preRelease
 	}
