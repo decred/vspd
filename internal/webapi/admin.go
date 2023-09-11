@@ -14,10 +14,10 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-// WalletStatus describes the current status of a single voting wallet. This is
+// walletStatus describes the current status of a single voting wallet. This is
 // used by the admin.html template, and also serialized to JSON for the
 // /admin/status endpoint.
-type WalletStatus struct {
+type walletStatus struct {
 	Connected       bool   `json:"connected"`
 	InfoError       bool   `json:"infoerror"`
 	DaemonConnected bool   `json:"daemonconnected"`
@@ -28,10 +28,10 @@ type WalletStatus struct {
 	BestBlockHeight int64  `json:"bestblockheight"`
 }
 
-// DcrdStatus describes the current status of the local instance of dcrd used by
+// dcrdStatus describes the current status of the local instance of dcrd used by
 // vspd. This is used by the admin.html template, and also serialized to JSON
 // for the /admin/status endpoint.
-type DcrdStatus struct {
+type dcrdStatus struct {
 	Host            string `json:"host"`
 	Connected       bool   `json:"connected"`
 	BestBlockError  bool   `json:"bestblockerror"`
@@ -48,9 +48,9 @@ type searchResult struct {
 	MaxVoteChanges  int
 }
 
-func (s *Server) dcrdStatus(c *gin.Context) DcrdStatus {
+func (s *server) dcrdStatus(c *gin.Context) dcrdStatus {
 	hostname := c.MustGet(dcrdHostKey).(string)
-	status := DcrdStatus{Host: hostname}
+	status := dcrdStatus{Host: hostname}
 
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
@@ -73,13 +73,13 @@ func (s *Server) dcrdStatus(c *gin.Context) DcrdStatus {
 	return status
 }
 
-func (s *Server) walletStatus(c *gin.Context) map[string]WalletStatus {
+func (s *server) walletStatus(c *gin.Context) map[string]walletStatus {
 	walletClients := c.MustGet(walletsKey).([]*rpc.WalletRPC)
 	failedWalletClients := c.MustGet(failedWalletsKey).([]string)
 
-	walletStatus := make(map[string]WalletStatus)
+	status := make(map[string]walletStatus)
 	for _, v := range walletClients {
-		ws := WalletStatus{Connected: true}
+		ws := walletStatus{Connected: true}
 
 		walletInfo, err := v.WalletInfo()
 		if err != nil {
@@ -100,18 +100,18 @@ func (s *Server) walletStatus(c *gin.Context) map[string]WalletStatus {
 			ws.BestBlockHeight = height
 		}
 
-		walletStatus[v.String()] = ws
+		status[v.String()] = ws
 	}
 	for _, v := range failedWalletClients {
-		ws := WalletStatus{Connected: false}
-		walletStatus[v] = ws
+		ws := walletStatus{Connected: false}
+		status[v] = ws
 	}
-	return walletStatus
+	return status
 }
 
 // statusJSON is the handler for "GET /admin/status". It returns a JSON object
 // describing the current status of voting wallets.
-func (s *Server) statusJSON(c *gin.Context) {
+func (s *server) statusJSON(c *gin.Context) {
 	httpStatus := http.StatusOK
 
 	wallets := s.walletStatus(c)
@@ -143,7 +143,7 @@ func (s *Server) statusJSON(c *gin.Context) {
 }
 
 // adminPage is the handler for "GET /admin".
-func (s *Server) adminPage(c *gin.Context) {
+func (s *server) adminPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"WebApiCache":  s.cache.getData(),
 		"WebApiCfg":    s.cfg,
@@ -154,7 +154,7 @@ func (s *Server) adminPage(c *gin.Context) {
 
 // ticketSearch is the handler for "POST /admin/ticket". The hash param will be
 // used to retrieve a ticket from the database.
-func (s *Server) ticketSearch(c *gin.Context) {
+func (s *server) ticketSearch(c *gin.Context) {
 	hash := c.PostForm("hash")
 
 	ticket, found, err := s.db.GetTicketByHash(hash)
@@ -227,7 +227,7 @@ func (s *Server) ticketSearch(c *gin.Context) {
 
 // adminLogin is the handler for "POST /admin". If a valid password is provided,
 // the current session will be authenticated as an admin.
-func (s *Server) adminLogin(c *gin.Context) {
+func (s *server) adminLogin(c *gin.Context) {
 	password := c.PostForm("password")
 
 	if password != s.cfg.AdminPass {
@@ -245,13 +245,13 @@ func (s *Server) adminLogin(c *gin.Context) {
 
 // adminLogout is the handler for "POST /admin/logout". The current session will
 // have its admin authentication removed.
-func (s *Server) adminLogout(c *gin.Context) {
+func (s *server) adminLogout(c *gin.Context) {
 	s.setAdminStatus(nil, c)
 }
 
 // downloadDatabaseBackup is the handler for "GET /backup". A binary
 // representation of the whole database is generated and returned to the client.
-func (s *Server) downloadDatabaseBackup(c *gin.Context) {
+func (s *server) downloadDatabaseBackup(c *gin.Context) {
 	err := s.db.BackupDB(c.Writer)
 	if err != nil {
 		s.log.Errorf("Error backing up database: %v", err)
@@ -263,7 +263,7 @@ func (s *Server) downloadDatabaseBackup(c *gin.Context) {
 
 // setAdminStatus stores the authentication status of the current session and
 // redirects the client to GET /admin.
-func (s *Server) setAdminStatus(admin any, c *gin.Context) {
+func (s *server) setAdminStatus(admin any, c *gin.Context) {
 	session := c.MustGet(sessionKey).(*sessions.Session)
 	session.Values["admin"] = admin
 	err := session.Save(c.Request, c.Writer)

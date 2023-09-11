@@ -63,7 +63,7 @@ func rateLimit(limit rate.Limit, limitExceeded gin.HandlerFunc) gin.HandlerFunc 
 // withSession middleware adds a gorilla session to the request context for
 // downstream handlers to make use of. Sessions are used by admin pages to
 // maintain authentication status.
-func (s *Server) withSession(store *sessions.CookieStore) gin.HandlerFunc {
+func (s *server) withSession(store *sessions.CookieStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session, err := store.Get(c.Request, "vspd-session")
 		if err != nil {
@@ -95,7 +95,7 @@ func (s *Server) withSession(store *sessions.CookieStore) gin.HandlerFunc {
 
 // requireAdmin will only allow the request to proceed if the current session is
 // authenticated as an admin, otherwise it will render the login template.
-func (s *Server) requireAdmin(c *gin.Context) {
+func (s *server) requireAdmin(c *gin.Context) {
 	session := c.MustGet(sessionKey).(*sessions.Session)
 	admin := session.Values["admin"]
 
@@ -111,7 +111,7 @@ func (s *Server) requireAdmin(c *gin.Context) {
 
 // withDcrdClient middleware adds a dcrd client to the request context for
 // downstream handlers to make use of.
-func (s *Server) withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
+func (s *server) withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		client, hostname, err := dcrd.Client()
 		// Don't handle the error here, add it to the context and let downstream
@@ -125,7 +125,7 @@ func (s *Server) withDcrdClient(dcrd rpc.DcrdConnect) gin.HandlerFunc {
 // withWalletClients middleware attempts to add voting wallet clients to the
 // request context for downstream handlers to make use of. Downstream handlers
 // must handle the case where no wallet clients are connected.
-func (s *Server) withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
+func (s *server) withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clients, failedConnections := wallets.Clients()
 		if len(clients) == 0 {
@@ -151,7 +151,7 @@ func drainAndReplaceBody(req *http.Request) ([]byte, error) {
 	return reqBytes, nil
 }
 
-func (s *Server) vspMustBeOpen(c *gin.Context) {
+func (s *server) vspMustBeOpen(c *gin.Context) {
 	if s.cfg.VspClosed {
 		s.sendError(types.ErrVspClosed, c)
 		return
@@ -163,7 +163,7 @@ func (s *Server) vspMustBeOpen(c *gin.Context) {
 // Ticket hash, ticket hex, and parent hex are parsed from the request body and
 // validated. They are broadcast to the network using SendRawTransaction if dcrd
 // is not aware of them.
-func (s *Server) broadcastTicket(c *gin.Context) {
+func (s *server) broadcastTicket(c *gin.Context) {
 	const funcName = "broadcastTicket"
 
 	// Read request bytes.
@@ -304,7 +304,7 @@ func (s *Server) broadcastTicket(c *gin.Context) {
 // does not contain the request body signed with the commitment address.
 // Ticket information is added to the request context for downstream handlers to
 // use.
-func (s *Server) vspAuth(c *gin.Context) {
+func (s *server) vspAuth(c *gin.Context) {
 	const funcName = "vspAuth"
 
 	// Read request bytes.

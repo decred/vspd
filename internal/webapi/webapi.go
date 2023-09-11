@@ -65,7 +65,7 @@ const (
 	commitmentAddressKey = "CommitmentAddress"
 )
 
-type Server struct {
+type server struct {
 	cfg         Config
 	db          *database.VspDatabase
 	log         slog.Logger
@@ -79,7 +79,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	listen string, vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
 	wallets rpc.WalletConnect, config Config) error {
 
-	s := &Server{
+	s := &server{
 		cfg: config,
 		db:  vdb,
 		log: log,
@@ -191,7 +191,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	return nil
 }
 
-func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) *gin.Engine {
+func (s *server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) *gin.Engine {
 	// With release mode enabled, gin will only read template files once and cache them.
 	// With release mode disabled, templates will be reloaded on the fly.
 	if !s.cfg.Debug {
@@ -218,7 +218,7 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	// Recovery middleware handles any go panics generated while processing web
 	// requests. Ensures a 500 response is sent to the client rather than
 	// sending no response at all.
-	router.Use(Recovery(s.log))
+	router.Use(recovery(s.log))
 
 	if s.cfg.Debug {
 		// Logger middleware outputs very detailed logging of webserver requests
@@ -283,7 +283,7 @@ func (s *Server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 // sendJSONResponse serializes the provided response, signs it, and sends the
 // response to the client with a 200 OK status. Returns the seralized response
 // and the signature.
-func (s *Server) sendJSONResponse(resp any, c *gin.Context) (string, string) {
+func (s *server) sendJSONResponse(resp any, c *gin.Context) (string, string) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
 		s.log.Errorf("JSON marshal error: %v", err)
@@ -302,14 +302,14 @@ func (s *Server) sendJSONResponse(resp any, c *gin.Context) (string, string) {
 
 // sendError sends an error response with the provided error code and the
 // default message for that code.
-func (s *Server) sendError(e types.ErrorCode, c *gin.Context) {
+func (s *server) sendError(e types.ErrorCode, c *gin.Context) {
 	msg := e.DefaultMessage()
 	s.sendErrorWithMsg(msg, e, c)
 }
 
 // sendErrorWithMsg sends an error response with the provided error code and
 // message.
-func (s *Server) sendErrorWithMsg(msg string, e types.ErrorCode, c *gin.Context) {
+func (s *server) sendErrorWithMsg(msg string, e types.ErrorCode, c *gin.Context) {
 	status := e.HTTPStatus()
 
 	resp := types.ErrorResponse{

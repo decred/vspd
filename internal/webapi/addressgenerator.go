@@ -44,10 +44,10 @@ func newAddressGenerator(xPub string, netParams *chaincfg.Params, lastUsedIdx ui
 	}, nil
 }
 
-// NextAddress increments the last used address counter and returns a new
+// nextAddress increments the last used address counter and returns a new
 // address. It will skip any address index which causes an ErrInvalidChild.
 // Not safe for concurrent access.
-func (m *addressGenerator) NextAddress() (string, uint32, error) {
+func (m *addressGenerator) nextAddress() (string, uint32, error) {
 	var key *hdkeychain.ExtendedKey
 	var err error
 

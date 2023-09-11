@@ -17,7 +17,7 @@ import (
 )
 
 // setVoteChoices is the handler for "POST /api/v3/setvotechoices".
-func (s *Server) setVoteChoices(c *gin.Context) {
+func (s *server) setVoteChoices(c *gin.Context) {
 	const funcName = "setVoteChoices"
 
 	// Get values which have been added to context by middleware.
