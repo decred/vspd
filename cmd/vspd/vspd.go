@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -56,14 +55,13 @@ type vspd struct {
 
 // newVspd creates the essential resources required by vspd - a database, logger
 // and RPC clients - then returns an instance of vspd which is ready to be run.
-func newVspd(cfg *config) (*vspd, error) {
+func newVspd(cfg *config, log slog.Logger) (*vspd, error) {
 	// Open database.
 	db, err := database.Open(cfg.dbPath, cfg.logger(" DB"), maxVoteChangeRecords)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	log := cfg.logger("VSP")
 	rpcLog := cfg.logger("RPC")
 
 	// Create a channel to receive blockConnected notifications from dcrd.
@@ -92,24 +90,7 @@ func newVspd(cfg *config) (*vspd, error) {
 // run starts all of vspds background services including the web server, and
 // stops all started services when a shutdown is requested.
 func (v *vspd) run() int {
-	v.log.Criticalf("Version %s (Go version %s %s/%s)", version.String(), runtime.Version(),
-		runtime.GOOS, runtime.GOARCH)
-
-	if v.cfg.netParams == &mainNetParams &&
-		version.IsPreRelease() {
-		v.log.Warnf("")
-		v.log.Warnf("\tWARNING: This is a pre-release version of vspd which should not be used on mainnet.")
-		v.log.Warnf("")
-	}
-
-	if v.cfg.VspClosed {
-		v.log.Warnf("")
-		v.log.Warnf("\tWARNING: Config --vspclosed is set. This will prevent vspd from accepting new tickets.")
-		v.log.Warnf("")
-	}
-
 	// Defer shutdown tasks.
-	defer v.log.Criticalf("Shutdown complete")
 	const writeBackup = true
 	defer v.db.Close(writeBackup)
 	defer v.dcrd.Close()
