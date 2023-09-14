@@ -198,24 +198,6 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 	return nil
 }
 
-// IsDCP0010Active uses getblockchaininfo RPC to determine if the DCP-0010
-// agenda has activated on the current network.
-func (c *DcrdRPC) IsDCP0010Active() (bool, error) {
-	var info dcrdtypes.GetBlockChainInfoResult
-	err := c.Call(context.TODO(), "getblockchaininfo", &info)
-	if err != nil {
-		return false, err
-	}
-
-	agenda, ok := info.Deployments[chaincfg.VoteIDChangeSubsidySplit]
-	if !ok {
-		return false, fmt.Errorf("getblockchaininfo did not return agenda %q",
-			chaincfg.VoteIDChangeSubsidySplit)
-	}
-
-	return agenda.Status == dcrdtypes.AgendaInfoStatusActive, nil
-}
-
 // NotifyBlocks uses notifyblocks RPC to request new block notifications from dcrd.
 func (c *DcrdRPC) NotifyBlocks() error {
 	return c.Call(context.TODO(), "notifyblocks", nil)

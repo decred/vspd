@@ -56,10 +56,7 @@ func (s *server) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) 
 	// is only used to calculate the fee charged for adding a ticket to the VSP.
 	const defaultMinRelayTxFee = dcrutil.Amount(1e4)
 
-	isDCP0010Active, err := dcrdClient.IsDCP0010Active()
-	if err != nil {
-		return 0, err
-	}
+	isDCP0010Active := s.cfg.Network.DCP10Active(int64(bestBlock.Height))
 
 	fee := txrules.StakePoolTicketFee(sDiff, defaultMinRelayTxFee,
 		int32(bestBlock.Height), s.cfg.VSPFee, s.cfg.Network.Params, isDCP0010Active)
