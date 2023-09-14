@@ -7,6 +7,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"os"
 	"os/user"
@@ -15,7 +16,6 @@ import (
 	"strings"
 	"time"
 
-	"decred.org/dcrwallet/v3/wallet/txrules"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/hdkeychain/v3"
 	"github.com/decred/slog"
@@ -292,8 +292,16 @@ func loadConfig() (*config, error) {
 		return nil, errors.New("minimum backupinterval is 30 seconds")
 	}
 
+	// validPoolFeeRate tests to see if a pool fee is a valid percentage from
+	// 0.01% to 100.00%.
+	validPoolFeeRate := func(feeRate float64) bool {
+		poolFeeRateTest := feeRate * 100
+		poolFeeRateTest = math.Floor(poolFeeRateTest)
+		return poolFeeRateTest >= 1.0 && poolFeeRateTest <= 10000.0
+	}
+
 	// Ensure the fee percentage is valid per txrules.
-	if !txrules.ValidPoolFeeRate(cfg.VSPFee) {
+	if !validPoolFeeRate(cfg.VSPFee) {
 		return nil, errors.New("invalid vspfee - should be greater than 0.01 and less than 100.0")
 	}
 
