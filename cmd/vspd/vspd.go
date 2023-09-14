@@ -141,6 +141,7 @@ func (v *vspd) run() int {
 
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
+		Listen:               v.cfg.Listen,
 		VSPFee:               v.cfg.VSPFee,
 		Network:              v.cfg.network,
 		SupportEmail:         v.cfg.SupportEmail,
@@ -152,7 +153,7 @@ func (v *vspd) run() int {
 		MaxVoteChangeRecords: maxVoteChangeRecords,
 		VspdVersion:          version.String(),
 	}
-	err = webapi.Start(ctx, requestShutdown, &shutdownWg, v.cfg.Listen, v.db, v.cfg.logger("API"),
+	err = webapi.Start(ctx, requestShutdown, &shutdownWg, v.db, v.cfg.logger("API"),
 		v.dcrd, v.wallets, apiCfg)
 	if err != nil {
 		v.log.Errorf("Failed to initialize webapi: %v", err)
