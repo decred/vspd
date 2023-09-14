@@ -28,6 +28,7 @@ import (
 )
 
 type Config struct {
+	Listen               string
 	VSPFee               float64
 	Network              *config.Network
 	FeeAccountName       string
@@ -75,7 +76,7 @@ type server struct {
 }
 
 func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup,
-	listen string, vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
+	vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
 	wallets rpc.WalletConnect, cfg Config) error {
 
 	s := &server{
@@ -122,11 +123,11 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 
 	// Create TCP listener.
 	var listenConfig net.ListenConfig
-	listener, err := listenConfig.Listen(ctx, "tcp", listen)
+	listener, err := listenConfig.Listen(ctx, "tcp", cfg.Listen)
 	if err != nil {
 		return err
 	}
-	log.Infof("Listening on %s", listen)
+	log.Infof("Listening on %s", cfg.Listen)
 
 	srv := http.Server{
 		Handler:      s.router(cookieSecret, dcrd, wallets),
