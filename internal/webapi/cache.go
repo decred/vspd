@@ -22,7 +22,11 @@ type cache struct {
 	data cacheData
 	// mtx must be held to read/write cache data.
 	mtx sync.RWMutex
-	log slog.Logger
+
+	log     slog.Logger
+	db      *database.VspDatabase
+	dcrd    rpc.DcrdConnect
+	wallets rpc.WalletConnect
 }
 
 type cacheData struct {
@@ -49,33 +53,35 @@ func (c *cache) getData() cacheData {
 }
 
 // newCache creates a new cache and initializes it with static values.
-func newCache(signPubKey string, log slog.Logger) *cache {
+func newCache(signPubKey string, log slog.Logger, db *database.VspDatabase,
+	dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) *cache {
 	return &cache{
 		data: cacheData{
 			PubKey: signPubKey,
 		},
-		log: log,
+		log:     log,
+		db:      db,
+		dcrd:    dcrd,
+		wallets: wallets,
 	}
 }
 
 // update will use the provided database and RPC connections to update the
 // dynamic values in the cache.
-func (c *cache) update(db *database.VspDatabase, dcrd rpc.DcrdConnect,
-	wallets rpc.WalletConnect) error {
-
-	dbSize, err := db.Size()
+func (c *cache) update() error {
+	dbSize, err := c.db.Size()
 	if err != nil {
 		return err
 	}
 
 	// Get latest counts of voting, voted, expired and missed tickets.
-	voting, voted, expired, missed, err := db.CountTickets()
+	voting, voted, expired, missed, err := c.db.CountTickets()
 	if err != nil {
 		return err
 	}
 
 	// Get latest best block height.
-	dcrdClient, _, err := dcrd.Client()
+	dcrdClient, _, err := c.dcrd.Client()
 	if err != nil {
 		return err
 	}
@@ -89,7 +95,7 @@ func (c *cache) update(db *database.VspDatabase, dcrd rpc.DcrdConnect,
 		return errors.New("dcr node reports a network ticket pool size of zero")
 	}
 
-	clients, failedConnections := wallets.Clients()
+	clients, failedConnections := c.wallets.Clients()
 	if len(clients) == 0 {
 		c.log.Error("Could not connect to any wallets")
 	} else if len(failedConnections) > 0 {
