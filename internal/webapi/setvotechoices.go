@@ -95,7 +95,7 @@ func (s *server) setVoteChoices(c *gin.Context) {
 
 	// Validate vote choices (consensus, tspend policy and treasury policy).
 
-	err = validConsensusVoteChoices(s.cfg.Network, currentVoteVersion(s.cfg.Network.Params), request.VoteChoices)
+	err = validConsensusVoteChoices(s.cfg.Network, s.cfg.Network.CurrentVoteVersion(), request.VoteChoices)
 	if err != nil {
 		s.log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)

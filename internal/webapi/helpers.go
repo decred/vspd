@@ -11,7 +11,6 @@ import (
 
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/chainhash"
-	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/decred/dcrd/dcrutil/v4"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
@@ -19,16 +18,6 @@ import (
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/internal/config"
 )
-
-func currentVoteVersion(params *chaincfg.Params) uint32 {
-	var latestVersion uint32
-	for version := range params.Deployments {
-		if latestVersion < version {
-			latestVersion = version
-		}
-	}
-	return latestVersion
-}
 
 // validConsensusVoteChoices returns an error if provided vote choices are not
 // valid for the most recent consensus agendas.

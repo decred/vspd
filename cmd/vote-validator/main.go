@@ -69,12 +69,7 @@ func run() int {
 
 	// Get the latest vote version. Any votes which don't match this version
 	// will be ignored.
-	var latestVoteVersion uint32
-	for version := range network.Deployments {
-		if version > latestVoteVersion {
-			latestVoteVersion = version
-		}
-	}
+	latestVoteVersion := network.CurrentVoteVersion()
 
 	// Open database.
 	log := slog.NewBackend(os.Stdout).Logger("")

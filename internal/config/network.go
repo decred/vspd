@@ -59,3 +59,15 @@ var SimNet = Network{
 func (n *Network) DCP5Active(height int64) bool {
 	return height >= n.DCP0005Height
 }
+
+// CurrentVoteVersion returns the most recent version in the current networks
+// consensus agenda deployments.
+func (n *Network) CurrentVoteVersion() uint32 {
+	var latestVersion uint32
+	for version := range n.Deployments {
+		if latestVersion < version {
+			latestVersion = version
+		}
+	}
+	return latestVersion
+}

@@ -103,7 +103,7 @@ func (s *server) payFee(c *gin.Context) {
 	// the ticket should still be registered.
 
 	validVoteChoices := true
-	err = validConsensusVoteChoices(s.cfg.Network, currentVoteVersion(s.cfg.Network.Params), request.VoteChoices)
+	err = validConsensusVoteChoices(s.cfg.Network, s.cfg.Network.CurrentVoteVersion(), request.VoteChoices)
 	if err != nil {
 		validVoteChoices = false
 		s.log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
