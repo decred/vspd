@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -95,7 +95,7 @@ func (s *server) setVoteChoices(c *gin.Context) {
 
 	// Validate vote choices (consensus, tspend policy and treasury policy).
 
-	err = validConsensusVoteChoices(s.cfg.NetParams, currentVoteVersion(s.cfg.NetParams), request.VoteChoices)
+	err = validConsensusVoteChoices(s.cfg.Network, currentVoteVersion(s.cfg.Network.Params), request.VoteChoices)
 	if err != nil {
 		s.log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)

@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/v3"
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/types/v2"
 	"github.com/gin-gonic/gin"
 )
@@ -64,7 +64,7 @@ func TestMain(m *testing.M) {
 
 	// Set up some global params.
 	cfg := Config{
-		NetParams: chaincfg.MainNetParams(),
+		Network: &config.MainNet,
 	}
 	_, signPrivKey, _ := ed25519.GenerateKey(seededRand)
 

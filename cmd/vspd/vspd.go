@@ -40,7 +40,7 @@ const (
 )
 
 type vspd struct {
-	cfg     *config
+	cfg     *vspdConfig
 	log     slog.Logger
 	db      *database.VspDatabase
 	dcrd    rpc.DcrdConnect
@@ -55,7 +55,7 @@ type vspd struct {
 
 // newVspd creates the essential resources required by vspd - a database, logger
 // and RPC clients - then returns an instance of vspd which is ready to be run.
-func newVspd(cfg *config, log slog.Logger) (*vspd, error) {
+func newVspd(cfg *vspdConfig, log slog.Logger) (*vspd, error) {
 	// Open database.
 	db, err := database.Open(cfg.dbPath, cfg.logger(" DB"), maxVoteChangeRecords)
 	if err != nil {
@@ -69,10 +69,10 @@ func newVspd(cfg *config, log slog.Logger) (*vspd, error) {
 
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
-	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, cfg.netParams.Params, rpcLog, blockNotifChan)
+	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, cfg.network.Params, rpcLog, blockNotifChan)
 
 	// Create RPC client for remote dcrwallet instances (used for voting).
-	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.netParams.Params, rpcLog)
+	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.network.Params, rpcLog)
 
 	v := &vspd{
 		cfg:     cfg,
@@ -142,8 +142,7 @@ func (v *vspd) run() int {
 	// Create and start webapi server.
 	apiCfg := webapi.Config{
 		VSPFee:               v.cfg.VSPFee,
-		NetParams:            v.cfg.netParams.Params,
-		BlockExplorerURL:     v.cfg.netParams.blockExplorerURL,
+		Network:              v.cfg.network,
 		SupportEmail:         v.cfg.SupportEmail,
 		VspClosed:            v.cfg.VspClosed,
 		VspClosedMsg:         v.cfg.VspClosedMsg,
@@ -292,7 +291,7 @@ func (v *vspd) checkRevoked(ctx context.Context) error {
 
 	// Search for the transactions which spend these tickets, starting at the
 	// earliest height one of them matured.
-	startHeight := revoked.EarliestPurchaseHeight() + int64(v.cfg.netParams.TicketMaturity)
+	startHeight := revoked.EarliestPurchaseHeight() + int64(v.cfg.network.TicketMaturity)
 
 	spent, _, err := v.findSpentTickets(ctx, revoked, startHeight)
 	if err != nil {
@@ -561,7 +560,7 @@ func (v *vspd) blockConnected(ctx context.Context) {
 		// Use the earliest height at which a votable ticket matured if vspd has
 		// not performed a scan for spent tickets since it started. This will
 		// catch any tickets which were spent whilst vspd was offline.
-		startHeight = votableTickets.EarliestPurchaseHeight() + int64(v.cfg.netParams.TicketMaturity)
+		startHeight = votableTickets.EarliestPurchaseHeight() + int64(v.cfg.network.TicketMaturity)
 	} else {
 		startHeight = v.lastScannedBlock
 	}

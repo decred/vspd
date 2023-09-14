@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/internal/version"
 )
 
@@ -32,7 +33,7 @@ func run() int {
 	log.Criticalf("Version %s (Go version %s %s/%s)", version.String(),
 		runtime.Version(), runtime.GOOS, runtime.GOARCH)
 
-	if cfg.netParams == &mainNetParams && version.IsPreRelease() {
+	if cfg.network == &config.MainNet && version.IsPreRelease() {
 		log.Warnf("")
 		log.Warnf("\tWARNING: This is a pre-release version of vspd which should not be used on mainnet.")
 		log.Warnf("")

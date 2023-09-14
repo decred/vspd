@@ -17,9 +17,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/rpc"
 	"github.com/decred/vspd/types/v2"
 	"github.com/dustin/go-humanize"
@@ -29,8 +29,7 @@ import (
 
 type Config struct {
 	VSPFee               float64
-	NetParams            *chaincfg.Params
-	BlockExplorerURL     string
+	Network              *config.Network
 	FeeAccountName       string
 	SupportEmail         string
 	VspClosed            bool
@@ -77,10 +76,10 @@ type server struct {
 
 func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup,
 	listen string, vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
-	wallets rpc.WalletConnect, config Config) error {
+	wallets rpc.WalletConnect, cfg Config) error {
 
 	s := &server{
-		cfg: config,
+		cfg: cfg,
 		db:  vdb,
 		log: log,
 	}
@@ -110,7 +109,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	if err != nil {
 		return fmt.Errorf("db.GetFeeXPub error: %w", err)
 	}
-	s.addrGen, err = newAddressGenerator(feeXPub, config.NetParams, idx, log)
+	s.addrGen, err = newAddressGenerator(feeXPub, cfg.Network.Params, idx, log)
 	if err != nil {
 		return fmt.Errorf("failed to initialize fee address generator: %w", err)
 	}
@@ -200,11 +199,13 @@ func (s *server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 
 	router := gin.New()
 
+	explorerURL := s.cfg.Network.BlockExplorerURL
+
 	// Add custom functions for use in templates.
 	router.SetFuncMap(template.FuncMap{
-		"txURL":            txURL(s.cfg.BlockExplorerURL),
-		"addressURL":       addressURL(s.cfg.BlockExplorerURL),
-		"blockURL":         blockURL(s.cfg.BlockExplorerURL),
+		"txURL":            txURL(explorerURL),
+		"addressURL":       addressURL(explorerURL),
+		"blockURL":         blockURL(explorerURL),
 		"dateTime":         dateTime,
 		"stripWss":         stripWss,
 		"indentJSON":       indentJSON(s.log),
