@@ -20,7 +20,7 @@ func (s *server) vspInfo(c *gin.Context) {
 		Timestamp:           time.Now().Unix(),
 		PubKey:              s.signPubKey,
 		FeePercentage:       s.cfg.VSPFee,
-		Network:             s.cfg.NetParams.Name,
+		Network:             s.cfg.Network.Name,
 		VspClosed:           s.cfg.VspClosed,
 		VspClosedMsg:        s.cfg.VspClosedMsg,
 		VspdVersion:         version.String(),

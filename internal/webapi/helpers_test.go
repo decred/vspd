@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,7 +7,7 @@ package webapi
 import (
 	"testing"
 
-	"github.com/decred/dcrd/chaincfg/v3"
+	"github.com/decred/vspd/internal/config"
 )
 
 func TestIsValidVoteChoices(t *testing.T) {
@@ -15,7 +15,7 @@ func TestIsValidVoteChoices(t *testing.T) {
 	// Mainnet vote version 4 contains 2 agendas - sdiffalgorithm and lnsupport.
 	// Both agendas have vote choices yes/no/abstain.
 	voteVersion := uint32(4)
-	params := chaincfg.MainNetParams()
+	network := config.MainNet
 
 	var tests = []struct {
 		voteChoices map[string]string
@@ -46,7 +46,7 @@ func TestIsValidVoteChoices(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := validConsensusVoteChoices(params, voteVersion, test.voteChoices)
+		err := validConsensusVoteChoices(&network, voteVersion, test.voteChoices)
 		if (err == nil) != test.valid {
 			t.Fatalf("isValidVoteChoices failed for votechoices '%v': %v",
 				test.voteChoices, err)

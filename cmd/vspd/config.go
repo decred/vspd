@@ -20,6 +20,7 @@ import (
 	"github.com/decred/dcrd/hdkeychain/v3"
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/internal/version"
 	flags "github.com/jessevdk/go-flags"
 )
@@ -45,8 +46,8 @@ var (
 	defaultDesignation    = "Voting Service Provider"
 )
 
-// config defines the configuration options for the VSP.
-type config struct {
+// vspdConfig defines the configuration options for the vspd process.
+type vspdConfig struct {
 	Listen          string        `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
 	LogLevel        string        `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
 	MaxLogSize      int64         `long:"maxlogsize" ini-name:"maxlogsize" description:"File size threshold for log file rotation (MB)."`
@@ -79,7 +80,7 @@ type config struct {
 	logLevel   slog.Level
 
 	dbPath                                    string
-	netParams                                 *netParams
+	network                                   *config.Network
 	dcrdCert                                  []byte
 	walletHosts, walletUsers, walletPasswords []string
 	walletCerts                               [][]byte
@@ -169,10 +170,10 @@ func normalizeAddress(addr, defaultPort string) string {
 // The above results in vspd functioning properly without any config settings
 // while still allowing the user to override settings with config files and
 // command line options.  Command line options always take precedence.
-func loadConfig() (*config, error) {
+func loadConfig() (*vspdConfig, error) {
 
 	// Default config.
-	cfg := config{
+	cfg := vspdConfig{
 		Listen:         defaultListen,
 		LogLevel:       defaultLogLevel,
 		MaxLogSize:     defaultMaxLogSize,
@@ -280,11 +281,11 @@ func loadConfig() (*config, error) {
 	// Set the active network.
 	switch cfg.Network {
 	case "testnet":
-		cfg.netParams = &testNet3Params
+		cfg.network = &config.TestNet3
 	case "mainnet":
-		cfg.netParams = &mainNetParams
+		cfg.network = &config.MainNet
 	case "simnet":
-		cfg.netParams = &simNetParams
+		cfg.network = &config.SimNet
 	}
 
 	// Ensure backup interval is greater than 30 seconds.
@@ -388,26 +389,26 @@ func loadConfig() (*config, error) {
 	}
 
 	// Verify minimum number of voting wallets are configured.
-	if numHost < cfg.netParams.minWallets {
+	if numHost < cfg.network.MinWallets {
 		return nil, fmt.Errorf("minimum required voting wallets has not been met: %d < %d",
-			numHost, cfg.netParams.minWallets)
+			numHost, cfg.network.MinWallets)
 	}
 
 	// Add default port for the active network if there is no port specified.
 	for i := 0; i < numHost; i++ {
-		cfg.walletHosts[i] = normalizeAddress(cfg.walletHosts[i], cfg.netParams.walletRPCServerPort)
+		cfg.walletHosts[i] = normalizeAddress(cfg.walletHosts[i], cfg.network.WalletRPCServerPort)
 	}
-	cfg.DcrdHost = normalizeAddress(cfg.DcrdHost, cfg.netParams.dcrdRPCServerPort)
+	cfg.DcrdHost = normalizeAddress(cfg.DcrdHost, cfg.network.DcrdRPCServerPort)
 
 	// Create the data directory.
-	dataDir := filepath.Join(cfg.HomeDir, "data", cfg.netParams.Name)
+	dataDir := filepath.Join(cfg.HomeDir, "data", cfg.network.Name)
 	err = os.MkdirAll(dataDir, 0700)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
 	// Initialize loggers and log rotation.
-	logDir := filepath.Join(cfg.HomeDir, "logs", cfg.netParams.Name)
+	logDir := filepath.Join(cfg.HomeDir, "logs", cfg.network.Name)
 	cfg.logBackend, err = newLogBackend(logDir, appName, cfg.MaxLogSize, cfg.LogsToKeep)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
@@ -431,7 +432,7 @@ func loadConfig() (*config, error) {
 		}
 
 		// Ensure provided value is a valid key for the selected network.
-		_, err = hdkeychain.NewKeyFromString(cfg.FeeXPub, cfg.netParams.Params)
+		_, err = hdkeychain.NewKeyFromString(cfg.FeeXPub, cfg.network.Params)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse feexpub: %w", err)
 		}
@@ -444,7 +445,6 @@ func loadConfig() (*config, error) {
 
 		// Exit with success
 		os.Exit(0)
-
 	}
 
 	// If database does not exist, return error.
@@ -456,7 +456,7 @@ func loadConfig() (*config, error) {
 	return &cfg, nil
 }
 
-func (cfg *config) logger(subsystem string) slog.Logger {
+func (cfg *vspdConfig) logger(subsystem string) slog.Logger {
 	log := cfg.logBackend.Logger(subsystem)
 	log.SetLevel(cfg.logLevel)
 	return log

@@ -387,7 +387,7 @@ func (s *server) vspAuth(c *gin.Context) {
 			return
 		}
 
-		addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, s.cfg.NetParams)
+		addr, err := stake.AddrFromSStxPkScrCommitment(msgTx.TxOut[1].PkScript, s.cfg.Network)
 		if err != nil {
 			s.log.Errorf("%s: AddrFromSStxPkScrCommitment error (clientIP=%s, ticketHash=%s): %v",
 				funcName, c.ClientIP(), hash, err)
@@ -407,7 +407,7 @@ func (s *server) vspAuth(c *gin.Context) {
 	}
 
 	// Validate request signature to ensure ticket ownership.
-	err = validateSignature(hash, commitmentAddress, signature, string(reqBytes), s.db, s.cfg.NetParams)
+	err = validateSignature(hash, commitmentAddress, signature, string(reqBytes), s.db, s.cfg.Network)
 	if err != nil {
 		s.log.Errorf("%s: Couldn't validate signature (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), hash, err)

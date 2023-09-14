@@ -17,6 +17,7 @@ import (
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/internal/config"
 )
 
 func currentVoteVersion(params *chaincfg.Params) uint32 {
@@ -31,12 +32,12 @@ func currentVoteVersion(params *chaincfg.Params) uint32 {
 
 // validConsensusVoteChoices returns an error if provided vote choices are not
 // valid for the most recent consensus agendas.
-func validConsensusVoteChoices(params *chaincfg.Params, voteVersion uint32, voteChoices map[string]string) error {
+func validConsensusVoteChoices(network *config.Network, voteVersion uint32, voteChoices map[string]string) error {
 
 agendaLoop:
 	for agenda, choice := range voteChoices {
 		// Does the agenda exist?
-		for _, v := range params.Deployments[voteVersion] {
+		for _, v := range network.Deployments[voteVersion] {
 			if v.Vote.Id == agenda {
 				// Agenda exists - does the vote choice exist?
 				for _, c := range v.Vote.Choices {
@@ -107,9 +108,9 @@ func validPolicyOption(policy string) error {
 }
 
 func validateSignature(hash, commitmentAddress, signature, message string,
-	db *database.VspDatabase, params *chaincfg.Params) error {
+	db *database.VspDatabase, network *config.Network) error {
 
-	firstErr := dcrutil.VerifyMessage(commitmentAddress, signature, message, params)
+	firstErr := dcrutil.VerifyMessage(commitmentAddress, signature, message, network)
 	if firstErr != nil {
 		// Don't return an error straight away if sig validation fails -
 		// first check if we have an alternate sign address for this ticket.
@@ -121,7 +122,7 @@ func validateSignature(hash, commitmentAddress, signature, message string,
 		// If we have no alternate sign address, or if validating with the
 		// alt sign addr fails, return an error to the client.
 		if altSigData == nil ||
-			dcrutil.VerifyMessage(altSigData.AltSignAddr, signature, message, params) != nil {
+			dcrutil.VerifyMessage(altSigData.AltSignAddr, signature, message, network) != nil {
 			return fmt.Errorf("bad signature")
 		}
 
@@ -172,17 +173,17 @@ func validateTicketHash(hash string) error {
 // canTicketVote checks determines whether a ticket is able to vote at some
 // point in the future by checking that it is currently either in the mempool,
 // immature or live.
-func canTicketVote(rawTx *dcrdtypes.TxRawResult, dcrdClient node, netParams *chaincfg.Params) (bool, error) {
+func canTicketVote(rawTx *dcrdtypes.TxRawResult, dcrdClient node, network *config.Network) (bool, error) {
 
 	// Tickets which have more than (TicketMaturity+TicketExpiry+1)
 	// confirmations are too old to vote.
-	if rawTx.Confirmations > int64(uint32(netParams.TicketMaturity)+netParams.TicketExpiry)+1 {
+	if rawTx.Confirmations > int64(uint32(network.TicketMaturity)+network.TicketExpiry)+1 {
 		return false, nil
 	}
 
 	// If ticket is currently immature (or in the mempool), it will be able to
 	// vote in future.
-	if rawTx.Confirmations <= int64(netParams.TicketMaturity) {
+	if rawTx.Confirmations <= int64(network.TicketMaturity) {
 		return true, nil
 	}
 

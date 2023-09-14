@@ -68,7 +68,7 @@ func (s *server) payFee(c *gin.Context) {
 	}
 
 	// Ensure this ticket is eligible to vote at some point in the future.
-	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.NetParams)
+	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.Network)
 	if err != nil {
 		s.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticket.Hash, err)
 		s.sendError(types.ErrInternalError, c)
@@ -91,7 +91,7 @@ func (s *server) payFee(c *gin.Context) {
 
 	// Validate VotingKey.
 	votingKey := request.VotingKey
-	votingWIF, err := dcrutil.DecodeWIF(votingKey, s.cfg.NetParams.PrivateKeyID)
+	votingWIF, err := dcrutil.DecodeWIF(votingKey, s.cfg.Network.PrivateKeyID)
 	if err != nil {
 		s.log.Warnf("%s: Failed to decode WIF (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
@@ -103,7 +103,7 @@ func (s *server) payFee(c *gin.Context) {
 	// the ticket should still be registered.
 
 	validVoteChoices := true
-	err = validConsensusVoteChoices(s.cfg.NetParams, currentVoteVersion(s.cfg.NetParams), request.VoteChoices)
+	err = validConsensusVoteChoices(s.cfg.Network, currentVoteVersion(s.cfg.Network.Params), request.VoteChoices)
 	if err != nil {
 		validVoteChoices = false
 		s.log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
@@ -135,7 +135,7 @@ func (s *server) payFee(c *gin.Context) {
 		return
 	}
 
-	err = blockchain.CheckTransactionSanity(feeTx, uint64(s.cfg.NetParams.MaxTxSize))
+	err = blockchain.CheckTransactionSanity(feeTx, uint64(s.cfg.Network.MaxTxSize))
 	if err != nil {
 		s.log.Warnf("%s: Fee tx failed sanity check (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
@@ -144,7 +144,7 @@ func (s *server) payFee(c *gin.Context) {
 	}
 
 	// Decode fee address to get its payment script details.
-	feeAddr, err := stdaddr.DecodeAddress(ticket.FeeAddress, s.cfg.NetParams)
+	feeAddr, err := stdaddr.DecodeAddress(ticket.FeeAddress, s.cfg.Network)
 	if err != nil {
 		s.log.Errorf("%s: Failed to decode fee address (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
@@ -185,7 +185,7 @@ func (s *server) payFee(c *gin.Context) {
 
 	// Decode the provided voting WIF to get its voting rights script.
 	pkHash := stdaddr.Hash160(votingWIF.PubKey())
-	wifAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1V0(pkHash, s.cfg.NetParams)
+	wifAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1V0(pkHash, s.cfg.Network)
 	if err != nil {
 		s.log.Errorf("%s: Failed to get voting address from WIF (ticketHash=%s, clientIP=%s): %v",
 			funcName, ticket.Hash, c.ClientIP(), err)

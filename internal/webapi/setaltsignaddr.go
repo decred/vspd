@@ -64,7 +64,7 @@ func (s *server) setAltSignAddr(c *gin.Context) {
 	}
 
 	// Fail fast if the pubkey doesn't decode properly.
-	addr, err := stdaddr.DecodeAddressV0(altSignAddr, s.cfg.NetParams)
+	addr, err := stdaddr.DecodeAddressV0(altSignAddr, s.cfg.Network)
 	if err != nil {
 		s.log.Warnf("%s: Alt sign address cannot be decoded (clientIP=%s): %v", funcName, c.ClientIP(), err)
 		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
@@ -85,7 +85,7 @@ func (s *server) setAltSignAddr(c *gin.Context) {
 	}
 
 	// Ensure this ticket is eligible to vote at some point in the future.
-	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.NetParams)
+	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.Network)
 	if err != nil {
 		s.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
 		s.sendError(types.ErrInternalError, c)

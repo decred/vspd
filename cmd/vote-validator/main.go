@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Decred developers
+// Copyright (c) 2022-2023 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,11 +11,11 @@ import (
 	"os"
 	"sort"
 
-	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/slog"
 	"github.com/jessevdk/go-flags"
 
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/internal/config"
 )
 
 const (
@@ -58,20 +58,19 @@ func run() int {
 		return 1
 	}
 
-	var dcrdata *dcrdataClient
-	var params *chaincfg.Params
+	var network *config.Network
 	if cfg.Testnet {
-		dcrdata = &dcrdataClient{URL: "https://testnet.dcrdata.org"}
-		params = chaincfg.TestNet3Params()
+		network = &config.TestNet3
 	} else {
-		dcrdata = &dcrdataClient{URL: "https://explorer.dcrdata.org"}
-		params = chaincfg.MainNetParams()
+		network = &config.MainNet
 	}
+
+	dcrdata := &dcrdataClient{URL: network.BlockExplorerURL}
 
 	// Get the latest vote version. Any votes which don't match this version
 	// will be ignored.
 	var latestVoteVersion uint32
-	for version := range params.Deployments {
+	for version := range network.Deployments {
 		if version > latestVoteVersion {
 			latestVoteVersion = version
 		}
@@ -163,7 +162,7 @@ func run() int {
 
 			// Get the recorded on-chain votes for this ticket.
 			actualVote := make(map[string]string)
-			agendas := params.Deployments[latestVoteVersion]
+			agendas := network.Deployments[latestVoteVersion]
 			for _, agenda := range agendas {
 				for _, choice := range agenda.Vote.Choices {
 					if votebits&agenda.Vote.Mask == choice.Bits {

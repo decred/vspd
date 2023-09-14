@@ -62,7 +62,7 @@ func (s *server) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) 
 	}
 
 	fee := txrules.StakePoolTicketFee(sDiff, defaultMinRelayTxFee,
-		int32(bestBlock.Height), s.cfg.VSPFee, s.cfg.NetParams, isDCP0010Active)
+		int32(bestBlock.Height), s.cfg.VSPFee, s.cfg.Network.Params, isDCP0010Active)
 	if err != nil {
 		return 0, err
 	}
@@ -116,7 +116,7 @@ func (s *server) feeAddress(c *gin.Context) {
 	}
 
 	// Ensure this ticket is eligible to vote at some point in the future.
-	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.NetParams)
+	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.Network)
 	if err != nil {
 		s.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
 		s.sendError(types.ErrInternalError, c)
