@@ -23,6 +23,9 @@ type Network struct {
 	// DCP0010Height is the activation height of DCP-0010 change PoW/PoS subsidy
 	// split agenda on this network.
 	DCP0010Height int64
+	// DCP0012Height is the activation height of DCP-0012 change PoW/PoS subsidy
+	// split R2 agenda on this network.
+	DCP0012Height int64
 }
 
 var MainNet = Network{
@@ -37,6 +40,9 @@ var MainNet = Network{
 	// DCP0010Height on mainnet is block
 	// 00000000000000002f4c6aaf0e9cb4d5a74c238d9bf8b8909e2372776c7c214c.
 	DCP0010Height: 657280,
+	// DCP0012Height on mainnet is block
+	// 071683030010299ab13f139df59dc98d637957b766e47f8da6dd5ac762f1e8c7.
+	DCP0012Height: 794368,
 }
 
 var TestNet3 = Network{
@@ -51,6 +57,9 @@ var TestNet3 = Network{
 	// DCP0010Height on testnet3 is block
 	// 000000000000c7fd75f2234bbff6bb81de3a9ebbd2fdd383ae3dbc6205ffe4ff.
 	DCP0010Height: 877728,
+	// DCP0012Height on testnet3 is block
+	// c7da7b548a2a9463dc97adb48433c4ffff18c3873f7e2ae99338a990dae039f0.
+	DCP0012Height: 1170048,
 }
 
 var SimNet = Network{
@@ -63,6 +72,8 @@ var SimNet = Network{
 	DCP0005Height: 1,
 	// DCP0010Height on simnet is 1 because the agenda will always be active.
 	DCP0010Height: 1,
+	// DCP0012Height on simnet is 1 because the agenda will always be active.
+	DCP0012Height: 1,
 }
 
 // DCP5Active returns true if the DCP-0005 block header commitments agenda is
@@ -75,6 +86,12 @@ func (n *Network) DCP5Active(height int64) bool {
 // is active on this network at the provided height, otherwise false.
 func (n *Network) DCP10Active(height int64) bool {
 	return height >= n.DCP0010Height
+}
+
+// DCP12Active returns true if the DCP-0012 change PoW/PoS subsidy split R2
+// agenda is active on this network at the provided height, otherwise false.
+func (n *Network) DCP12Active(height int64) bool {
+	return height >= n.DCP0012Height
 }
 
 // CurrentVoteVersion returns the most recent version in the current networks
