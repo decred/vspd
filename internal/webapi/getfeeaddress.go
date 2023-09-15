@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"decred.org/dcrwallet/v3/wallet/txrules"
+	"decred.org/dcrwallet/v4/wallet/txrules"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
@@ -56,10 +56,12 @@ func (w *WebAPI) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) 
 	// is only used to calculate the fee charged for adding a ticket to the VSP.
 	const defaultMinRelayTxFee = dcrutil.Amount(1e4)
 
-	isDCP0010Active := w.cfg.Network.DCP10Active(int64(bestBlock.Height))
+	height := int64(bestBlock.Height)
+	isDCP0010Active := w.cfg.Network.DCP10Active(height)
+	isDCP0012Active := w.cfg.Network.DCP12Active(height)
 
-	fee := txrules.StakePoolTicketFee(sDiff, defaultMinRelayTxFee,
-		int32(bestBlock.Height), w.cfg.VSPFee, w.cfg.Network.Params, isDCP0010Active)
+	fee := txrules.StakePoolTicketFee(sDiff, defaultMinRelayTxFee, int32(bestBlock.Height),
+		w.cfg.VSPFee, w.cfg.Network.Params, isDCP0010Active, isDCP0012Active)
 	if err != nil {
 		return 0, err
 	}
