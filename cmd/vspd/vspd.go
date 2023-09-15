@@ -53,26 +53,8 @@ type vspd struct {
 	lastScannedBlock int64
 }
 
-// newVspd creates the essential resources required by vspd - a database, logger
-// and RPC clients - then returns an instance of vspd which is ready to be run.
-func newVspd(cfg *vspdConfig, log slog.Logger) (*vspd, error) {
-	// Open database.
-	db, err := database.Open(cfg.dbPath, cfg.logger(" DB"), maxVoteChangeRecords)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
-	}
-
-	rpcLog := cfg.logger("RPC")
-
-	// Create a channel to receive blockConnected notifications from dcrd.
-	blockNotifChan := make(chan *wire.BlockHeader)
-
-	// Create RPC client for local dcrd instance (used for broadcasting and
-	// checking the status of fee transactions).
-	dcrd := rpc.SetupDcrd(cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert, cfg.network.Params, rpcLog, blockNotifChan)
-
-	// Create RPC client for remote dcrwallet instances (used for voting).
-	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.network.Params, rpcLog)
+func newVspd(cfg *vspdConfig, log slog.Logger, db *database.VspDatabase,
+	dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, blockNotifChan chan *wire.BlockHeader) *vspd {
 
 	v := &vspd{
 		cfg:     cfg,
@@ -84,22 +66,10 @@ func newVspd(cfg *vspdConfig, log slog.Logger) (*vspd, error) {
 		blockNotifChan: blockNotifChan,
 	}
 
-	return v, nil
+	return v
 }
 
-// run starts all of vspds background services including the web server, and
-// stops all started services when a shutdown is requested.
-func (v *vspd) run() int {
-	// Defer shutdown tasks.
-	const writeBackup = true
-	defer v.db.Close(writeBackup)
-	defer v.dcrd.Close()
-	defer v.wallets.Close()
-
-	// Create a context that is canceled when a shutdown request is received
-	// through an interrupt signal.
-	ctx := shutdownListener(v.log)
-
+func (v *vspd) run(ctx context.Context) int {
 	// Run database integrity checks to ensure all data in database is present
 	// and up-to-date.
 	err := v.checkDatabaseIntegrity(ctx)
