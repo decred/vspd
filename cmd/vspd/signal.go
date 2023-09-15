@@ -53,9 +53,3 @@ func shutdownListener(log slog.Logger) context.Context {
 	}()
 	return ctx
 }
-
-// requestShutdown signals for starting the clean shutdown of the process
-// through an internal component.
-func requestShutdown() {
-	shutdownRequestChannel <- struct{}{}
-}

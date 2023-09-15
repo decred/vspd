@@ -142,10 +142,11 @@ func New(vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
 	return w, nil
 }
 
-func (w *WebAPI) Run(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup) {
+func (w *WebAPI) Run(ctx context.Context) {
+	var wg sync.WaitGroup
 
 	// Add the graceful shutdown to the waitgroup.
-	shutdownWg.Add(1)
+	wg.Add(1)
 	go func() {
 		// Wait until shutdown is signaled before shutting down.
 		<-ctx.Done()
@@ -159,34 +160,32 @@ func (w *WebAPI) Run(ctx context.Context, requestShutdown func(), shutdownWg *sy
 		} else {
 			w.log.Debug("Webserver stopped")
 		}
-		shutdownWg.Done()
+		wg.Done()
 	}()
 
 	// Start webserver.
+	wg.Add(1)
 	go func() {
 		err := w.server.Serve(w.listener)
-		// If the server dies for any reason other than ErrServerClosed (from
-		// graceful server.Shutdown), log the error and request vspd be
-		// shutdown.
+		// ErrServerClosed is expected from a graceful server shutdown, it can
+		// be ignored. Anything else should be logged.
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			w.log.Errorf("Unexpected webserver error: %v", err)
-			requestShutdown()
 		}
+		wg.Done()
 	}()
 
 	// Periodically update cached VSP stats.
-	var refresh time.Duration
-	if w.cfg.Debug {
-		refresh = 1 * time.Second
-	} else {
-		refresh = 1 * time.Minute
-	}
-	shutdownWg.Add(1)
+	wg.Add(1)
 	go func() {
+		refresh := 1 * time.Minute
+		if w.cfg.Debug {
+			refresh = 1 * time.Second
+		}
 		for {
 			select {
 			case <-ctx.Done():
-				shutdownWg.Done()
+				wg.Done()
 				return
 			case <-time.After(refresh):
 				err := w.cache.update()
@@ -196,6 +195,8 @@ func (w *WebAPI) Run(ctx context.Context, requestShutdown func(), shutdownWg *sy
 			}
 		}
 	}()
+
+	wg.Wait()
 }
 
 func (w *WebAPI) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) *gin.Engine {
