@@ -15,8 +15,17 @@ import (
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/internal/version"
+	"github.com/decred/vspd/internal/vspd"
 	"github.com/decred/vspd/internal/webapi"
 	"github.com/decred/vspd/rpc"
+)
+
+const (
+	// maxVoteChangeRecords defines how many vote change records will be stored
+	// for each ticket. The limit is in place to mitigate DoS attacks on server
+	// storage space. When storing a new record breaches this limit, the oldest
+	// record in the database is deleted.
+	maxVoteChangeRecords = 10
 )
 
 func main() {
@@ -109,10 +118,10 @@ func run() int {
 	}()
 
 	// Start vspd.
-	vspd := newVspd(cfg.network, log, db, dcrd, wallets, blockNotifChan)
+	vspd := vspd.New(cfg.network, log, db, dcrd, wallets, blockNotifChan)
 	shutdownWg.Add(1)
 	go func() {
-		vspd.run(ctx)
+		vspd.Run(ctx)
 		shutdownWg.Done()
 	}()
 
