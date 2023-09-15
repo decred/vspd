@@ -2,7 +2,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package main
+package vspd
 
 import (
 	"context"
@@ -24,12 +24,6 @@ const (
 	// ticket purchase or a fee transaction to be final.
 	requiredConfs = 6
 
-	// maxVoteChangeRecords defines how many vote change records will be stored
-	// for each ticket. The limit is in place to mitigate DoS attacks on server
-	// storage space. When storing a new record breaches this limit, the oldest
-	// record in the database is deleted.
-	maxVoteChangeRecords = 10
-
 	// consistencyInterval is the time period between wallet consistency checks.
 	consistencyInterval = 30 * time.Minute
 
@@ -37,7 +31,7 @@ const (
 	dcrdInterval = time.Second * 15
 )
 
-type vspd struct {
+type Vspd struct {
 	network *config.Network
 	log     slog.Logger
 	db      *database.VspDatabase
@@ -51,10 +45,10 @@ type vspd struct {
 	lastScannedBlock int64
 }
 
-func newVspd(network *config.Network, log slog.Logger, db *database.VspDatabase,
-	dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, blockNotifChan chan *wire.BlockHeader) *vspd {
+func New(network *config.Network, log slog.Logger, db *database.VspDatabase,
+	dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, blockNotifChan chan *wire.BlockHeader) *Vspd {
 
-	v := &vspd{
+	v := &Vspd{
 		network: network,
 		log:     log,
 		db:      db,
@@ -67,7 +61,7 @@ func newVspd(network *config.Network, log slog.Logger, db *database.VspDatabase,
 	return v
 }
 
-func (v *vspd) run(ctx context.Context) {
+func (v *Vspd) Run(ctx context.Context) {
 	// Run database integrity checks to ensure all data in database is present
 	// and up-to-date.
 	err := v.checkDatabaseIntegrity(ctx)
@@ -137,7 +131,7 @@ func (v *vspd) run(ctx context.Context) {
 
 // checkDatabaseIntegrity starts the process of ensuring that all data expected
 // to be in the database is present and up to date.
-func (v *vspd) checkDatabaseIntegrity(ctx context.Context) error {
+func (v *Vspd) checkDatabaseIntegrity(ctx context.Context) error {
 	err := v.checkPurchaseHeights()
 	if err != nil {
 		return fmt.Errorf("checkPurchaseHeights error: %w", err)
@@ -154,7 +148,7 @@ func (v *vspd) checkDatabaseIntegrity(ctx context.Context) error {
 // checkPurchaseHeights ensures a purchase height is recorded for all confirmed
 // tickets in the database. This is necessary because of an old bug which, in
 // some circumstances, would prevent purchase height from being stored.
-func (v *vspd) checkPurchaseHeights() error {
+func (v *Vspd) checkPurchaseHeights() error {
 	missing, err := v.db.GetMissingPurchaseHeight()
 	if err != nil {
 		// Cannot proceed if this fails, return.
@@ -198,7 +192,7 @@ func (v *vspd) checkPurchaseHeights() error {
 
 // checkRevoked ensures that any tickets in the database with outcome set to
 // revoked are updated to either expired or missed.
-func (v *vspd) checkRevoked(ctx context.Context) error {
+func (v *Vspd) checkRevoked(ctx context.Context) error {
 	revoked, err := v.db.GetRevokedTickets()
 	if err != nil {
 		return fmt.Errorf("db.GetRevoked error: %w", err)
@@ -254,7 +248,7 @@ func (v *vspd) checkRevoked(ctx context.Context) error {
 
 // blockConnected is called once when vspd starts up, and once each time a
 // blockconnected notification is received from dcrd.
-func (v *vspd) blockConnected(ctx context.Context) {
+func (v *Vspd) blockConnected(ctx context.Context) {
 	const funcName = "blockConnected"
 
 	dcrdClient, _, err := v.dcrd.Client()
@@ -533,7 +527,7 @@ func (v *vspd) blockConnected(ctx context.Context) {
 // checkWalletConsistency will retrieve all votable tickets from the database
 // and ensure they are all added to voting wallets with the correct vote
 // choices.
-func (v *vspd) checkWalletConsistency(ctx context.Context) {
+func (v *Vspd) checkWalletConsistency(ctx context.Context) {
 	const funcName = "checkWalletConsistency"
 
 	v.log.Info("Checking voting wallet consistency")

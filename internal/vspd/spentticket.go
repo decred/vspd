@@ -2,7 +2,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.package main
 
-package main
+package vspd
 
 import (
 	"context"
@@ -64,7 +64,7 @@ func (s *spentTicket) missed() bool {
 // against the block filters of the mainchain blocks between the provided start
 // block and the current best block. Returns any found spent tickets and the
 // height of the most recent scanned block.
-func (v *vspd) findSpentTickets(ctx context.Context, toCheck database.TicketList,
+func (v *Vspd) findSpentTickets(ctx context.Context, toCheck database.TicketList,
 	startHeight int64) ([]spentTicket, int64, error) {
 	dcrdClient, _, err := v.dcrd.Client()
 	if err != nil {
