@@ -66,8 +66,6 @@ func (s *spentTicket) missed() bool {
 // height of the most recent scanned block.
 func (v *vspd) findSpentTickets(ctx context.Context, toCheck database.TicketList,
 	startHeight int64) ([]spentTicket, int64, error) {
-	network := v.cfg.network
-
 	dcrdClient, _, err := v.dcrd.Client()
 	if err != nil {
 		return nil, 0, err
@@ -102,7 +100,7 @@ func (v *vspd) findSpentTickets(ctx context.Context, toCheck database.TicketList
 	tickets := make([]ticketTuple, 0, len(toCheck))
 	scripts := make([][]byte, 0, len(toCheck))
 	for _, ticket := range toCheck {
-		parsedAddr, err := stdaddr.DecodeAddress(ticket.CommitmentAddress, network)
+		parsedAddr, err := stdaddr.DecodeAddress(ticket.CommitmentAddress, v.network)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -135,7 +133,7 @@ func (v *vspd) findSpentTickets(ctx context.Context, toCheck database.TicketList
 			return nil, 0, err
 		}
 
-		verifyProof := network.DCP5Active(iHeight)
+		verifyProof := v.network.DCP5Active(iHeight)
 		key, filter, err := dcrdClient.GetCFilterV2(iHeader, verifyProof)
 		if err != nil {
 			return nil, 0, err
@@ -165,10 +163,12 @@ func (v *vspd) findSpentTickets(ctx context.Context, toCheck database.TicketList
 				// Confirmed - ticket is spent in block.
 
 				spent = append(spent, spentTicket{
-					dbTicket:     tickets[i].dbTicket,
-					expiryHeight: tickets[i].dbTicket.PurchaseHeight + int64(network.TicketMaturity) + int64(network.TicketExpiry),
-					heightSpent:  iHeight,
-					spendingTx:   blkTx,
+					dbTicket: tickets[i].dbTicket,
+					expiryHeight: tickets[i].dbTicket.PurchaseHeight +
+						int64(v.network.TicketMaturity) +
+						int64(v.network.TicketExpiry),
+					heightSpent: iHeight,
+					spendingTx:  blkTx,
 				})
 
 				// Remove this ticket and its script before continuing with the

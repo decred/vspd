@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/rpc"
 	"github.com/jrick/wsrpc/v2"
 )
@@ -37,7 +38,7 @@ const (
 )
 
 type vspd struct {
-	cfg     *vspdConfig
+	network *config.Network
 	log     slog.Logger
 	db      *database.VspDatabase
 	dcrd    rpc.DcrdConnect
@@ -50,11 +51,11 @@ type vspd struct {
 	lastScannedBlock int64
 }
 
-func newVspd(cfg *vspdConfig, log slog.Logger, db *database.VspDatabase,
+func newVspd(network *config.Network, log slog.Logger, db *database.VspDatabase,
 	dcrd rpc.DcrdConnect, wallets rpc.WalletConnect, blockNotifChan chan *wire.BlockHeader) *vspd {
 
 	v := &vspd{
-		cfg:     cfg,
+		network: network,
 		log:     log,
 		db:      db,
 		dcrd:    dcrd,
@@ -104,8 +105,6 @@ func (v *vspd) run(ctx context.Context) {
 	}
 
 	// Start all background tasks and notification handlers.
-	backupTicker := time.NewTicker(v.cfg.BackupInterval)
-	defer backupTicker.Stop()
 	consistencyTicker := time.NewTicker(consistencyInterval)
 	defer consistencyTicker.Stop()
 	dcrdTicker := time.NewTicker(dcrdInterval)
@@ -113,14 +112,6 @@ func (v *vspd) run(ctx context.Context) {
 
 	for {
 		select {
-
-		// Periodically write a database backup file.
-		case <-backupTicker.C:
-			err := v.db.WriteHotBackupFile()
-			if err != nil {
-				v.log.Errorf("Failed to write database backup: %v", err)
-			}
-
 		// Run voting wallet consistency check periodically.
 		case <-consistencyTicker.C:
 			v.checkWalletConsistency(ctx)
@@ -223,7 +214,7 @@ func (v *vspd) checkRevoked(ctx context.Context) error {
 
 	// Search for the transactions which spend these tickets, starting at the
 	// earliest height one of them matured.
-	startHeight := revoked.EarliestPurchaseHeight() + int64(v.cfg.network.TicketMaturity)
+	startHeight := revoked.EarliestPurchaseHeight() + int64(v.network.TicketMaturity)
 
 	spent, _, err := v.findSpentTickets(ctx, revoked, startHeight)
 	if err != nil {
@@ -492,7 +483,7 @@ func (v *vspd) blockConnected(ctx context.Context) {
 		// Use the earliest height at which a votable ticket matured if vspd has
 		// not performed a scan for spent tickets since it started. This will
 		// catch any tickets which were spent whilst vspd was offline.
-		startHeight = votableTickets.EarliestPurchaseHeight() + int64(v.cfg.network.TicketMaturity)
+		startHeight = votableTickets.EarliestPurchaseHeight() + int64(v.network.TicketMaturity)
 	} else {
 		startHeight = v.lastScannedBlock
 	}

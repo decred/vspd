@@ -9,6 +9,7 @@ import (
 	"os"
 	"runtime"
 	"sync"
+	"time"
 
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/vspd/database"
@@ -108,11 +109,26 @@ func run() int {
 	}()
 
 	// Start vspd.
-	vspd := newVspd(cfg, log, db, dcrd, wallets, blockNotifChan)
+	vspd := newVspd(cfg.network, log, db, dcrd, wallets, blockNotifChan)
 	shutdownWg.Add(1)
 	go func() {
 		vspd.run(ctx)
 		shutdownWg.Done()
+	}()
+
+	// Periodically write a database backup file.
+	shutdownWg.Add(1)
+	go func() {
+		select {
+		case <-ctx.Done():
+			shutdownWg.Done()
+			return
+		case <-time.After(cfg.BackupInterval):
+			err := db.WriteHotBackupFile()
+			if err != nil {
+				log.Errorf("Failed to write database backup: %v", err)
+			}
+		}
 	}()
 
 	// Wait for shutdown tasks to complete before running deferred tasks and
