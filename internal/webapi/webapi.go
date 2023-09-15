@@ -79,24 +79,16 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
 	wallets rpc.WalletConnect, cfg Config) error {
 
-	s := &server{
-		cfg: cfg,
-		db:  vdb,
-		log: log,
-	}
-
-	var err error
-
 	// Get keys for signing API responses from the database.
-	s.signPrivKey, s.signPubKey, err = vdb.KeyPair()
+	signPrivKey, signPubKey, err := vdb.KeyPair()
 	if err != nil {
 		return fmt.Errorf("db.Keypair error: %w", err)
 	}
 
 	// Populate cached VSP stats before starting webserver.
-	encodedPubKey := base64.StdEncoding.EncodeToString(s.signPubKey)
-	s.cache = newCache(encodedPubKey, log, vdb, dcrd, wallets)
-	err = s.cache.update()
+	encodedPubKey := base64.StdEncoding.EncodeToString(signPubKey)
+	cache := newCache(encodedPubKey, log, vdb, dcrd, wallets)
+	err = cache.update()
 	if err != nil {
 		log.Errorf("Could not initialize VSP stats cache: %v", err)
 	}
@@ -111,7 +103,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	if err != nil {
 		return fmt.Errorf("db.GetFeeXPub error: %w", err)
 	}
-	s.addrGen, err = newAddressGenerator(feeXPub, cfg.Network.Params, idx, log)
+	addrGen, err := newAddressGenerator(feeXPub, cfg.Network.Params, idx, log)
 	if err != nil {
 		return fmt.Errorf("failed to initialize fee address generator: %w", err)
 	}
@@ -120,6 +112,16 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	cookieSecret, err := vdb.CookieSecret()
 	if err != nil {
 		return fmt.Errorf("db.GetCookieSecret error: %w", err)
+	}
+
+	s := &server{
+		cfg:         cfg,
+		db:          vdb,
+		log:         log,
+		addrGen:     addrGen,
+		cache:       cache,
+		signPrivKey: signPrivKey,
+		signPubKey:  signPubKey,
 	}
 
 	// Create TCP listener.
