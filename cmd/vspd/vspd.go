@@ -159,7 +159,12 @@ func (v *vspd) run() int {
 	// WaitGroup for services to signal when they have shutdown cleanly.
 	var shutdownWg sync.WaitGroup
 
-	api.Run(ctx, requestShutdown, &shutdownWg)
+	// Start the webapi server.
+	shutdownWg.Add(1)
+	go func() {
+		api.Run(ctx)
+		shutdownWg.Done()
+	}()
 
 	// Start all background tasks and notification handlers.
 	shutdownWg.Add(1)
