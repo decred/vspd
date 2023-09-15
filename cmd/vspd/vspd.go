@@ -9,14 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
-	"github.com/decred/vspd/internal/version"
-	"github.com/decred/vspd/internal/webapi"
 	"github.com/decred/vspd/rpc"
 	"github.com/jrick/wsrpc/v2"
 )
@@ -69,14 +66,14 @@ func newVspd(cfg *vspdConfig, log slog.Logger, db *database.VspDatabase,
 	return v
 }
 
-func (v *vspd) run(ctx context.Context) int {
+func (v *vspd) run(ctx context.Context) {
 	// Run database integrity checks to ensure all data in database is present
 	// and up-to-date.
 	err := v.checkDatabaseIntegrity(ctx)
 	if err != nil {
 		// Don't log error if shutdown was requested, just return.
 		if errors.Is(err, context.Canceled) {
-			return 0
+			return
 		}
 
 		// vspd should still start if this fails, so just log an error.
@@ -85,7 +82,7 @@ func (v *vspd) run(ctx context.Context) int {
 
 	// Stop if shutdown requested.
 	if ctx.Err() != nil {
-		return 0
+		return
 	}
 
 	// Run the block connected handler now to catch up with any blocks mined
@@ -94,7 +91,7 @@ func (v *vspd) run(ctx context.Context) int {
 
 	// Stop if shutdown requested.
 	if ctx.Err() != nil {
-		return 0
+		return
 	}
 
 	// Run voting wallet consistency check now to ensure all wallets are up to
@@ -103,88 +100,48 @@ func (v *vspd) run(ctx context.Context) int {
 
 	// Stop if shutdown requested.
 	if ctx.Err() != nil {
-		return 0
+		return
 	}
-
-	// Create webapi server.
-	apiCfg := webapi.Config{
-		Listen:               v.cfg.Listen,
-		VSPFee:               v.cfg.VSPFee,
-		Network:              v.cfg.network,
-		SupportEmail:         v.cfg.SupportEmail,
-		VspClosed:            v.cfg.VspClosed,
-		VspClosedMsg:         v.cfg.VspClosedMsg,
-		AdminPass:            v.cfg.AdminPass,
-		Debug:                v.cfg.WebServerDebug,
-		Designation:          v.cfg.Designation,
-		MaxVoteChangeRecords: maxVoteChangeRecords,
-		VspdVersion:          version.String(),
-	}
-	api, err := webapi.New(v.db, v.cfg.logger("API"), v.dcrd, v.wallets, apiCfg)
-	if err != nil {
-		v.log.Errorf("Failed to initialize webapi: %v", err)
-		return 1
-	}
-
-	// WaitGroup for services to signal when they have shutdown cleanly.
-	var shutdownWg sync.WaitGroup
-
-	// Start the webapi server.
-	shutdownWg.Add(1)
-	go func() {
-		api.Run(ctx)
-		shutdownWg.Done()
-	}()
 
 	// Start all background tasks and notification handlers.
-	shutdownWg.Add(1)
-	go func() {
-		backupTicker := time.NewTicker(v.cfg.BackupInterval)
-		defer backupTicker.Stop()
-		consistencyTicker := time.NewTicker(consistencyInterval)
-		defer consistencyTicker.Stop()
-		dcrdTicker := time.NewTicker(dcrdInterval)
-		defer dcrdTicker.Stop()
+	backupTicker := time.NewTicker(v.cfg.BackupInterval)
+	defer backupTicker.Stop()
+	consistencyTicker := time.NewTicker(consistencyInterval)
+	defer consistencyTicker.Stop()
+	dcrdTicker := time.NewTicker(dcrdInterval)
+	defer dcrdTicker.Stop()
 
-		for {
-			select {
+	for {
+		select {
 
-			// Periodically write a database backup file.
-			case <-backupTicker.C:
-				err := v.db.WriteHotBackupFile()
-				if err != nil {
-					v.log.Errorf("Failed to write database backup: %v", err)
-				}
-
-			// Run voting wallet consistency check periodically.
-			case <-consistencyTicker.C:
-				v.checkWalletConsistency(ctx)
-
-			// Ensure dcrd client is connected so notifications are received.
-			case <-dcrdTicker.C:
-				_, _, err := v.dcrd.Client()
-				if err != nil {
-					v.log.Errorf("dcrd connect error: %v", err)
-				}
-
-			// Handle blockconnected notifications from dcrd.
-			case header := <-v.blockNotifChan:
-				v.log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
-				v.blockConnected(ctx)
-
-			// Handle shutdown request.
-			case <-ctx.Done():
-				shutdownWg.Done()
-				return
+		// Periodically write a database backup file.
+		case <-backupTicker.C:
+			err := v.db.WriteHotBackupFile()
+			if err != nil {
+				v.log.Errorf("Failed to write database backup: %v", err)
 			}
+
+		// Run voting wallet consistency check periodically.
+		case <-consistencyTicker.C:
+			v.checkWalletConsistency(ctx)
+
+		// Ensure dcrd client is connected so notifications are received.
+		case <-dcrdTicker.C:
+			_, _, err := v.dcrd.Client()
+			if err != nil {
+				v.log.Errorf("dcrd connect error: %v", err)
+			}
+
+		// Handle blockconnected notifications from dcrd.
+		case header := <-v.blockNotifChan:
+			v.log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
+			v.blockConnected(ctx)
+
+		// Handle shutdown request.
+		case <-ctx.Done():
+			return
 		}
-	}()
-
-	// Wait for shutdown tasks to complete before running deferred tasks and
-	// returning.
-	shutdownWg.Wait()
-
-	return 0
+	}
 }
 
 // checkDatabaseIntegrity starts the process of ensuring that all data expected

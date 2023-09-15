@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync"
 
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/internal/version"
+	"github.com/decred/vspd/internal/webapi"
 	"github.com/decred/vspd/rpc"
 )
 
@@ -71,11 +73,51 @@ func run() int {
 	wallets := rpc.SetupWallet(cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts, cfg.network.Params, rpcLog)
 	defer wallets.Close()
 
-	vspd := newVspd(cfg, log, db, dcrd, wallets, blockNotifChan)
+	// Create webapi server.
+	apiCfg := webapi.Config{
+		Listen:               cfg.Listen,
+		VSPFee:               cfg.VSPFee,
+		Network:              cfg.network,
+		SupportEmail:         cfg.SupportEmail,
+		VspClosed:            cfg.VspClosed,
+		VspClosedMsg:         cfg.VspClosedMsg,
+		AdminPass:            cfg.AdminPass,
+		Debug:                cfg.WebServerDebug,
+		Designation:          cfg.Designation,
+		MaxVoteChangeRecords: maxVoteChangeRecords,
+		VspdVersion:          version.String(),
+	}
+	api, err := webapi.New(db, cfg.logger("API"), dcrd, wallets, apiCfg)
+	if err != nil {
+		log.Errorf("Failed to initialize webapi: %v", err)
+		return 1
+	}
+
+	// WaitGroup for services to signal when they have shutdown cleanly.
+	var shutdownWg sync.WaitGroup
 
 	// Create a context that is canceled when a shutdown request is received
 	// through an interrupt signal.
 	ctx := shutdownListener(log)
 
-	return vspd.run(ctx)
+	// Start the webapi server.
+	shutdownWg.Add(1)
+	go func() {
+		api.Run(ctx)
+		shutdownWg.Done()
+	}()
+
+	// Start vspd.
+	vspd := newVspd(cfg, log, db, dcrd, wallets, blockNotifChan)
+	shutdownWg.Add(1)
+	go func() {
+		vspd.run(ctx)
+		shutdownWg.Done()
+	}()
+
+	// Wait for shutdown tasks to complete before running deferred tasks and
+	// returning.
+	shutdownWg.Wait()
+
+	return 0
 }
