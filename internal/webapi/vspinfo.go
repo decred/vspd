@@ -13,16 +13,16 @@ import (
 )
 
 // vspInfo is the handler for "GET /api/v3/vspinfo".
-func (s *server) vspInfo(c *gin.Context) {
-	cachedStats := s.cache.getData()
-	s.sendJSONResponse(types.VspInfoResponse{
+func (w *WebAPI) vspInfo(c *gin.Context) {
+	cachedStats := w.cache.getData()
+	w.sendJSONResponse(types.VspInfoResponse{
 		APIVersions:         []int64{3},
 		Timestamp:           time.Now().Unix(),
-		PubKey:              s.signPubKey,
-		FeePercentage:       s.cfg.VSPFee,
-		Network:             s.cfg.Network.Name,
-		VspClosed:           s.cfg.VspClosed,
-		VspClosedMsg:        s.cfg.VspClosedMsg,
+		PubKey:              w.signPubKey,
+		FeePercentage:       w.cfg.VSPFee,
+		Network:             w.cfg.Network.Name,
+		VspClosed:           w.cfg.VspClosed,
+		VspClosedMsg:        w.cfg.VspClosedMsg,
 		VspdVersion:         version.String(),
 		Voting:              cachedStats.Voting,
 		Voted:               cachedStats.Voted,

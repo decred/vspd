@@ -26,7 +26,7 @@ type node interface {
 }
 
 // setAltSignAddr is the handler for "POST /api/v3/setaltsignaddr".
-func (s *server) setAltSignAddr(c *gin.Context) {
+func (w *WebAPI) setAltSignAddr(c *gin.Context) {
 
 	const funcName = "setAltSignAddr"
 
@@ -34,72 +34,72 @@ func (s *server) setAltSignAddr(c *gin.Context) {
 	dcrdClient := c.MustGet(dcrdKey).(node)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
-		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	var request types.SetAltSignAddrRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
+		w.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		w.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 
 	altSignAddr, ticketHash := request.AltSignAddress, request.TicketHash
 
-	currentData, err := s.db.AltSignAddrData(ticketHash)
+	currentData, err := w.db.AltSignAddrData(ticketHash)
 	if err != nil {
-		s.log.Errorf("%s: db.AltSignAddrData (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: db.AltSignAddrData (ticketHash=%s): %v", funcName, ticketHash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 	if currentData != nil {
 		msg := "alternate sign address data already exists"
-		s.log.Warnf("%s: %s (ticketHash=%s)", funcName, msg, ticketHash)
-		s.sendErrorWithMsg(msg, types.ErrBadRequest, c)
+		w.log.Warnf("%s: %s (ticketHash=%s)", funcName, msg, ticketHash)
+		w.sendErrorWithMsg(msg, types.ErrBadRequest, c)
 		return
 
 	}
 
 	// Fail fast if the pubkey doesn't decode properly.
-	addr, err := stdaddr.DecodeAddressV0(altSignAddr, s.cfg.Network)
+	addr, err := stdaddr.DecodeAddressV0(altSignAddr, w.cfg.Network)
 	if err != nil {
-		s.log.Warnf("%s: Alt sign address cannot be decoded (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
+		w.log.Warnf("%s: Alt sign address cannot be decoded (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		w.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 	if _, ok := addr.(*stdaddr.AddressPubKeyHashEcdsaSecp256k1V0); !ok {
-		s.log.Warnf("%s: Alt sign address is unexpected type (clientIP=%s, type=%T)", funcName, c.ClientIP(), addr)
-		s.sendErrorWithMsg("wrong type for alternate signing address", types.ErrBadRequest, c)
+		w.log.Warnf("%s: Alt sign address is unexpected type (clientIP=%s, type=%T)", funcName, c.ClientIP(), addr)
+		w.sendErrorWithMsg("wrong type for alternate signing address", types.ErrBadRequest, c)
 		return
 	}
 
 	// Get ticket details.
 	rawTicket, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
-		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
 	// Ensure this ticket is eligible to vote at some point in the future.
-	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.Network)
+	canVote, err := canTicketVote(rawTicket, dcrdClient, w.cfg.Network)
 	if err != nil {
-		s.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 	if !canVote {
-		s.log.Warnf("%s: unvotable ticket (clientIP=%s, ticketHash=%s)",
+		w.log.Warnf("%s: unvotable ticket (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticketHash)
-		s.sendError(types.ErrTicketCannotVote, c)
+		w.sendError(types.ErrTicketCannotVote, c)
 		return
 	}
 
 	// Send success response to client.
-	resp, respSig := s.sendJSONResponse(types.SetAltSignAddrResponse{
+	resp, respSig := w.sendJSONResponse(types.SetAltSignAddrResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)
@@ -112,12 +112,12 @@ func (s *server) setAltSignAddr(c *gin.Context) {
 		RespSig:     respSig,
 	}
 
-	err = s.db.InsertAltSignAddr(ticketHash, data)
+	err = w.db.InsertAltSignAddr(ticketHash, data)
 	if err != nil {
-		s.log.Errorf("%s: db.InsertAltSignAddr error (ticketHash=%s): %v",
+		w.log.Errorf("%s: db.InsertAltSignAddr error (ticketHash=%s): %v",
 			funcName, ticketHash, err)
 		return
 	}
 
-	s.log.Debugf("%s: New alt sign address set for ticket: (ticketHash=%s)", funcName, ticketHash)
+	w.log.Debugf("%s: New alt sign address set for ticket: (ticketHash=%s)", funcName, ticketHash)
 }

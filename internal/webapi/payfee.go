@@ -21,7 +21,7 @@ import (
 )
 
 // payFee is the handler for "POST /api/v3/payfee".
-func (s *server) payFee(c *gin.Context) {
+func (w *WebAPI) payFee(c *gin.Context) {
 	const funcName = "payFee"
 
 	// Get values which have been added to context by middleware.
@@ -30,22 +30,22 @@ func (s *server) payFee(c *gin.Context) {
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
-		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	if !knownTicket {
-		s.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
-		s.sendError(types.ErrUnknownTicket, c)
+		w.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
+		w.sendError(types.ErrUnknownTicket, c)
 		return
 	}
 
 	var request types.PayFeeRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
+		w.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		w.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 
@@ -53,49 +53,49 @@ func (s *server) payFee(c *gin.Context) {
 	if ticket.FeeTxStatus == database.FeeReceieved ||
 		ticket.FeeTxStatus == database.FeeBroadcast ||
 		ticket.FeeTxStatus == database.FeeConfirmed {
-		s.log.Warnf("%s: Fee tx already received (clientIP=%s, ticketHash=%s)",
+		w.log.Warnf("%s: Fee tx already received (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
-		s.sendError(types.ErrFeeAlreadyReceived, c)
+		w.sendError(types.ErrFeeAlreadyReceived, c)
 		return
 	}
 
 	// Get ticket details.
 	rawTicket, err := dcrdClient.GetRawTransaction(ticket.Hash)
 	if err != nil {
-		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticket.Hash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
 	// Ensure this ticket is eligible to vote at some point in the future.
-	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.Network)
+	canVote, err := canTicketVote(rawTicket, dcrdClient, w.cfg.Network)
 	if err != nil {
-		s.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticket.Hash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 	if !canVote {
-		s.log.Warnf("%s: Unvotable ticket (clientIP=%s, ticketHash=%s)",
+		w.log.Warnf("%s: Unvotable ticket (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
-		s.sendError(types.ErrTicketCannotVote, c)
+		w.sendError(types.ErrTicketCannotVote, c)
 		return
 	}
 
 	// Respond early if the fee for this ticket is expired.
 	if ticket.FeeExpired() {
-		s.log.Warnf("%s: Expired payfee request (clientIP=%s, ticketHash=%s)",
+		w.log.Warnf("%s: Expired payfee request (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
-		s.sendError(types.ErrFeeExpired, c)
+		w.sendError(types.ErrFeeExpired, c)
 		return
 	}
 
 	// Validate VotingKey.
 	votingKey := request.VotingKey
-	votingWIF, err := dcrutil.DecodeWIF(votingKey, s.cfg.Network.PrivateKeyID)
+	votingWIF, err := dcrutil.DecodeWIF(votingKey, w.cfg.Network.PrivateKeyID)
 	if err != nil {
-		s.log.Warnf("%s: Failed to decode WIF (clientIP=%s, ticketHash=%s): %v",
+		w.log.Warnf("%s: Failed to decode WIF (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
-		s.sendError(types.ErrInvalidPrivKey, c)
+		w.sendError(types.ErrInvalidPrivKey, c)
 		return
 	}
 
@@ -103,10 +103,10 @@ func (s *server) payFee(c *gin.Context) {
 	// the ticket should still be registered.
 
 	validVoteChoices := true
-	err = validConsensusVoteChoices(s.cfg.Network, s.cfg.Network.CurrentVoteVersion(), request.VoteChoices)
+	err = validConsensusVoteChoices(w.cfg.Network, w.cfg.Network.CurrentVoteVersion(), request.VoteChoices)
 	if err != nil {
 		validVoteChoices = false
-		s.log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
+		w.log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 	}
 
@@ -114,7 +114,7 @@ func (s *server) payFee(c *gin.Context) {
 	err = validTreasuryPolicy(request.TreasuryPolicy)
 	if err != nil {
 		validTreasury = false
-		s.log.Warnf("%s: Invalid treasury policy (clientIP=%s, ticketHash=%s): %v",
+		w.log.Warnf("%s: Invalid treasury policy (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 	}
 
@@ -122,33 +122,33 @@ func (s *server) payFee(c *gin.Context) {
 	err = validTSpendPolicy(request.TSpendPolicy)
 	if err != nil {
 		validTSpend = false
-		s.log.Warnf("%s: Invalid tspend policy (clientIP=%s, ticketHash=%s): %v",
+		w.log.Warnf("%s: Invalid tspend policy (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 	}
 
 	// Validate FeeTx.
 	feeTx, err := decodeTransaction(request.FeeTx)
 	if err != nil {
-		s.log.Warnf("%s: Failed to decode fee tx hex (clientIP=%s, ticketHash=%s): %v",
+		w.log.Warnf("%s: Failed to decode fee tx hex (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
-		s.sendError(types.ErrInvalidFeeTx, c)
+		w.sendError(types.ErrInvalidFeeTx, c)
 		return
 	}
 
-	err = blockchain.CheckTransactionSanity(feeTx, uint64(s.cfg.Network.MaxTxSize))
+	err = blockchain.CheckTransactionSanity(feeTx, uint64(w.cfg.Network.MaxTxSize))
 	if err != nil {
-		s.log.Warnf("%s: Fee tx failed sanity check (clientIP=%s, ticketHash=%s): %v",
+		w.log.Warnf("%s: Fee tx failed sanity check (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
-		s.sendError(types.ErrInvalidFeeTx, c)
+		w.sendError(types.ErrInvalidFeeTx, c)
 		return
 	}
 
 	// Decode fee address to get its payment script details.
-	feeAddr, err := stdaddr.DecodeAddress(ticket.FeeAddress, s.cfg.Network)
+	feeAddr, err := stdaddr.DecodeAddress(ticket.FeeAddress, w.cfg.Network)
 	if err != nil {
-		s.log.Errorf("%s: Failed to decode fee address (ticketHash=%s): %v",
+		w.log.Errorf("%s: Failed to decode fee address (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -166,9 +166,9 @@ func (s *server) payFee(c *gin.Context) {
 
 	// Confirm a fee payment was found.
 	if feePaid == 0 {
-		s.log.Warnf("%s: Fee tx did not include expected payment (ticketHash=%s, feeAddress=%s, clientIP=%s)",
+		w.log.Warnf("%s: Fee tx did not include expected payment (ticketHash=%s, feeAddress=%s, clientIP=%s)",
 			funcName, ticket.Hash, ticket.FeeAddress, c.ClientIP())
-		s.sendErrorWithMsg(
+		w.sendErrorWithMsg(
 			fmt.Sprintf("feetx did not include any payments for fee address %s", ticket.FeeAddress),
 			types.ErrInvalidFeeTx, c)
 		return
@@ -177,19 +177,19 @@ func (s *server) payFee(c *gin.Context) {
 	// Confirm fee payment is equal to or larger than the minimum expected.
 	minFee := dcrutil.Amount(ticket.FeeAmount)
 	if feePaid < minFee {
-		s.log.Warnf("%s: Fee too small (ticketHash=%s, clientIP=%s): was %s, expected minimum %s",
+		w.log.Warnf("%s: Fee too small (ticketHash=%s, clientIP=%s): was %s, expected minimum %s",
 			funcName, ticket.Hash, c.ClientIP(), feePaid, minFee)
-		s.sendError(types.ErrFeeTooSmall, c)
+		w.sendError(types.ErrFeeTooSmall, c)
 		return
 	}
 
 	// Decode the provided voting WIF to get its voting rights script.
 	pkHash := stdaddr.Hash160(votingWIF.PubKey())
-	wifAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1V0(pkHash, s.cfg.Network)
+	wifAddr, err := stdaddr.NewAddressPubKeyHashEcdsaSecp256k1V0(pkHash, w.cfg.Network)
 	if err != nil {
-		s.log.Errorf("%s: Failed to get voting address from WIF (ticketHash=%s, clientIP=%s): %v",
+		w.log.Errorf("%s: Failed to get voting address from WIF (ticketHash=%s, clientIP=%s): %v",
 			funcName, ticket.Hash, c.ClientIP(), err)
-		s.sendError(types.ErrInvalidPrivKey, c)
+		w.sendError(types.ErrInvalidPrivKey, c)
 		return
 	}
 
@@ -198,9 +198,9 @@ func (s *server) payFee(c *gin.Context) {
 	// Decode ticket transaction to get its voting rights script.
 	ticketTx, err := decodeTransaction(rawTicket.Hex)
 	if err != nil {
-		s.log.Warnf("%s: Failed to decode ticket hex (ticketHash=%s): %v",
+		w.log.Warnf("%s: Failed to decode ticket hex (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -210,9 +210,9 @@ func (s *server) payFee(c *gin.Context) {
 	// Ensure provided voting WIF matches the actual voting address of the
 	// ticket. Both script and script version should match.
 	if actualScriptVer != wantScriptVer || !bytes.Equal(actualScript, wantScript) {
-		s.log.Warnf("%s: Voting address does not match provided private key: (ticketHash=%s)",
+		w.log.Warnf("%s: Voting address does not match provided private key: (ticketHash=%s)",
 			funcName, ticket.Hash)
-		s.sendErrorWithMsg("voting address does not match provided private key",
+		w.sendErrorWithMsg("voting address does not match provided private key",
 			types.ErrInvalidPrivKey, c)
 		return
 	}
@@ -238,35 +238,35 @@ func (s *server) payFee(c *gin.Context) {
 		ticket.TreasuryPolicy = request.TreasuryPolicy
 	}
 
-	err = s.db.UpdateTicket(ticket)
+	err = w.db.UpdateTicket(ticket)
 	if err != nil {
-		s.log.Errorf("%s: db.UpdateTicket error, failed to set fee tx (ticketHash=%s): %v",
+		w.log.Errorf("%s: db.UpdateTicket error, failed to set fee tx (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
-	s.log.Debugf("%s: Fee tx received for ticket (minExpectedFee=%v, feePaid=%v, ticketHash=%s)",
+	w.log.Debugf("%s: Fee tx received for ticket (minExpectedFee=%v, feePaid=%v, ticketHash=%s)",
 		funcName, minFee, feePaid, ticket.Hash)
 
 	if ticket.Confirmed {
 		err = dcrdClient.SendRawTransaction(request.FeeTx)
 		if err != nil {
-			s.log.Errorf("%s: dcrd.SendRawTransaction for fee tx failed (ticketHash=%s): %v",
+			w.log.Errorf("%s: dcrd.SendRawTransaction for fee tx failed (ticketHash=%s): %v",
 				funcName, ticket.Hash, err)
 
 			ticket.FeeTxStatus = database.FeeError
 
 			// Send the client an explicit error if the issue is unknown outputs.
 			if strings.Contains(err.Error(), rpc.ErrUnknownOutputs) {
-				s.sendError(types.ErrCannotBroadcastFeeUnknownOutputs, c)
+				w.sendError(types.ErrCannotBroadcastFeeUnknownOutputs, c)
 			} else {
-				s.sendError(types.ErrCannotBroadcastFee, c)
+				w.sendError(types.ErrCannotBroadcastFee, c)
 			}
 
-			err = s.db.UpdateTicket(ticket)
+			err = w.db.UpdateTicket(ticket)
 			if err != nil {
-				s.log.Errorf("%s: db.UpdateTicket error, failed to set fee tx error (ticketHash=%s): %v",
+				w.log.Errorf("%s: db.UpdateTicket error, failed to set fee tx error (ticketHash=%s): %v",
 					funcName, ticket.Hash, err)
 			}
 
@@ -275,26 +275,26 @@ func (s *server) payFee(c *gin.Context) {
 
 		ticket.FeeTxStatus = database.FeeBroadcast
 
-		err = s.db.UpdateTicket(ticket)
+		err = w.db.UpdateTicket(ticket)
 		if err != nil {
-			s.log.Errorf("%s: db.UpdateTicket error, failed to set fee tx as broadcast (ticketHash=%s): %v",
+			w.log.Errorf("%s: db.UpdateTicket error, failed to set fee tx as broadcast (ticketHash=%s): %v",
 				funcName, ticket.Hash, err)
-			s.sendError(types.ErrInternalError, c)
+			w.sendError(types.ErrInternalError, c)
 			return
 		}
 
-		s.log.Debugf("%s: Fee tx broadcast for ticket (ticketHash=%s, feeHash=%s)",
+		w.log.Debugf("%s: Fee tx broadcast for ticket (ticketHash=%s, feeHash=%s)",
 			funcName, ticket.Hash, ticket.FeeTxHash)
 	}
 
 	// Send success response to client.
-	resp, respSig := s.sendJSONResponse(types.PayFeeResponse{
+	resp, respSig := w.sendJSONResponse(types.PayFeeResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)
 
 	// Store a record of the vote choice change.
-	err = s.db.SaveVoteChange(
+	err = w.db.SaveVoteChange(
 		ticket.Hash,
 		database.VoteChangeRecord{
 			Request:           string(reqBytes),
@@ -303,6 +303,6 @@ func (s *server) payFee(c *gin.Context) {
 			ResponseSignature: respSig,
 		})
 	if err != nil {
-		s.log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
+		w.log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
 	}
 }

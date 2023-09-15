@@ -10,9 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (s *server) homepage(c *gin.Context) {
+func (w *WebAPI) homepage(c *gin.Context) {
 	c.HTML(http.StatusOK, "homepage.html", gin.H{
-		"WebApiCache": s.cache.getData(),
-		"WebApiCfg":   s.cfg,
+		"WebApiCache": w.cache.getData(),
+		"WebApiCfg":   w.cfg,
 	})
 }

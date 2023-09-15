@@ -39,7 +39,7 @@ var (
 	seededRand           = rand.New(rand.NewSource(time.Now().UnixNano()))
 	feeXPub              = "feexpub"
 	maxVoteChangeRecords = 3
-	api                  *server
+	api                  *WebAPI
 )
 
 // randBytes returns a byte slice of size n filled with random bytes.
@@ -84,7 +84,7 @@ func TestMain(m *testing.M) {
 		panic(fmt.Errorf("error opening test database: %w", err))
 	}
 
-	api = &server{
+	api = &WebAPI{
 		cfg:         cfg,
 		signPrivKey: signPrivKey,
 		db:          db,
