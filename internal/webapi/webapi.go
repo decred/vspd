@@ -73,16 +73,17 @@ type WebAPI struct {
 	cache       *cache
 	signPrivKey ed25519.PrivateKey
 	signPubKey  ed25519.PublicKey
+	server      *http.Server
+	listener    net.Listener
 }
 
-func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup,
-	vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
-	wallets rpc.WalletConnect, cfg Config) error {
+func New(vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
+	wallets rpc.WalletConnect, cfg Config) (*WebAPI, error) {
 
 	// Get keys for signing API responses from the database.
 	signPrivKey, signPubKey, err := vdb.KeyPair()
 	if err != nil {
-		return fmt.Errorf("db.Keypair error: %w", err)
+		return nil, fmt.Errorf("db.Keypair error: %w", err)
 	}
 
 	// Populate cached VSP stats before starting webserver.
@@ -97,22 +98,29 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	// use them to initialize the address generator.
 	idx, err := vdb.GetLastAddressIndex()
 	if err != nil {
-		return fmt.Errorf("db.GetLastAddressIndex error: %w", err)
+		return nil, fmt.Errorf("db.GetLastAddressIndex error: %w", err)
 	}
 	feeXPub, err := vdb.FeeXPub()
 	if err != nil {
-		return fmt.Errorf("db.GetFeeXPub error: %w", err)
+		return nil, fmt.Errorf("db.GetFeeXPub error: %w", err)
 	}
 	addrGen, err := newAddressGenerator(feeXPub, cfg.Network.Params, idx, log)
 	if err != nil {
-		return fmt.Errorf("failed to initialize fee address generator: %w", err)
+		return nil, fmt.Errorf("failed to initialize fee address generator: %w", err)
 	}
 
 	// Get the secret key used to initialize the cookie store.
 	cookieSecret, err := vdb.CookieSecret()
 	if err != nil {
-		return fmt.Errorf("db.GetCookieSecret error: %w", err)
+		return nil, fmt.Errorf("db.GetCookieSecret error: %w", err)
 	}
+
+	// Create TCP listener.
+	listener, err := net.Listen("tcp", cfg.Listen)
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("Listening on %s", cfg.Listen)
 
 	w := &WebAPI{
 		cfg:         cfg,
@@ -122,21 +130,19 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 		cache:       cache,
 		signPrivKey: signPrivKey,
 		signPubKey:  signPubKey,
+		listener:    listener,
 	}
 
-	// Create TCP listener.
-	var listenConfig net.ListenConfig
-	listener, err := listenConfig.Listen(ctx, "tcp", cfg.Listen)
-	if err != nil {
-		return err
-	}
-	log.Infof("Listening on %s", cfg.Listen)
-
-	srv := http.Server{
+	w.server = &http.Server{
 		Handler:      w.router(cookieSecret, dcrd, wallets),
 		ReadTimeout:  5 * time.Second,  // slow requests should not hold connections opened
 		WriteTimeout: 60 * time.Second, // hung responses must die
 	}
+
+	return w, nil
+}
+
+func (w *WebAPI) Run(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGroup) {
 
 	// Add the graceful shutdown to the waitgroup.
 	shutdownWg.Add(1)
@@ -144,26 +150,26 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 		// Wait until shutdown is signaled before shutting down.
 		<-ctx.Done()
 
-		log.Debug("Stopping webserver...")
-		// Give the webserver 5 seconds to finish what it is doing.
+		w.log.Debug("Stopping webserver...")
+		// Give the webserver 10 seconds to finish what it is doing.
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		if err := srv.Shutdown(timeoutCtx); err != nil {
-			log.Errorf("Failed to stop webserver cleanly: %v", err)
+		if err := w.server.Shutdown(timeoutCtx); err != nil {
+			w.log.Errorf("Failed to stop webserver cleanly: %v", err)
 		} else {
-			log.Debug("Webserver stopped")
+			w.log.Debug("Webserver stopped")
 		}
 		shutdownWg.Done()
 	}()
 
 	// Start webserver.
 	go func() {
-		err := srv.Serve(listener)
+		err := w.server.Serve(w.listener)
 		// If the server dies for any reason other than ErrServerClosed (from
 		// graceful server.Shutdown), log the error and request vspd be
 		// shutdown.
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Errorf("Unexpected webserver error: %v", err)
+			w.log.Errorf("Unexpected webserver error: %v", err)
 			requestShutdown()
 		}
 	}()
@@ -185,13 +191,11 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 			case <-time.After(refresh):
 				err := w.cache.update()
 				if err != nil {
-					log.Errorf("Failed to update cached VSP stats: %v", err)
+					w.log.Errorf("Failed to update cached VSP stats: %v", err)
 				}
 			}
 		}
 	}()
-
-	return nil
 }
 
 func (w *WebAPI) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) *gin.Engine {

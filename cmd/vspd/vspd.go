@@ -136,10 +136,7 @@ func (v *vspd) run() int {
 		return 0
 	}
 
-	// WaitGroup for services to signal when they have shutdown cleanly.
-	var shutdownWg sync.WaitGroup
-
-	// Create and start webapi server.
+	// Create webapi server.
 	apiCfg := webapi.Config{
 		Listen:               v.cfg.Listen,
 		VSPFee:               v.cfg.VSPFee,
@@ -153,14 +150,16 @@ func (v *vspd) run() int {
 		MaxVoteChangeRecords: maxVoteChangeRecords,
 		VspdVersion:          version.String(),
 	}
-	err = webapi.Start(ctx, requestShutdown, &shutdownWg, v.db, v.cfg.logger("API"),
-		v.dcrd, v.wallets, apiCfg)
+	api, err := webapi.New(v.db, v.cfg.logger("API"), v.dcrd, v.wallets, apiCfg)
 	if err != nil {
 		v.log.Errorf("Failed to initialize webapi: %v", err)
-		requestShutdown()
-		shutdownWg.Wait()
 		return 1
 	}
+
+	// WaitGroup for services to signal when they have shutdown cleanly.
+	var shutdownWg sync.WaitGroup
+
+	api.Run(ctx, requestShutdown, &shutdownWg)
 
 	// Start all background tasks and notification handlers.
 	shutdownWg.Add(1)
