@@ -14,7 +14,7 @@ import (
 )
 
 // ticketStatus is the handler for "POST /api/v3/ticketstatus".
-func (s *server) ticketStatus(c *gin.Context) {
+func (w *WebAPI) ticketStatus(c *gin.Context) {
 	const funcName = "ticketStatus"
 
 	// Get values which have been added to context by middleware.
@@ -23,23 +23,23 @@ func (s *server) ticketStatus(c *gin.Context) {
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	if !knownTicket {
-		s.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
-		s.sendError(types.ErrUnknownTicket, c)
+		w.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
+		w.sendError(types.ErrUnknownTicket, c)
 		return
 	}
 
 	var request types.TicketStatusRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
+		w.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		w.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 
 	// Get altSignAddress from database
-	altSignAddrData, err := s.db.AltSignAddrData(ticket.Hash)
+	altSignAddrData, err := w.db.AltSignAddrData(ticket.Hash)
 	if err != nil {
-		s.log.Errorf("%s: db.AltSignAddrData error (ticketHash=%s): %v", funcName, ticket.Hash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: db.AltSignAddrData error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -48,7 +48,7 @@ func (s *server) ticketStatus(c *gin.Context) {
 		altSignAddr = altSignAddrData.AltSignAddr
 	}
 
-	s.sendJSONResponse(types.TicketStatusResponse{
+	w.sendJSONResponse(types.TicketStatusResponse{
 		Timestamp:       time.Now().Unix(),
 		Request:         reqBytes,
 		TicketConfirmed: ticket.Confirmed,

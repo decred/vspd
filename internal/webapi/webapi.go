@@ -65,7 +65,7 @@ const (
 	commitmentAddressKey = "CommitmentAddress"
 )
 
-type server struct {
+type WebAPI struct {
 	cfg         Config
 	db          *database.VspDatabase
 	log         slog.Logger
@@ -114,7 +114,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 		return fmt.Errorf("db.GetCookieSecret error: %w", err)
 	}
 
-	s := &server{
+	w := &WebAPI{
 		cfg:         cfg,
 		db:          vdb,
 		log:         log,
@@ -133,7 +133,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	log.Infof("Listening on %s", cfg.Listen)
 
 	srv := http.Server{
-		Handler:      s.router(cookieSecret, dcrd, wallets),
+		Handler:      w.router(cookieSecret, dcrd, wallets),
 		ReadTimeout:  5 * time.Second,  // slow requests should not hold connections opened
 		WriteTimeout: 60 * time.Second, // hung responses must die
 	}
@@ -170,7 +170,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 
 	// Periodically update cached VSP stats.
 	var refresh time.Duration
-	if s.cfg.Debug {
+	if w.cfg.Debug {
 		refresh = 1 * time.Second
 	} else {
 		refresh = 1 * time.Minute
@@ -183,7 +183,7 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 				shutdownWg.Done()
 				return
 			case <-time.After(refresh):
-				err := s.cache.update()
+				err := w.cache.update()
 				if err != nil {
 					log.Errorf("Failed to update cached VSP stats: %v", err)
 				}
@@ -194,16 +194,16 @@ func Start(ctx context.Context, requestShutdown func(), shutdownWg *sync.WaitGro
 	return nil
 }
 
-func (s *server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) *gin.Engine {
+func (w *WebAPI) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.WalletConnect) *gin.Engine {
 	// With release mode enabled, gin will only read template files once and cache them.
 	// With release mode disabled, templates will be reloaded on the fly.
-	if !s.cfg.Debug {
+	if !w.cfg.Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	router := gin.New()
 
-	explorerURL := s.cfg.Network.BlockExplorerURL
+	explorerURL := w.cfg.Network.BlockExplorerURL
 
 	// Add custom functions for use in templates.
 	router.SetFuncMap(template.FuncMap{
@@ -212,7 +212,7 @@ func (s *server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 		"blockURL":         blockURL(explorerURL),
 		"dateTime":         dateTime,
 		"stripWss":         stripWss,
-		"indentJSON":       indentJSON(s.log),
+		"indentJSON":       indentJSON(w.log),
 		"atomsToDCR":       atomsToDCR,
 		"float32ToPercent": float32ToPercent,
 		"comma":            humanize.Comma,
@@ -223,9 +223,9 @@ func (s *server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	// Recovery middleware handles any go panics generated while processing web
 	// requests. Ensures a 500 response is sent to the client rather than
 	// sending no response at all.
-	router.Use(recovery(s.log))
+	router.Use(recovery(w.log))
 
-	if s.cfg.Debug {
+	if w.cfg.Debug {
 		// Logger middleware outputs very detailed logging of webserver requests
 		// to the terminal. Does not get logged to file.
 		router.Use(gin.Logger())
@@ -240,47 +240,47 @@ func (s *server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	// API routes.
 
 	api := router.Group("/api/v3")
-	api.GET("/vspinfo", s.vspInfo)
-	api.POST("/setaltsignaddr", s.vspMustBeOpen, s.withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.setAltSignAddr)
-	api.POST("/feeaddress", s.vspMustBeOpen, s.withDcrdClient(dcrd), s.broadcastTicket, s.vspAuth, s.feeAddress)
-	api.POST("/ticketstatus", s.withDcrdClient(dcrd), s.vspAuth, s.ticketStatus)
-	api.POST("/payfee", s.vspMustBeOpen, s.withDcrdClient(dcrd), s.vspAuth, s.payFee)
-	api.POST("/setvotechoices", s.withDcrdClient(dcrd), s.withWalletClients(wallets), s.vspAuth, s.setVoteChoices)
+	api.GET("/vspinfo", w.vspInfo)
+	api.POST("/setaltsignaddr", w.vspMustBeOpen, w.withDcrdClient(dcrd), w.broadcastTicket, w.vspAuth, w.setAltSignAddr)
+	api.POST("/feeaddress", w.vspMustBeOpen, w.withDcrdClient(dcrd), w.broadcastTicket, w.vspAuth, w.feeAddress)
+	api.POST("/ticketstatus", w.withDcrdClient(dcrd), w.vspAuth, w.ticketStatus)
+	api.POST("/payfee", w.vspMustBeOpen, w.withDcrdClient(dcrd), w.vspAuth, w.payFee)
+	api.POST("/setvotechoices", w.withDcrdClient(dcrd), w.withWalletClients(wallets), w.vspAuth, w.setVoteChoices)
 
 	// Website routes.
 
-	router.GET("", s.homepage)
+	router.GET("", w.homepage)
 
 	login := router.Group("/admin").Use(
-		s.withSession(cookieStore),
+		w.withSession(cookieStore),
 	)
 
 	// Limit login attempts to 3 per second.
 	loginRateLmiter := rateLimit(3, func(c *gin.Context) {
-		s.log.Warnf("Login rate limit exceeded by %s", c.ClientIP())
+		w.log.Warnf("Login rate limit exceeded by %s", c.ClientIP())
 		c.HTML(http.StatusTooManyRequests, "login.html", gin.H{
-			"WebApiCache":    s.cache.getData(),
-			"WebApiCfg":      s.cfg,
+			"WebApiCache":    w.cache.getData(),
+			"WebApiCfg":      w.cfg,
 			"FailedLoginMsg": "Rate limit exceeded",
 		})
 	})
-	login.POST("", loginRateLmiter, s.adminLogin)
+	login.POST("", loginRateLmiter, w.adminLogin)
 
 	admin := router.Group("/admin").Use(
-		s.withWalletClients(wallets), s.withSession(cookieStore), s.requireAdmin,
+		w.withWalletClients(wallets), w.withSession(cookieStore), w.requireAdmin,
 	)
-	admin.GET("", s.withDcrdClient(dcrd), s.adminPage)
-	admin.POST("/ticket", s.withDcrdClient(dcrd), s.ticketSearch)
-	admin.GET("/backup", s.downloadDatabaseBackup)
-	admin.POST("/logout", s.adminLogout)
+	admin.GET("", w.withDcrdClient(dcrd), w.adminPage)
+	admin.POST("/ticket", w.withDcrdClient(dcrd), w.ticketSearch)
+	admin.GET("/backup", w.downloadDatabaseBackup)
+	admin.POST("/logout", w.adminLogout)
 
 	// Require Basic HTTP Auth on /admin/status endpoint.
 	basic := router.Group("/admin").Use(
-		s.withDcrdClient(dcrd), s.withWalletClients(wallets), gin.BasicAuth(gin.Accounts{
-			"admin": s.cfg.AdminPass,
+		w.withDcrdClient(dcrd), w.withWalletClients(wallets), gin.BasicAuth(gin.Accounts{
+			"admin": w.cfg.AdminPass,
 		}),
 	)
-	basic.GET("/status", s.statusJSON)
+	basic.GET("/status", w.statusJSON)
 
 	return router
 }
@@ -288,15 +288,15 @@ func (s *server) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 // sendJSONResponse serializes the provided response, signs it, and sends the
 // response to the client with a 200 OK status. Returns the seralized response
 // and the signature.
-func (s *server) sendJSONResponse(resp any, c *gin.Context) (string, string) {
+func (w *WebAPI) sendJSONResponse(resp any, c *gin.Context) (string, string) {
 	dec, err := json.Marshal(resp)
 	if err != nil {
-		s.log.Errorf("JSON marshal error: %v", err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("JSON marshal error: %v", err)
+		w.sendError(types.ErrInternalError, c)
 		return "", ""
 	}
 
-	sig := ed25519.Sign(s.signPrivKey, dec)
+	sig := ed25519.Sign(w.signPrivKey, dec)
 	sigStr := base64.StdEncoding.EncodeToString(sig)
 	c.Writer.Header().Set("VSP-Server-Signature", sigStr)
 
@@ -307,14 +307,14 @@ func (s *server) sendJSONResponse(resp any, c *gin.Context) (string, string) {
 
 // sendError sends an error response with the provided error code and the
 // default message for that code.
-func (s *server) sendError(e types.ErrorCode, c *gin.Context) {
+func (w *WebAPI) sendError(e types.ErrorCode, c *gin.Context) {
 	msg := e.DefaultMessage()
-	s.sendErrorWithMsg(msg, e, c)
+	w.sendErrorWithMsg(msg, e, c)
 }
 
 // sendErrorWithMsg sends an error response with the provided error code and
 // message.
-func (s *server) sendErrorWithMsg(msg string, e types.ErrorCode, c *gin.Context) {
+func (w *WebAPI) sendErrorWithMsg(msg string, e types.ErrorCode, c *gin.Context) {
 	status := e.HTTPStatus()
 
 	resp := types.ErrorResponse{
@@ -325,9 +325,9 @@ func (s *server) sendErrorWithMsg(msg string, e types.ErrorCode, c *gin.Context)
 	// Try to sign the error response. If it fails, send it without a signature.
 	dec, err := json.Marshal(resp)
 	if err != nil {
-		s.log.Warnf("Sending error response without signature: %v", err)
+		w.log.Warnf("Sending error response without signature: %v", err)
 	} else {
-		sig := ed25519.Sign(s.signPrivKey, dec)
+		sig := ed25519.Sign(w.signPrivKey, dec)
 		c.Writer.Header().Set("VSP-Server-Signature", base64.StdEncoding.EncodeToString(sig))
 	}
 

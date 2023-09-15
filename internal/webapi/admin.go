@@ -48,14 +48,14 @@ type searchResult struct {
 	MaxVoteChanges  int
 }
 
-func (s *server) dcrdStatus(c *gin.Context) dcrdStatus {
+func (w *WebAPI) dcrdStatus(c *gin.Context) dcrdStatus {
 	hostname := c.MustGet(dcrdHostKey).(string)
 	status := dcrdStatus{Host: hostname}
 
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
-		s.log.Errorf("Could not get dcrd client: %v", dcrdErr.(error))
+		w.log.Errorf("Could not get dcrd client: %v", dcrdErr.(error))
 		return status
 	}
 
@@ -63,7 +63,7 @@ func (s *server) dcrdStatus(c *gin.Context) dcrdStatus {
 
 	bestBlock, err := dcrdClient.GetBlockCount()
 	if err != nil {
-		s.log.Errorf("Could not get dcrd block count: %v", err)
+		w.log.Errorf("Could not get dcrd block count: %v", err)
 		status.BestBlockError = true
 		return status
 	}
@@ -73,7 +73,7 @@ func (s *server) dcrdStatus(c *gin.Context) dcrdStatus {
 	return status
 }
 
-func (s *server) walletStatus(c *gin.Context) map[string]walletStatus {
+func (w *WebAPI) walletStatus(c *gin.Context) map[string]walletStatus {
 	walletClients := c.MustGet(walletsKey).([]*rpc.WalletRPC)
 	failedWalletClients := c.MustGet(failedWalletsKey).([]string)
 
@@ -83,7 +83,7 @@ func (s *server) walletStatus(c *gin.Context) map[string]walletStatus {
 
 		walletInfo, err := v.WalletInfo()
 		if err != nil {
-			s.log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", v.String(), err)
+			w.log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", v.String(), err)
 			ws.InfoError = true
 		} else {
 			ws.DaemonConnected = walletInfo.DaemonConnected
@@ -94,7 +94,7 @@ func (s *server) walletStatus(c *gin.Context) map[string]walletStatus {
 
 		height, err := v.GetBestBlockHeight()
 		if err != nil {
-			s.log.Errorf("dcrwallet.GetBestBlockHeight error (wallet=%s): %v", v.String(), err)
+			w.log.Errorf("dcrwallet.GetBestBlockHeight error (wallet=%s): %v", v.String(), err)
 			ws.BestBlockError = true
 		} else {
 			ws.BestBlockHeight = height
@@ -111,10 +111,10 @@ func (s *server) walletStatus(c *gin.Context) map[string]walletStatus {
 
 // statusJSON is the handler for "GET /admin/status". It returns a JSON object
 // describing the current status of voting wallets.
-func (s *server) statusJSON(c *gin.Context) {
+func (w *WebAPI) statusJSON(c *gin.Context) {
 	httpStatus := http.StatusOK
 
-	wallets := s.walletStatus(c)
+	wallets := w.walletStatus(c)
 
 	// Respond with HTTP status 500 if any voting wallets have issues.
 	for _, wallet := range wallets {
@@ -129,7 +129,7 @@ func (s *server) statusJSON(c *gin.Context) {
 		}
 	}
 
-	dcrd := s.dcrdStatus(c)
+	dcrd := w.dcrdStatus(c)
 
 	// Respond with HTTP status 500 if dcrd has issues.
 	if !dcrd.Connected || dcrd.BestBlockError {
@@ -143,37 +143,37 @@ func (s *server) statusJSON(c *gin.Context) {
 }
 
 // adminPage is the handler for "GET /admin".
-func (s *server) adminPage(c *gin.Context) {
+func (w *WebAPI) adminPage(c *gin.Context) {
 	c.HTML(http.StatusOK, "admin.html", gin.H{
-		"WebApiCache":  s.cache.getData(),
-		"WebApiCfg":    s.cfg,
-		"WalletStatus": s.walletStatus(c),
-		"DcrdStatus":   s.dcrdStatus(c),
+		"WebApiCache":  w.cache.getData(),
+		"WebApiCfg":    w.cfg,
+		"WalletStatus": w.walletStatus(c),
+		"DcrdStatus":   w.dcrdStatus(c),
 	})
 }
 
 // ticketSearch is the handler for "POST /admin/ticket". The hash param will be
 // used to retrieve a ticket from the database.
-func (s *server) ticketSearch(c *gin.Context) {
+func (w *WebAPI) ticketSearch(c *gin.Context) {
 	hash := c.PostForm("hash")
 
-	ticket, found, err := s.db.GetTicketByHash(hash)
+	ticket, found, err := w.db.GetTicketByHash(hash)
 	if err != nil {
-		s.log.Errorf("db.GetTicketByHash error (ticketHash=%s): %v", hash, err)
+		w.log.Errorf("db.GetTicketByHash error (ticketHash=%s): %v", hash, err)
 		c.String(http.StatusInternalServerError, "Error getting ticket from db")
 		return
 	}
 
-	voteChanges, err := s.db.GetVoteChanges(hash)
+	voteChanges, err := w.db.GetVoteChanges(hash)
 	if err != nil {
-		s.log.Errorf("db.GetVoteChanges error (ticketHash=%s): %v", hash, err)
+		w.log.Errorf("db.GetVoteChanges error (ticketHash=%s): %v", hash, err)
 		c.String(http.StatusInternalServerError, "Error getting vote changes from db")
 		return
 	}
 
-	altSignAddrData, err := s.db.AltSignAddrData(hash)
+	altSignAddrData, err := w.db.AltSignAddrData(hash)
 	if err != nil {
-		s.log.Errorf("db.AltSignAddrData error (ticketHash=%s): %v", hash, err)
+		w.log.Errorf("db.AltSignAddrData error (ticketHash=%s): %v", hash, err)
 		c.String(http.StatusInternalServerError, "Error getting alt sig from db")
 		return
 	}
@@ -186,21 +186,21 @@ func (s *server) ticketSearch(c *gin.Context) {
 		dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 		dcrdErr := c.MustGet(dcrdErrorKey)
 		if dcrdErr != nil {
-			s.log.Errorf("Could not get dcrd client: %v", dcrdErr.(error))
+			w.log.Errorf("Could not get dcrd client: %v", dcrdErr.(error))
 			c.String(http.StatusInternalServerError, "Could not get dcrd client")
 			return
 		}
 
 		resp, err := dcrdClient.DecodeRawTransaction(ticket.FeeTxHex)
 		if err != nil {
-			s.log.Errorf("dcrd.DecodeRawTransaction error: %w", err)
+			w.log.Errorf("dcrd.DecodeRawTransaction error: %w", err)
 			c.String(http.StatusInternalServerError, "Error decoding fee transaction")
 			return
 		}
 
 		decoded, err := json.Marshal(resp)
 		if err != nil {
-			s.log.Errorf("Unmarshal fee tx error: %w", err)
+			w.log.Errorf("Unmarshal fee tx error: %w", err)
 			c.String(http.StatusInternalServerError, "Error unmarshalling fee tx")
 			return
 		}
@@ -216,45 +216,45 @@ func (s *server) ticketSearch(c *gin.Context) {
 			FeeTxDecoded:    feeTxDecoded,
 			AltSignAddrData: altSignAddrData,
 			VoteChanges:     voteChanges,
-			MaxVoteChanges:  s.cfg.MaxVoteChangeRecords,
+			MaxVoteChanges:  w.cfg.MaxVoteChangeRecords,
 		},
-		"WebApiCache":  s.cache.getData(),
-		"WebApiCfg":    s.cfg,
-		"WalletStatus": s.walletStatus(c),
-		"DcrdStatus":   s.dcrdStatus(c),
+		"WebApiCache":  w.cache.getData(),
+		"WebApiCfg":    w.cfg,
+		"WalletStatus": w.walletStatus(c),
+		"DcrdStatus":   w.dcrdStatus(c),
 	})
 }
 
 // adminLogin is the handler for "POST /admin". If a valid password is provided,
 // the current session will be authenticated as an admin.
-func (s *server) adminLogin(c *gin.Context) {
+func (w *WebAPI) adminLogin(c *gin.Context) {
 	password := c.PostForm("password")
 
-	if password != s.cfg.AdminPass {
-		s.log.Warnf("Failed login attempt from %s", c.ClientIP())
+	if password != w.cfg.AdminPass {
+		w.log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"WebApiCache":    s.cache.getData(),
-			"WebApiCfg":      s.cfg,
+			"WebApiCache":    w.cache.getData(),
+			"WebApiCfg":      w.cfg,
 			"FailedLoginMsg": "Incorrect password",
 		})
 		return
 	}
 
-	s.setAdminStatus(true, c)
+	w.setAdminStatus(true, c)
 }
 
 // adminLogout is the handler for "POST /admin/logout". The current session will
 // have its admin authentication removed.
-func (s *server) adminLogout(c *gin.Context) {
-	s.setAdminStatus(nil, c)
+func (w *WebAPI) adminLogout(c *gin.Context) {
+	w.setAdminStatus(nil, c)
 }
 
 // downloadDatabaseBackup is the handler for "GET /backup". A binary
 // representation of the whole database is generated and returned to the client.
-func (s *server) downloadDatabaseBackup(c *gin.Context) {
-	err := s.db.BackupDB(c.Writer)
+func (w *WebAPI) downloadDatabaseBackup(c *gin.Context) {
+	err := w.db.BackupDB(c.Writer)
 	if err != nil {
-		s.log.Errorf("Error backing up database: %v", err)
+		w.log.Errorf("Error backing up database: %v", err)
 		// Don't write any http body here because Content-Length has already
 		// been set in db.BackupDB. Status is enough to indicate an error.
 		c.Status(http.StatusInternalServerError)
@@ -263,12 +263,12 @@ func (s *server) downloadDatabaseBackup(c *gin.Context) {
 
 // setAdminStatus stores the authentication status of the current session and
 // redirects the client to GET /admin.
-func (s *server) setAdminStatus(admin any, c *gin.Context) {
+func (w *WebAPI) setAdminStatus(admin any, c *gin.Context) {
 	session := c.MustGet(sessionKey).(*sessions.Session)
 	session.Values["admin"] = admin
 	err := session.Save(c.Request, c.Writer)
 	if err != nil {
-		s.log.Errorf("Error saving session: %v", err)
+		w.log.Errorf("Error saving session: %v", err)
 		c.String(http.StatusInternalServerError, "Error saving session")
 		return
 	}

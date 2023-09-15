@@ -24,16 +24,16 @@ var addrMtx sync.Mutex
 // the last used address index in the database. In order to maintain consistency
 // between the internal counter of address generator and the database, this func
 // uses a mutex to ensure it is not run concurrently.
-func (s *server) getNewFeeAddress() (string, uint32, error) {
+func (w *WebAPI) getNewFeeAddress() (string, uint32, error) {
 	addrMtx.Lock()
 	defer addrMtx.Unlock()
 
-	addr, idx, err := s.addrGen.nextAddress()
+	addr, idx, err := w.addrGen.nextAddress()
 	if err != nil {
 		return "", 0, err
 	}
 
-	err = s.db.SetLastAddressIndex(idx)
+	err = w.db.SetLastAddressIndex(idx)
 	if err != nil {
 		return "", 0, err
 	}
@@ -43,7 +43,7 @@ func (s *server) getNewFeeAddress() (string, uint32, error) {
 
 // getCurrentFee returns the minimum fee amount a client should pay in order to
 // register a ticket with the VSP at the current block height.
-func (s *server) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
+func (w *WebAPI) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) {
 	bestBlock, err := dcrdClient.GetBestBlockHeader()
 	if err != nil {
 		return 0, err
@@ -56,10 +56,10 @@ func (s *server) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) 
 	// is only used to calculate the fee charged for adding a ticket to the VSP.
 	const defaultMinRelayTxFee = dcrutil.Amount(1e4)
 
-	isDCP0010Active := s.cfg.Network.DCP10Active(int64(bestBlock.Height))
+	isDCP0010Active := w.cfg.Network.DCP10Active(int64(bestBlock.Height))
 
 	fee := txrules.StakePoolTicketFee(sDiff, defaultMinRelayTxFee,
-		int32(bestBlock.Height), s.cfg.VSPFee, s.cfg.Network.Params, isDCP0010Active)
+		int32(bestBlock.Height), w.cfg.VSPFee, w.cfg.Network.Params, isDCP0010Active)
 	if err != nil {
 		return 0, err
 	}
@@ -67,7 +67,7 @@ func (s *server) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) 
 }
 
 // feeAddress is the handler for "POST /api/v3/feeaddress".
-func (s *server) feeAddress(c *gin.Context) {
+func (w *WebAPI) feeAddress(c *gin.Context) {
 
 	const funcName = "feeAddress"
 
@@ -78,16 +78,16 @@ func (s *server) feeAddress(c *gin.Context) {
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
-		s.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 	reqBytes := c.MustGet(requestBytesKey).([]byte)
 
 	var request types.FeeAddressRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
+		w.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		w.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 
@@ -98,31 +98,31 @@ func (s *server) feeAddress(c *gin.Context) {
 		(ticket.FeeTxStatus == database.FeeReceieved ||
 			ticket.FeeTxStatus == database.FeeBroadcast ||
 			ticket.FeeTxStatus == database.FeeConfirmed) {
-		s.log.Warnf("%s: Fee tx already received (clientIP=%s, ticketHash=%s)",
+		w.log.Warnf("%s: Fee tx already received (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
-		s.sendError(types.ErrFeeAlreadyReceived, c)
+		w.sendError(types.ErrFeeAlreadyReceived, c)
 		return
 	}
 
 	// Get ticket details.
 	rawTicket, err := dcrdClient.GetRawTransaction(ticketHash)
 	if err != nil {
-		s.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: dcrd.GetRawTransaction for ticket failed (ticketHash=%s): %v", funcName, ticketHash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
 	// Ensure this ticket is eligible to vote at some point in the future.
-	canVote, err := canTicketVote(rawTicket, dcrdClient, s.cfg.Network)
+	canVote, err := canTicketVote(rawTicket, dcrdClient, w.cfg.Network)
 	if err != nil {
-		s.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: canTicketVote error (ticketHash=%s): %v", funcName, ticketHash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 	if !canVote {
-		s.log.Warnf("%s: Unvotable ticket (clientIP=%s, ticketHash=%s)",
+		w.log.Warnf("%s: Unvotable ticket (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticketHash)
-		s.sendError(types.ErrTicketCannotVote, c)
+		w.sendError(types.ErrTicketCannotVote, c)
 		return
 	}
 
@@ -132,26 +132,26 @@ func (s *server) feeAddress(c *gin.Context) {
 		// If the expiry period has passed we need to issue a new fee.
 		now := time.Now()
 		if ticket.FeeExpired() {
-			newFee, err := s.getCurrentFee(dcrdClient)
+			newFee, err := w.getCurrentFee(dcrdClient)
 			if err != nil {
-				s.log.Errorf("%s: getCurrentFee error (ticketHash=%s): %v", funcName, ticket.Hash, err)
-				s.sendError(types.ErrInternalError, c)
+				w.log.Errorf("%s: getCurrentFee error (ticketHash=%s): %v", funcName, ticket.Hash, err)
+				w.sendError(types.ErrInternalError, c)
 				return
 			}
 			ticket.FeeExpiration = now.Add(feeAddressExpiration).Unix()
 			ticket.FeeAmount = int64(newFee)
 
-			err = s.db.UpdateTicket(ticket)
+			err = w.db.UpdateTicket(ticket)
 			if err != nil {
-				s.log.Errorf("%s: db.UpdateTicket error, failed to update fee expiry (ticketHash=%s): %v",
+				w.log.Errorf("%s: db.UpdateTicket error, failed to update fee expiry (ticketHash=%s): %v",
 					funcName, ticket.Hash, err)
-				s.sendError(types.ErrInternalError, c)
+				w.sendError(types.ErrInternalError, c)
 				return
 			}
-			s.log.Debugf("%s: Expired fee updated (newFeeAmt=%s, ticketHash=%s)",
+			w.log.Debugf("%s: Expired fee updated (newFeeAmt=%s, ticketHash=%s)",
 				funcName, newFee, ticket.Hash)
 		}
-		s.sendJSONResponse(types.FeeAddressResponse{
+		w.sendJSONResponse(types.FeeAddressResponse{
 			Timestamp:  now.Unix(),
 			Request:    reqBytes,
 			FeeAddress: ticket.FeeAddress,
@@ -165,17 +165,17 @@ func (s *server) feeAddress(c *gin.Context) {
 	// Beyond this point we are processing a new ticket which the VSP has not
 	// seen before.
 
-	fee, err := s.getCurrentFee(dcrdClient)
+	fee, err := w.getCurrentFee(dcrdClient)
 	if err != nil {
-		s.log.Errorf("%s: getCurrentFee error (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: getCurrentFee error (ticketHash=%s): %v", funcName, ticketHash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
-	newAddress, newAddressIdx, err := s.getNewFeeAddress()
+	newAddress, newAddressIdx, err := w.getNewFeeAddress()
 	if err != nil {
-		s.log.Errorf("%s: getNewFeeAddress error (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: getNewFeeAddress error (ticketHash=%s): %v", funcName, ticketHash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -203,18 +203,18 @@ func (s *server) feeAddress(c *gin.Context) {
 		FeeTxStatus:       database.NoFee,
 	}
 
-	err = s.db.InsertNewTicket(dbTicket)
+	err = w.db.InsertNewTicket(dbTicket)
 	if err != nil {
-		s.log.Errorf("%s: db.InsertNewTicket failed (ticketHash=%s): %v", funcName, ticketHash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.log.Errorf("%s: db.InsertNewTicket failed (ticketHash=%s): %v", funcName, ticketHash, err)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
-	s.log.Debugf("%s: Fee address created for new ticket: (tktConfirmed=%t, feeAddrIdx=%d, "+
+	w.log.Debugf("%s: Fee address created for new ticket: (tktConfirmed=%t, feeAddrIdx=%d, "+
 		"feeAddr=%s, feeAmt=%s, ticketHash=%s)",
 		funcName, confirmed, newAddressIdx, newAddress, fee, ticketHash)
 
-	s.sendJSONResponse(types.FeeAddressResponse{
+	w.sendJSONResponse(types.FeeAddressResponse{
 		Timestamp:  now.Unix(),
 		Request:    reqBytes,
 		FeeAddress: newAddress,

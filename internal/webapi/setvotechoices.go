@@ -17,7 +17,7 @@ import (
 )
 
 // setVoteChoices is the handler for "POST /api/v3/setvotechoices".
-func (s *server) setVoteChoices(c *gin.Context) {
+func (w *WebAPI) setVoteChoices(c *gin.Context) {
 	const funcName = "setVoteChoices"
 
 	// Get values which have been added to context by middleware.
@@ -29,46 +29,46 @@ func (s *server) setVoteChoices(c *gin.Context) {
 	// If we cannot set the vote choices on at least one voting wallet right
 	// now, don't update the database, just return an error.
 	if len(walletClients) == 0 {
-		s.sendError(types.ErrInternalError, c)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
 	if !knownTicket {
-		s.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
-		s.sendError(types.ErrUnknownTicket, c)
+		w.log.Warnf("%s: Unknown ticket (clientIP=%s)", funcName, c.ClientIP())
+		w.sendError(types.ErrUnknownTicket, c)
 		return
 	}
 
 	if ticket.FeeTxStatus == database.NoFee {
-		s.log.Warnf("%s: No fee tx for ticket (clientIP=%s, ticketHash=%s)",
+		w.log.Warnf("%s: No fee tx for ticket (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
-		s.sendError(types.ErrFeeNotReceived, c)
+		w.sendError(types.ErrFeeNotReceived, c)
 		return
 	}
 
 	// Only allow vote choices to be updated for mempool/immature/live tickets.
 	if ticket.Outcome != "" {
-		s.log.Warnf("%s: Ticket not eligible to vote (clientIP=%s, ticketHash=%s)",
+		w.log.Warnf("%s: Ticket not eligible to vote (clientIP=%s, ticketHash=%s)",
 			funcName, c.ClientIP(), ticket.Hash)
-		s.sendErrorWithMsg(fmt.Sprintf("ticket not eligible to vote (status=%s)", ticket.Outcome),
+		w.sendErrorWithMsg(fmt.Sprintf("ticket not eligible to vote (status=%s)", ticket.Outcome),
 			types.ErrTicketCannotVote, c)
 		return
 	}
 
 	var request types.SetVoteChoicesRequest
 	if err := binding.JSON.BindBody(reqBytes, &request); err != nil {
-		s.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
-		s.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
+		w.log.Warnf("%s: Bad request (clientIP=%s): %v", funcName, c.ClientIP(), err)
+		w.sendErrorWithMsg(err.Error(), types.ErrBadRequest, c)
 		return
 	}
 
 	// Return an error if this request has a timestamp older than any previous
 	// vote change requests. This is to prevent requests from being replayed.
-	previousChanges, err := s.db.GetVoteChanges(ticket.Hash)
+	previousChanges, err := w.db.GetVoteChanges(ticket.Hash)
 	if err != nil {
-		s.log.Errorf("%s: db.GetVoteChanges error (ticketHash=%s): %v",
+		w.log.Errorf("%s: db.GetVoteChanges error (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -78,43 +78,43 @@ func (s *server) setVoteChoices(c *gin.Context) {
 		}
 		err := json.Unmarshal([]byte(change.Request), &prevReq)
 		if err != nil {
-			s.log.Errorf("%s: Could not unmarshal vote change record (ticketHash=%s): %v",
+			w.log.Errorf("%s: Could not unmarshal vote change record (ticketHash=%s): %v",
 				funcName, ticket.Hash, err)
-			s.sendError(types.ErrInternalError, c)
+			w.sendError(types.ErrInternalError, c)
 			return
 		}
 
 		if request.Timestamp <= prevReq.Timestamp {
-			s.log.Warnf("%s: Request uses invalid timestamp, %d is not greater "+
+			w.log.Warnf("%s: Request uses invalid timestamp, %d is not greater "+
 				"than %d (ticketHash=%s)",
 				funcName, request.Timestamp, prevReq.Timestamp, ticket.Hash)
-			s.sendError(types.ErrInvalidTimestamp, c)
+			w.sendError(types.ErrInvalidTimestamp, c)
 			return
 		}
 	}
 
 	// Validate vote choices (consensus, tspend policy and treasury policy).
 
-	err = validConsensusVoteChoices(s.cfg.Network, s.cfg.Network.CurrentVoteVersion(), request.VoteChoices)
+	err = validConsensusVoteChoices(w.cfg.Network, w.cfg.Network.CurrentVoteVersion(), request.VoteChoices)
 	if err != nil {
-		s.log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
+		w.log.Warnf("%s: Invalid consensus vote choices (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
-		s.sendErrorWithMsg(err.Error(), types.ErrInvalidVoteChoices, c)
+		w.sendErrorWithMsg(err.Error(), types.ErrInvalidVoteChoices, c)
 		return
 	}
 
 	err = validTreasuryPolicy(request.TreasuryPolicy)
 	if err != nil {
-		s.log.Warnf("%s: Invalid treasury policy (clientIP=%s, ticketHash=%s): %v",
+		w.log.Warnf("%s: Invalid treasury policy (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
-		s.sendErrorWithMsg(err.Error(), types.ErrInvalidVoteChoices, c)
+		w.sendErrorWithMsg(err.Error(), types.ErrInvalidVoteChoices, c)
 	}
 
 	err = validTSpendPolicy(request.TSpendPolicy)
 	if err != nil {
-		s.log.Warnf("%s: Invalid tspend policy (clientIP=%s, ticketHash=%s): %v",
+		w.log.Warnf("%s: Invalid tspend policy (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
-		s.sendErrorWithMsg(err.Error(), types.ErrInvalidVoteChoices, c)
+		w.sendErrorWithMsg(err.Error(), types.ErrInvalidVoteChoices, c)
 	}
 
 	// Update voting preferences in the database before updating the wallets. DB
@@ -132,11 +132,11 @@ func (s *server) setVoteChoices(c *gin.Context) {
 		ticket.TreasuryPolicy[newTreasuryKey] = newChoice
 	}
 
-	err = s.db.UpdateTicket(ticket)
+	err = w.db.UpdateTicket(ticket)
 	if err != nil {
-		s.log.Errorf("%s: db.UpdateTicket error, failed to set consensus vote choices (ticketHash=%s): %v",
+		w.log.Errorf("%s: db.UpdateTicket error, failed to set consensus vote choices (ticketHash=%s): %v",
 			funcName, ticket.Hash, err)
-		s.sendError(types.ErrInternalError, c)
+		w.sendError(types.ErrInternalError, c)
 		return
 	}
 
@@ -152,7 +152,7 @@ func (s *server) setVoteChoices(c *gin.Context) {
 			for agenda, choice := range ticket.VoteChoices {
 				err = walletClient.SetVoteChoice(agenda, choice, ticket.Hash)
 				if err != nil {
-					s.log.Errorf("%s: dcrwallet.SetVoteChoice failed (wallet=%s, ticketHash=%s): %v",
+					w.log.Errorf("%s: dcrwallet.SetVoteChoice failed (wallet=%s, ticketHash=%s): %v",
 						funcName, walletClient.String(), ticket.Hash, err)
 				}
 			}
@@ -161,7 +161,7 @@ func (s *server) setVoteChoices(c *gin.Context) {
 			for tspend, policy := range ticket.TSpendPolicy {
 				err = walletClient.SetTSpendPolicy(tspend, policy, ticket.Hash)
 				if err != nil {
-					s.log.Errorf("%s: dcrwallet.SetTSpendPolicy failed (wallet=%s, ticketHash=%s): %v",
+					w.log.Errorf("%s: dcrwallet.SetTSpendPolicy failed (wallet=%s, ticketHash=%s): %v",
 						funcName, walletClient.String(), ticket.Hash, err)
 				}
 			}
@@ -170,23 +170,23 @@ func (s *server) setVoteChoices(c *gin.Context) {
 			for key, policy := range ticket.TreasuryPolicy {
 				err = walletClient.SetTreasuryPolicy(key, policy, ticket.Hash)
 				if err != nil {
-					s.log.Errorf("%s: dcrwallet.SetTreasuryPolicy failed (wallet=%s, ticketHash=%s): %v",
+					w.log.Errorf("%s: dcrwallet.SetTreasuryPolicy failed (wallet=%s, ticketHash=%s): %v",
 						funcName, walletClient.String(), ticket.Hash, err)
 				}
 			}
 		}
 	}
 
-	s.log.Debugf("%s: Vote choices updated (ticketHash=%s)", funcName, ticket.Hash)
+	w.log.Debugf("%s: Vote choices updated (ticketHash=%s)", funcName, ticket.Hash)
 
 	// Send success response to client.
-	resp, respSig := s.sendJSONResponse(types.SetVoteChoicesResponse{
+	resp, respSig := w.sendJSONResponse(types.SetVoteChoicesResponse{
 		Timestamp: time.Now().Unix(),
 		Request:   reqBytes,
 	}, c)
 
 	// Store a record of the vote choice change.
-	err = s.db.SaveVoteChange(
+	err = w.db.SaveVoteChange(
 		ticket.Hash,
 		database.VoteChangeRecord{
 			Request:           string(reqBytes),
@@ -195,6 +195,6 @@ func (s *server) setVoteChoices(c *gin.Context) {
 			ResponseSignature: respSig,
 		})
 	if err != nil {
-		s.log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
+		w.log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
 	}
 }
