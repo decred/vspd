@@ -148,14 +148,11 @@ func (w *WebAPI) Run(ctx context.Context) {
 	// Add the graceful shutdown to the waitgroup.
 	wg.Add(1)
 	go func() {
-		// Wait until shutdown is signaled before shutting down.
+		// Wait until context is canceled before shutting down the server.
 		<-ctx.Done()
 
 		w.log.Debug("Stopping webserver...")
-		// Give the webserver 10 seconds to finish what it is doing.
-		timeoutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if err := w.server.Shutdown(timeoutCtx); err != nil {
+		if err := w.server.Shutdown(ctx); err != nil {
 			w.log.Errorf("Failed to stop webserver cleanly: %v", err)
 		} else {
 			w.log.Debug("Webserver stopped")
