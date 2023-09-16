@@ -120,7 +120,6 @@ func New(vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("Listening on %s", cfg.Listen)
 
 	w := &WebAPI{
 		cfg:         cfg,
@@ -152,17 +151,16 @@ func (w *WebAPI) Run(ctx context.Context) {
 		<-ctx.Done()
 
 		w.log.Debug("Stopping webserver...")
-		if err := w.server.Shutdown(ctx); err != nil {
-			w.log.Errorf("Failed to stop webserver cleanly: %v", err)
-		} else {
-			w.log.Debug("Webserver stopped")
-		}
+		_ = w.server.Shutdown(ctx)
+		w.log.Debug("Webserver stopped")
+
 		wg.Done()
 	}()
 
 	// Start webserver.
 	wg.Add(1)
 	go func() {
+		w.log.Infof("Listening on %s", w.listener.Addr())
 		err := w.server.Serve(w.listener)
 		// ErrServerClosed is expected from a graceful server shutdown, it can
 		// be ignored. Anything else should be logged.
