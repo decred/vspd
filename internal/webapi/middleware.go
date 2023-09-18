@@ -93,15 +93,31 @@ func (w *WebAPI) withSession(store *sessions.CookieStore) gin.HandlerFunc {
 	}
 }
 
+// requireWebCache will only allow the request to proceed if the web API cache
+// has been initialized with data, otherwise it will return a 500 Internal
+// Server Error.
+func (w *WebAPI) requireWebCache(c *gin.Context) {
+	if !w.cache.initialized() {
+		const str = "Cache is not yet initialized"
+		w.log.Errorf(str)
+		c.String(http.StatusInternalServerError, str)
+		c.Abort()
+		return
+	}
+
+	c.Set(cacheKey, w.cache.getData())
+}
+
 // requireAdmin will only allow the request to proceed if the current session is
 // authenticated as an admin, otherwise it will render the login template.
 func (w *WebAPI) requireAdmin(c *gin.Context) {
+	cacheData := c.MustGet(cacheKey).(cacheData)
 	session := c.MustGet(sessionKey).(*sessions.Session)
 	admin := session.Values["admin"]
 
 	if admin == nil {
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"WebApiCache": w.cache.getData(),
+			"WebApiCache": cacheData,
 			"WebApiCfg":   w.cfg,
 		})
 		c.Abort()

@@ -30,6 +30,10 @@ type cache struct {
 }
 
 type cacheData struct {
+	// Initialized is set true after all of the below values have been set for
+	// the first time.
+	Initialized bool
+
 	UpdateTime          string
 	PubKey              string
 	DatabaseSize        string
@@ -43,6 +47,13 @@ type cacheData struct {
 	NetworkProportion   float32
 	ExpiredProportion   float32
 	MissedProportion    float32
+}
+
+func (c *cache) initialized() bool {
+	c.mtx.RLock()
+	defer c.mtx.RUnlock()
+
+	return c.data.Initialized
 }
 
 func (c *cache) getData() cacheData {
@@ -106,6 +117,7 @@ func (c *cache) update() error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
+	c.data.Initialized = true
 	c.data.UpdateTime = dateTime(time.Now().Unix())
 	c.data.DatabaseSize = humanize.Bytes(dbSize)
 	c.data.Voting = voting
