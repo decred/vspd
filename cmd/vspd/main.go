@@ -128,14 +128,16 @@ func run() int {
 	// Periodically write a database backup file.
 	shutdownWg.Add(1)
 	go func() {
-		select {
-		case <-ctx.Done():
-			shutdownWg.Done()
-			return
-		case <-time.After(cfg.BackupInterval):
-			err := db.WriteHotBackupFile()
-			if err != nil {
-				log.Errorf("Failed to write database backup: %v", err)
+		for {
+			select {
+			case <-ctx.Done():
+				shutdownWg.Done()
+				return
+			case <-time.After(cfg.BackupInterval):
+				err := db.WriteHotBackupFile()
+				if err != nil {
+					log.Errorf("Failed to write database backup: %v", err)
+				}
 			}
 		}
 	}()
