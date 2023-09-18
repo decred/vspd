@@ -7,6 +7,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/decred/slog"
 	"github.com/decred/vspd/client/v2"
+	"github.com/decred/vspd/internal/signal"
 	"github.com/decred/vspd/types/v2"
 )
 
@@ -55,8 +57,13 @@ func run() int {
 	log := slog.NewBackend(os.Stdout).Logger("")
 	log.SetLevel(slog.LevelTrace)
 
-	walletRPC, err := newWalletRPC(rpcURL, rpcUser, rpcPass)
+	ctx := signal.ShutdownListener(log)
+
+	walletRPC, err := newWalletRPC(ctx, rpcURL, rpcUser, rpcPass)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return 0
+		}
 		log.Errorf("%v", err)
 		return 1
 	}
@@ -85,8 +92,11 @@ func run() int {
 	}
 
 	// Get list of tickets
-	tickets, err := walletRPC.getTickets()
+	tickets, err := walletRPC.getTickets(ctx)
 	if err != nil {
+		if errors.Is(err, context.Canceled) {
+			return 0
+		}
 		log.Errorf("%v", err)
 		return 1
 	}
@@ -102,9 +112,17 @@ func run() int {
 	}
 
 	for i := 0; i < len(tickets.Hashes); i++ {
+		// Stop if shutdown requested.
+		if ctx.Err() != nil {
+			return 0
+		}
+
 		ticketHash := tickets.Hashes[i]
-		hex, privKeyStr, commitmentAddr, err := walletRPC.getTicketDetails(ticketHash)
+		hex, privKeyStr, commitmentAddr, err := walletRPC.getTicketDetails(ctx, ticketHash)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return 0
+			}
 			log.Errorf("%v", err)
 			return 1
 		}
@@ -125,19 +143,25 @@ func run() int {
 			Timestamp:  time.Now().Unix(),
 		}
 
-		feeAddrResp, err := vClient.FeeAddress(context.TODO(), feeAddrReq, commitmentAddr)
+		feeAddrResp, err := vClient.FeeAddress(ctx, feeAddrReq, commitmentAddr)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return 0
+			}
 			log.Errorf("getFeeAddress error: %v", err)
-			break
+			return 1
 		}
 
 		log.Infof("feeAddress: %v", feeAddrResp.FeeAddress)
 		log.Infof("privKeyStr: %v", privKeyStr)
 
-		feeTx, err := walletRPC.createFeeTx(feeAddrResp.FeeAddress, feeAddrResp.FeeAmount)
+		feeTx, err := walletRPC.createFeeTx(ctx, feeAddrResp.FeeAddress, feeAddrResp.FeeAmount)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return 0
+			}
 			log.Errorf("createFeeTx error: %v", err)
-			break
+			return 1
 		}
 
 		voteChoices := map[string]string{"autorevocations": "no"}
@@ -160,8 +184,11 @@ func run() int {
 			TreasuryPolicy: treasury,
 		}
 
-		_, err = vClient.PayFee(context.TODO(), payFeeReq, commitmentAddr)
+		_, err = vClient.PayFee(ctx, payFeeReq, commitmentAddr)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return 0
+			}
 			log.Errorf("payFee error: %v", err)
 			continue
 		}
@@ -170,10 +197,13 @@ func run() int {
 			TicketHash: ticketHash,
 		}
 
-		_, err = vClient.TicketStatus(context.TODO(), ticketStatusReq, commitmentAddr)
+		_, err = vClient.TicketStatus(ctx, ticketStatusReq, commitmentAddr)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return 0
+			}
 			log.Errorf("getTicketStatus error: %v", err)
-			break
+			return 1
 		}
 
 		voteChoices["autorevocations"] = "yes"
@@ -189,16 +219,22 @@ func run() int {
 			TreasuryPolicy: treasury,
 		}
 
-		_, err = vClient.SetVoteChoices(context.TODO(), voteChoiceReq, commitmentAddr)
+		_, err = vClient.SetVoteChoices(ctx, voteChoiceReq, commitmentAddr)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return 0
+			}
 			log.Errorf("setVoteChoices error: %v", err)
-			break
+			return 1
 		}
 
-		_, err = vClient.TicketStatus(context.TODO(), ticketStatusReq, commitmentAddr)
+		_, err = vClient.TicketStatus(ctx, ticketStatusReq, commitmentAddr)
 		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return 0
+			}
 			log.Errorf("getTicketStatus error: %v", err)
-			break
+			return 1
 		}
 
 		time.Sleep(1 * time.Second)
