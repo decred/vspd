@@ -6,6 +6,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -46,7 +47,7 @@ type dcrdataClient struct {
 	URL string
 }
 
-func (d *dcrdataClient) txns(txnHashes []string, spends bool) ([]tx, error) {
+func (d *dcrdataClient) txns(ctx context.Context, txnHashes []string, spends bool) ([]tx, error) {
 	jsonData, err := json.Marshal(txns{
 		Transactions: txnHashes,
 	})
@@ -55,7 +56,7 @@ func (d *dcrdataClient) txns(txnHashes []string, spends bool) ([]tx, error) {
 	}
 
 	url := fmt.Sprintf("%s/api/txs?spends=%t", d.URL, spends)
-	request, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	request, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
