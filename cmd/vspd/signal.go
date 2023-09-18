@@ -13,8 +13,8 @@ import (
 	"github.com/decred/slog"
 )
 
-// interruptSignals defines the signals that are handled to do a clean shutdown.
-// Conditional compilation is used to also include SIGTERM and SIGHUP on Unix.
+// interruptSignals defines the default signals to catch in order to do a proper
+// shutdown. This may be modified during init depending on the platform.
 var interruptSignals = []os.Signal{os.Interrupt}
 
 // shutdownListener listens for OS Signals such as SIGINT (Ctrl+C) and shutdown
