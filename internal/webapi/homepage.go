@@ -11,8 +11,10 @@ import (
 )
 
 func (w *WebAPI) homepage(c *gin.Context) {
+	cacheData := c.MustGet(cacheKey).(cacheData)
+
 	c.HTML(http.StatusOK, "homepage.html", gin.H{
-		"WebApiCache": w.cache.getData(),
+		"WebApiCache": cacheData,
 		"WebApiCfg":   w.cfg,
 	})
 }

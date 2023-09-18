@@ -144,8 +144,10 @@ func (w *WebAPI) statusJSON(c *gin.Context) {
 
 // adminPage is the handler for "GET /admin".
 func (w *WebAPI) adminPage(c *gin.Context) {
+	cacheData := c.MustGet(cacheKey).(cacheData)
+
 	c.HTML(http.StatusOK, "admin.html", gin.H{
-		"WebApiCache":  w.cache.getData(),
+		"WebApiCache":  cacheData,
 		"WebApiCfg":    w.cfg,
 		"WalletStatus": w.walletStatus(c),
 		"DcrdStatus":   w.dcrdStatus(c),
@@ -155,6 +157,8 @@ func (w *WebAPI) adminPage(c *gin.Context) {
 // ticketSearch is the handler for "POST /admin/ticket". The hash param will be
 // used to retrieve a ticket from the database.
 func (w *WebAPI) ticketSearch(c *gin.Context) {
+	cacheData := c.MustGet(cacheKey).(cacheData)
+
 	hash := c.PostForm("hash")
 
 	ticket, found, err := w.db.GetTicketByHash(hash)
@@ -218,7 +222,7 @@ func (w *WebAPI) ticketSearch(c *gin.Context) {
 			VoteChanges:     voteChanges,
 			MaxVoteChanges:  w.cfg.MaxVoteChangeRecords,
 		},
-		"WebApiCache":  w.cache.getData(),
+		"WebApiCache":  cacheData,
 		"WebApiCfg":    w.cfg,
 		"WalletStatus": w.walletStatus(c),
 		"DcrdStatus":   w.dcrdStatus(c),
@@ -228,12 +232,14 @@ func (w *WebAPI) ticketSearch(c *gin.Context) {
 // adminLogin is the handler for "POST /admin". If a valid password is provided,
 // the current session will be authenticated as an admin.
 func (w *WebAPI) adminLogin(c *gin.Context) {
+	cacheData := c.MustGet(cacheKey).(cacheData)
+
 	password := c.PostForm("password")
 
 	if password != w.cfg.AdminPass {
 		w.log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
-			"WebApiCache":    w.cache.getData(),
+			"WebApiCache":    cacheData,
 			"WebApiCfg":      w.cfg,
 			"FailedLoginMsg": "Incorrect password",
 		})

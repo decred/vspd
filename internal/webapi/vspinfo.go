@@ -14,7 +14,8 @@ import (
 
 // vspInfo is the handler for "GET /api/v3/vspinfo".
 func (w *WebAPI) vspInfo(c *gin.Context) {
-	cachedStats := w.cache.getData()
+	cachedStats := c.MustGet(cacheKey).(cacheData)
+
 	w.sendJSONResponse(types.VspInfoResponse{
 		APIVersions:         []int64{3},
 		Timestamp:           time.Now().Unix(),

@@ -57,6 +57,7 @@ const (
 	dcrdKey              = "DcrdClient"
 	dcrdHostKey          = "DcrdHostname"
 	dcrdErrorKey         = "DcrdClientErr"
+	cacheKey             = "Cache"
 	walletsKey           = "WalletClients"
 	failedWalletsKey     = "FailedWalletClients"
 	requestBytesKey      = "RequestBytes"
@@ -240,7 +241,7 @@ func (w *WebAPI) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	// API routes.
 
 	api := router.Group("/api/v3")
-	api.GET("/vspinfo", w.vspInfo)
+	api.GET("/vspinfo", w.requireWebCache, w.vspInfo)
 	api.POST("/setaltsignaddr", w.vspMustBeOpen, w.withDcrdClient(dcrd), w.broadcastTicket, w.vspAuth, w.setAltSignAddr)
 	api.POST("/feeaddress", w.vspMustBeOpen, w.withDcrdClient(dcrd), w.broadcastTicket, w.vspAuth, w.feeAddress)
 	api.POST("/ticketstatus", w.withDcrdClient(dcrd), w.vspAuth, w.ticketStatus)
@@ -249,7 +250,7 @@ func (w *WebAPI) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 
 	// Website routes.
 
-	router.GET("", w.homepage)
+	router.GET("", w.requireWebCache, w.homepage)
 
 	login := router.Group("/admin").Use(
 		w.withSession(cookieStore),
@@ -257,18 +258,23 @@ func (w *WebAPI) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 
 	// Limit login attempts to 3 per second.
 	loginRateLmiter := rateLimit(3, func(c *gin.Context) {
+		cacheData := c.MustGet(cacheKey).(cacheData)
+
 		w.log.Warnf("Login rate limit exceeded by %s", c.ClientIP())
 		c.HTML(http.StatusTooManyRequests, "login.html", gin.H{
-			"WebApiCache":    w.cache.getData(),
+			"WebApiCache":    cacheData,
 			"WebApiCfg":      w.cfg,
 			"FailedLoginMsg": "Rate limit exceeded",
 		})
 	})
-	login.POST("", loginRateLmiter, w.adminLogin)
+	login.POST("", w.requireWebCache, loginRateLmiter, w.adminLogin)
 
 	admin := router.Group("/admin").Use(
-		w.withWalletClients(wallets), w.withSession(cookieStore), w.requireAdmin,
-	)
+		w.requireWebCache,
+		w.withWalletClients(wallets),
+		w.withSession(cookieStore),
+		w.requireAdmin)
+
 	admin.GET("", w.withDcrdClient(dcrd), w.adminPage)
 	admin.POST("/ticket", w.withDcrdClient(dcrd), w.ticketSearch)
 	admin.GET("/backup", w.downloadDatabaseBackup)
