@@ -98,11 +98,14 @@ func (w *WebAPI) withSession(store *sessions.CookieStore) gin.HandlerFunc {
 // Server Error.
 func (w *WebAPI) requireWebCache(c *gin.Context) {
 	if !w.cache.initialized() {
-		const str = "Cache is not yet initialized"
-		w.log.Errorf(str)
-		c.String(http.StatusInternalServerError, str)
-		c.Abort()
-		return
+		// Try to initialize it now.
+		err := w.cache.update()
+		if err != nil {
+			w.log.Errorf("Failed to initialize cache: %v", err)
+			c.String(http.StatusInternalServerError, "Cache is not initialized")
+			c.Abort()
+			return
+		}
 	}
 
 	c.Set(cacheKey, w.cache.getData())
