@@ -107,7 +107,7 @@ func run() int {
 	var shutdownWg sync.WaitGroup
 
 	// Create a context that is canceled when a shutdown request is received
-	// through an interrupt signal.
+	// through an interrupt signal such as SIGINT (Ctrl+C).
 	ctx := shutdownListener(log)
 
 	// Start the webapi server.
