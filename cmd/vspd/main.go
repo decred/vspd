@@ -14,6 +14,7 @@ import (
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/internal/config"
+	"github.com/decred/vspd/internal/signal"
 	"github.com/decred/vspd/internal/version"
 	"github.com/decred/vspd/internal/vspd"
 	"github.com/decred/vspd/internal/webapi"
@@ -108,7 +109,7 @@ func run() int {
 
 	// Create a context that is canceled when a shutdown request is received
 	// through an interrupt signal such as SIGINT (Ctrl+C).
-	ctx := shutdownListener(log)
+	ctx := signal.ShutdownListener(log)
 
 	// Start the webapi server.
 	shutdownWg.Add(1)

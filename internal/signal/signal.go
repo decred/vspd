@@ -3,7 +3,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package main
+package signal
 
 import (
 	"context"
@@ -17,10 +17,10 @@ import (
 // shutdown. This may be modified during init depending on the platform.
 var interruptSignals = []os.Signal{os.Interrupt}
 
-// shutdownListener listens for OS Signals such as SIGINT (Ctrl+C) and shutdown
+// ShutdownListener listens for OS Signals such as SIGINT (Ctrl+C) and shutdown
 // requests from requestShutdown. It returns a context that is canceled when
 // either signal is received.
-func shutdownListener(log slog.Logger) context.Context {
+func ShutdownListener(log slog.Logger) context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		interruptChannel := make(chan os.Signal, 1)
