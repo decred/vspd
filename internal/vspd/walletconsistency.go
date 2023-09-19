@@ -75,7 +75,7 @@ func (v *Vspd) checkWalletConsistency(ctx context.Context) {
 				continue
 			}
 
-			v.log.Debugf("Adding missing ticket (wallet=%s, ticketHash=%s)",
+			v.log.Infof("Adding missing ticket (wallet=%s, ticketHash=%s)",
 				walletClient.String(), dbTicket.Hash)
 
 			rawTicket, err := dcrdClient.GetRawTransaction(dbTicket.Hash)
@@ -156,7 +156,7 @@ func (v *Vspd) checkWalletConsistency(ctx context.Context) {
 					continue
 				}
 
-				v.log.Debugf("Updating incorrect consensus vote choices (wallet=%s, agenda=%s, ticketHash=%s)",
+				v.log.Infof("Updating incorrect consensus vote choices (wallet=%s, agenda=%s, ticketHash=%s)",
 					walletClient.String(), dbAgenda, dbTicket.Hash)
 
 				// If db and wallet are not matching, update wallet with correct
