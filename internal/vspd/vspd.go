@@ -80,9 +80,9 @@ func (v *Vspd) Run(ctx context.Context) {
 		return
 	}
 
-	// Run the block connected handler now to catch up with any blocks mined
-	// while vspd was shut down.
-	v.blockConnected(ctx)
+	// Run the update function now to catch up with any blocks mined while vspd
+	// was shut down.
+	v.update(ctx)
 
 	// Stop if shutdown requested.
 	if ctx.Err() != nil {
@@ -117,10 +117,11 @@ func (v *Vspd) Run(ctx context.Context) {
 				v.log.Errorf("dcrd connect error: %v", err)
 			}
 
-		// Handle blockconnected notifications from dcrd.
+		// Run the update function every time a block connected notification is
+		// received from dcrd.
 		case header := <-v.blockNotifChan:
 			v.log.Debugf("Block notification %d (%s)", header.Height, header.BlockHash().String())
-			v.blockConnected(ctx)
+			v.update(ctx)
 
 		// Handle shutdown request.
 		case <-ctx.Done():
@@ -246,10 +247,10 @@ func (v *Vspd) checkRevoked(ctx context.Context) error {
 	return nil
 }
 
-// blockConnected is called once when vspd starts up, and once each time a
+// update is called once when vspd starts up, and once each time a
 // blockconnected notification is received from dcrd.
-func (v *Vspd) blockConnected(ctx context.Context) {
-	const funcName = "blockConnected"
+func (v *Vspd) update(ctx context.Context) {
+	const funcName = "update"
 
 	dcrdClient, _, err := v.dcrd.Client()
 	if err != nil {
