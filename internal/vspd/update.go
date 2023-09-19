@@ -254,7 +254,7 @@ func (v *Vspd) addToWallets(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 					}
 				}
 
-				v.log.Infof("Ticket added to voting wallet (wallet=%s, ticketHash=%s)",
+				v.log.Debugf("Ticket added to voting wallet (wallet=%s, ticketHash=%s)",
 					walletClient.String(), ticket.Hash)
 			}
 		}
