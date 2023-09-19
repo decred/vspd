@@ -88,11 +88,16 @@ func (v *Vspd) checkRevoked(ctx context.Context) error {
 	v.log.Warnf("Updating %s in revoked status, this may take a while...",
 		pluralize(len(revoked), "ticket"))
 
+	dcrdClient, _, err := v.dcrd.Client()
+	if err != nil {
+		return err
+	}
+
 	// Search for the transactions which spend these tickets, starting at the
 	// earliest height one of them matured.
 	startHeight := revoked.EarliestPurchaseHeight() + int64(v.network.TicketMaturity)
 
-	spent, _, err := v.findSpentTickets(ctx, revoked, startHeight)
+	spent, _, err := v.findSpentTickets(ctx, dcrdClient, revoked, startHeight)
 	if err != nil {
 		return fmt.Errorf("findSpentTickets error: %w", err)
 	}

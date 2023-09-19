@@ -13,6 +13,7 @@ import (
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/vspd/database"
+	"github.com/decred/vspd/rpc"
 )
 
 type spentTicket struct {
@@ -64,12 +65,8 @@ func (s *spentTicket) missed() bool {
 // against the block filters of the mainchain blocks between the provided start
 // block and the current best block. Returns any found spent tickets and the
 // height of the most recent scanned block.
-func (v *Vspd) findSpentTickets(ctx context.Context, toCheck database.TicketList,
-	startHeight int64) ([]spentTicket, int64, error) {
-	dcrdClient, _, err := v.dcrd.Client()
-	if err != nil {
-		return nil, 0, err
-	}
+func (v *Vspd) findSpentTickets(ctx context.Context, dcrdClient *rpc.DcrdRPC,
+	toCheck database.TicketList, startHeight int64) ([]spentTicket, int64, error) {
 
 	endHeight, err := dcrdClient.GetBlockCount()
 	if err != nil {

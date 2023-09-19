@@ -45,7 +45,7 @@ func (v *Vspd) update(ctx context.Context) {
 	}
 
 	// Step 4/4: Set ticket outcome in database if any tickets are voted/revoked.
-	v.setOutcomes(ctx)
+	v.setOutcomes(ctx, dcrdClient)
 	if ctx.Err() != nil {
 		return
 	}
@@ -261,7 +261,7 @@ func (v *Vspd) addToWallets(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 	}
 }
 
-func (v *Vspd) setOutcomes(ctx context.Context) {
+func (v *Vspd) setOutcomes(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 	const funcName = "setOutcomes"
 
 	votableTickets, err := v.db.GetVotableTickets()
@@ -285,7 +285,7 @@ func (v *Vspd) setOutcomes(ctx context.Context) {
 		startHeight = v.lastScannedBlock
 	}
 
-	spent, endHeight, err := v.findSpentTickets(ctx, votableTickets, startHeight)
+	spent, endHeight, err := v.findSpentTickets(ctx, dcrdClient, votableTickets, startHeight)
 	if err != nil {
 		// Don't log error if shutdown was requested, just return.
 		if errors.Is(err, context.Canceled) {
