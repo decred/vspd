@@ -27,10 +27,37 @@ func (v *Vspd) update(ctx context.Context) {
 
 	// Step 1/4: Update the database with any tickets which now have 6+
 	// confirmations.
+	v.updateUnconfirmed(ctx, dcrdClient)
+	if ctx.Err() != nil {
+		return
+	}
+
+	// Step 2/4: Broadcast fee tx for tickets which are confirmed.
+	v.broadcastFees(ctx, dcrdClient)
+	if ctx.Err() != nil {
+		return
+	}
+
+	// Step 3/4: Add tickets with confirmed fees to voting wallets.
+	v.addToWallets(ctx, dcrdClient)
+	if ctx.Err() != nil {
+		return
+	}
+
+	// Step 4/4: Set ticket outcome in database if any tickets are voted/revoked.
+	v.setOutcomes(ctx)
+	if ctx.Err() != nil {
+		return
+	}
+}
+
+func (v *Vspd) updateUnconfirmed(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
+	const funcName = "updateUnconfirmed"
 
 	unconfirmed, err := v.db.GetUnconfirmedTickets()
 	if err != nil {
 		v.log.Errorf("%s: db.GetUnconfirmedTickets error: %v", funcName, err)
+		return
 	}
 
 	for _, ticket := range unconfirmed {
@@ -84,12 +111,15 @@ func (v *Vspd) update(ctx context.Context) {
 			v.log.Infof("%s: Ticket confirmed (ticketHash=%s)", funcName, ticket.Hash)
 		}
 	}
+}
 
-	// Step 2/4: Broadcast fee tx for tickets which are confirmed.
+func (v *Vspd) broadcastFees(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
+	const funcName = "broadcastFees"
 
 	pending, err := v.db.GetPendingFees()
 	if err != nil {
 		v.log.Errorf("%s: db.GetPendingFees error: %v", funcName, err)
+		return
 	}
 
 	for _, ticket := range pending {
@@ -115,12 +145,15 @@ func (v *Vspd) update(ctx context.Context) {
 				funcName, ticket.Hash, err)
 		}
 	}
+}
 
-	// Step 3/4: Add tickets with confirmed fees to voting wallets.
+func (v *Vspd) addToWallets(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
+	const funcName = "addToWallets"
 
 	unconfirmedFees, err := v.db.GetUnconfirmedFees()
 	if err != nil {
 		v.log.Errorf("%s: db.GetUnconfirmedFees error: %v", funcName, err)
+		return
 	}
 
 	walletClients, failedConnections := v.wallets.Clients()
@@ -226,8 +259,10 @@ func (v *Vspd) update(ctx context.Context) {
 			}
 		}
 	}
+}
 
-	// Step 4/4: Set ticket outcome in database if any tickets are voted/revoked.
+func (v *Vspd) setOutcomes(ctx context.Context) {
+	const funcName = "setOutcomes"
 
 	votableTickets, err := v.db.GetVotableTickets()
 	if err != nil {
