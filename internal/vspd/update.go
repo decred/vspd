@@ -322,7 +322,7 @@ func (v *Vspd) setOutcomes(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 			continue
 		}
 
-		v.log.Infof("Ticket %s %s at height %d",
-			dbTicket.Hash, dbTicket.Outcome, spentTicket.heightSpent)
+		v.log.Infof("Ticket %s at height %d (ticketHash=%s)",
+			dbTicket.Outcome, spentTicket.heightSpent, dbTicket.Hash)
 	}
 }
