@@ -25,8 +25,6 @@ type VspDatabase struct {
 	db                   *bolt.DB
 	maxVoteChangeRecords int
 	log                  slog.Logger
-
-	ticketsMtx sync.RWMutex
 }
 
 // The keys used in the database.
