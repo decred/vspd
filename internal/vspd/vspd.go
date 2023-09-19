@@ -111,7 +111,7 @@ func (v *Vspd) Run(ctx context.Context) {
 		case <-dcrdTicker.C:
 			_, _, err := v.dcrd.Client()
 			if err != nil {
-				v.log.Errorf("dcrd connect error: %v", err)
+				v.log.Error(err)
 			}
 
 		// Run the update function every time a block connected notification is
