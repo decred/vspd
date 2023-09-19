@@ -74,8 +74,8 @@ func (v *Vspd) updateUnconfirmed(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 			// which expired. Remove it from the db.
 			var e *wsrpc.Error
 			if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
-				v.log.Infof("%s: Removing unconfirmed ticket from db - no information available "+
-					"about transaction (ticketHash=%s)", funcName, ticket.Hash)
+				v.log.Infof("Removing unconfirmed ticket from db - no information available "+
+					"about transaction (ticketHash=%s)", ticket.Hash)
 
 				err = v.db.DeleteTicket(ticket)
 				if err != nil {
@@ -108,7 +108,7 @@ func (v *Vspd) updateUnconfirmed(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 				continue
 			}
 
-			v.log.Infof("%s: Ticket confirmed (ticketHash=%s)", funcName, ticket.Hash)
+			v.log.Infof("Ticket confirmed (ticketHash=%s)", ticket.Hash)
 		}
 	}
 }
@@ -134,8 +134,8 @@ func (v *Vspd) broadcastFees(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 				funcName, ticket.Hash, err)
 			ticket.FeeTxStatus = database.FeeError
 		} else {
-			v.log.Infof("%s: Fee tx broadcast for ticket (ticketHash=%s, feeHash=%s)",
-				funcName, ticket.Hash, ticket.FeeTxHash)
+			v.log.Infof("Fee tx broadcast for ticket (ticketHash=%s, feeHash=%s)",
+				ticket.Hash, ticket.FeeTxHash)
 			ticket.FeeTxStatus = database.FeeBroadcast
 		}
 
@@ -198,7 +198,7 @@ func (v *Vspd) addToWallets(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 					funcName, ticket.Hash, err)
 				continue
 			}
-			v.log.Infof("%s: Fee tx confirmed (ticketHash=%s)", funcName, ticket.Hash)
+			v.log.Infof("Fee tx confirmed (ticketHash=%s)", ticket.Hash)
 
 			// Add ticket to the voting wallet.
 
@@ -254,8 +254,8 @@ func (v *Vspd) addToWallets(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 					}
 				}
 
-				v.log.Infof("%s: Ticket added to voting wallet (wallet=%s, ticketHash=%s)",
-					funcName, walletClient.String(), ticket.Hash)
+				v.log.Infof("Ticket added to voting wallet (wallet=%s, ticketHash=%s)",
+					walletClient.String(), ticket.Hash)
 			}
 		}
 	}
@@ -322,7 +322,7 @@ func (v *Vspd) setOutcomes(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 			continue
 		}
 
-		v.log.Infof("%s: Ticket %s %s at height %d", funcName,
+		v.log.Infof("Ticket %s %s at height %d",
 			dbTicket.Hash, dbTicket.Outcome, spentTicket.heightSpent)
 	}
 }
