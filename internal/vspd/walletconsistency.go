@@ -15,7 +15,7 @@ import (
 func (v *Vspd) checkWalletConsistency(ctx context.Context) {
 	const funcName = "checkWalletConsistency"
 
-	v.log.Info("Checking voting wallet consistency")
+	v.log.Debug("Checking voting wallet consistency")
 
 	dcrdClient, _, err := v.dcrd.Client()
 	if err != nil {
