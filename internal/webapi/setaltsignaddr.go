@@ -56,7 +56,7 @@ func (w *WebAPI) setAltSignAddr(c *gin.Context) {
 		return
 	}
 	if currentData != nil {
-		msg := "alternate sign address data already exists"
+		const msg = "alternate sign address data already exists"
 		w.log.Warnf("%s: %s (ticketHash=%s)", funcName, msg, ticketHash)
 		w.sendErrorWithMsg(msg, types.ErrBadRequest, c)
 		return
