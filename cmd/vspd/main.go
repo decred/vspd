@@ -45,6 +45,10 @@ func run() int {
 
 	log := cfg.logger("VSP")
 
+	// Create a context that is canceled when a shutdown request is received
+	// through an interrupt signal such as SIGINT (Ctrl+C).
+	ctx := signal.ShutdownListener(log)
+
 	defer log.Criticalf("Shutdown complete")
 	log.Criticalf("Version %s (Go version %s %s/%s)", version.String(),
 		runtime.Version(), runtime.GOOS, runtime.GOARCH)
@@ -106,10 +110,6 @@ func run() int {
 
 	// WaitGroup for services to signal when they have shutdown cleanly.
 	var shutdownWg sync.WaitGroup
-
-	// Create a context that is canceled when a shutdown request is received
-	// through an interrupt signal such as SIGINT (Ctrl+C).
-	ctx := signal.ShutdownListener(log)
 
 	// Start the webapi server.
 	shutdownWg.Add(1)
