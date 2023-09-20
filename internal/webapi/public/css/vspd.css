@@ -2,7 +2,6 @@ html, body {
     height: 100%;
 }
 body {
-    overflow-y: overlay;
     background-color: #F3F5F6;
     color: #3D5873;
     display: flex;
