@@ -243,7 +243,7 @@ func (w *WebAPI) broadcastTicket(c *gin.Context) {
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
-		w.log.Errorf("%s: Could not get dcrd client: %v", funcName, dcrdErr.(error))
+		w.log.Errorf("%s: %v", funcName, dcrdErr.(error))
 		w.sendError(types.ErrInternalError, c)
 		return
 	}
