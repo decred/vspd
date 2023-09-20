@@ -55,7 +55,7 @@ func (w *WebAPI) dcrdStatus(c *gin.Context) dcrdStatus {
 	dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 	dcrdErr := c.MustGet(dcrdErrorKey)
 	if dcrdErr != nil {
-		w.log.Errorf("Could not get dcrd client: %v", dcrdErr.(error))
+		w.log.Errorf("%v", dcrdErr.(error))
 		return status
 	}
 
@@ -190,7 +190,7 @@ func (w *WebAPI) ticketSearch(c *gin.Context) {
 		dcrdClient := c.MustGet(dcrdKey).(*rpc.DcrdRPC)
 		dcrdErr := c.MustGet(dcrdErrorKey)
 		if dcrdErr != nil {
-			w.log.Errorf("Could not get dcrd client: %v", dcrdErr.(error))
+			w.log.Errorf("%v", dcrdErr.(error))
 			c.String(http.StatusInternalServerError, "Could not get dcrd client")
 			return
 		}
