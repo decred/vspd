@@ -157,7 +157,7 @@ configuration. A 200 HTTP status will be returned if the VSP seems
 healthy, or a 500 status will be used to indicate something is wrong.
 
 ```bash
-$ curl --user admin:12345 --request GET http://localhost:8800/admin/status
+$ curl --user admin:12345 http://localhost:8800/admin/status
 ```
 
 ```json
