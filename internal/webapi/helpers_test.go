@@ -57,8 +57,8 @@ func TestIsValidVoteChoices(t *testing.T) {
 func TestIsValidTSpendPolicy(t *testing.T) {
 
 	// A valid tspend hash is 32 bytes (64 characters).
-	validHash := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	anotherValidHash := "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	const validHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	const anotherValidHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
 	var tests = []struct {
 		tspendPolicy map[string]string
@@ -102,8 +102,8 @@ func TestIsValidTSpendPolicy(t *testing.T) {
 func TestIsValidTreasuryPolicy(t *testing.T) {
 
 	// A valid treasury key is 33 bytes (66 characters).
-	validKey := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	anotherValidKey := "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	const validKey = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	const anotherValidKey = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
 	var tests = []struct {
 		treasuryPolicy map[string]string

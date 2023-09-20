@@ -19,7 +19,7 @@ func exampleRecord() VoteChangeRecord {
 }
 
 func testVoteChangeRecords(t *testing.T) {
-	hash := "MyHash"
+	const hash = "MyHash"
 	record := exampleRecord()
 
 	// Insert a record into the database.
