@@ -15,6 +15,7 @@ import (
 
 	"github.com/decred/slog"
 	"github.com/decred/vspd/client/v3"
+	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/internal/signal"
 	"github.com/decred/vspd/types/v2"
 )
@@ -164,7 +165,12 @@ func run() int {
 			return 1
 		}
 
-		voteChoices := map[string]string{"autorevocations": "no"}
+		// Grab an agenda ID from the current vote version.
+		network := config.TestNet3
+		voteVersion := network.CurrentVoteVersion()
+		agendaID := network.Deployments[voteVersion][0].Vote.Id
+
+		voteChoices := map[string]string{agendaID: "no"}
 		tspend := map[string]string{
 			"6c78690fa2fa31803df0376897725704e9dc19ecbdf80061e79b69de93ca1360": "no",
 			"abb86660dda1f1b66544bab24a823a22e9213ada48649f0d913623f49e17dacb": "yes",
@@ -206,7 +212,7 @@ func run() int {
 			return 1
 		}
 
-		voteChoices["autorevocations"] = "yes"
+		voteChoices[agendaID] = "yes"
 
 		// Sleep to ensure a new timestamp. vspd will reject old/reused timestamps.
 		time.Sleep(1001 * time.Millisecond)
