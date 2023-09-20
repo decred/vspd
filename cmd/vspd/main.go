@@ -109,30 +109,30 @@ func run() int {
 	}
 
 	// WaitGroup for services to signal when they have shutdown cleanly.
-	var shutdownWg sync.WaitGroup
+	var wg sync.WaitGroup
 
 	// Start the webapi server.
-	shutdownWg.Add(1)
+	wg.Add(1)
 	go func() {
 		api.Run(ctx)
-		shutdownWg.Done()
+		wg.Done()
 	}()
 
 	// Start vspd.
 	vspd := vspd.New(cfg.network, log, db, dcrd, wallets, blockNotifChan)
-	shutdownWg.Add(1)
+	wg.Add(1)
 	go func() {
 		vspd.Run(ctx)
-		shutdownWg.Done()
+		wg.Done()
 	}()
 
 	// Periodically write a database backup file.
-	shutdownWg.Add(1)
+	wg.Add(1)
 	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				shutdownWg.Done()
+				wg.Done()
 				return
 			case <-time.After(cfg.BackupInterval):
 				err := db.WriteHotBackupFile()
@@ -145,7 +145,7 @@ func run() int {
 
 	// Wait for shutdown tasks to complete before running deferred tasks and
 	// returning.
-	shutdownWg.Wait()
+	wg.Wait()
 
 	return 0
 }
