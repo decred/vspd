@@ -208,6 +208,9 @@ func (v *Vspd) addToWallets(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 					funcName, ticket.Hash, err)
 				continue
 			}
+
+			// Count how many wallets the ticket is added to for logging.
+			added := 0
 			for _, walletClient := range walletClients {
 				err = walletClient.AddTicketForVoting(ticket.VotingWIF, rawTicket.BlockHash, rawTicket.Hex)
 				if err != nil {
@@ -215,6 +218,7 @@ func (v *Vspd) addToWallets(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 						funcName, walletClient.String(), ticket.Hash, err)
 					continue
 				}
+				added++
 
 				// Set consensus vote choices on voting wallets.
 				for agenda, choice := range ticket.VoteChoices {
@@ -253,10 +257,11 @@ func (v *Vspd) addToWallets(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 							funcName, walletClient.String(), ticket.Hash, err)
 					}
 				}
-
-				v.log.Debugf("Ticket added to voting wallet (wallet=%s, ticketHash=%s)",
-					walletClient.String(), ticket.Hash)
 			}
+
+			v.log.Infof("Ticket added to %s (ticketHash=%s)",
+				pluralize(added, "voting wallet"),
+				ticket.Hash)
 		}
 	}
 }
