@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/decred/dcrd/txscript/v4 v4.1.0
 	github.com/decred/slog v1.2.0
-	github.com/decred/vspd/types/v2 v2.0.0
+	github.com/decred/vspd/types/v2 v2.1.0
 )
 
 require (
@@ -20,6 +20,6 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/decred/dcrd/wire v1.6.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
-	golang.org/x/sys v0.9.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
