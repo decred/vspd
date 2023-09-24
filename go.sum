@@ -52,8 +52,8 @@ github.com/decred/dcrd/wire v1.6.0 h1:YOGwPHk4nzGr6OIwUGb8crJYWDiVLpuMxfDBCCF7s/
 github.com/decred/dcrd/wire v1.6.0/go.mod h1:XQ8Xv/pN/3xaDcb7sH8FBLS9cdgVctT7HpBKKGsIACk=
 github.com/decred/slog v1.2.0 h1:soHAxV52B54Di3WtKLfPum9OFfWqwtf/ygf9njdfnPM=
 github.com/decred/slog v1.2.0/go.mod h1:kVXlGnt6DHy2fV5OjSeuvCJ0OmlmTF6LFpEPMu/fOY0=
-github.com/decred/vspd/client/v2 v2.0.0 h1:gaSF1Bm2/EvoAiSLxNR5fgStrObAO66xmanhedidYIM=
-github.com/decred/vspd/client/v2 v2.0.0/go.mod h1:IDDviEe/6CuxxrW0PLOcg448enU3YmeElFHledYHw78=
+github.com/decred/vspd/client/v3 v3.0.0 h1:4gAGDTeIU0r4quCxmV5Ez7T2J+P+OLPSibkCF+/Yb6w=
+github.com/decred/vspd/client/v3 v3.0.0/go.mod h1:5pfPvIa6V38AmophMrKUCl3KMpEIxcltWtgL2R+wsW8=
 github.com/decred/vspd/types/v2 v2.1.0 h1:cUVlmHPeLVsksPRnr2WHsmC2t1Skl6g1WH0HmpcPS7w=
 github.com/decred/vspd/types/v2 v2.1.0/go.mod h1:2xnNqedkt9GuL+pK8uIzDxqYxFlwLRflYFJH64b76n0=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
