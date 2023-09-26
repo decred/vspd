@@ -14,8 +14,9 @@ import (
 	"github.com/jrick/wsrpc/v2"
 )
 
-// update is called once when vspd starts up, and once each time a
-// blockconnected notification is received from dcrd.
+// update uses the latest available information from dcrd to update all of the
+// data in the vspd database. When appropriate it will also broadcast pending
+// fee transactions and add tickets to voting wallets.
 func (v *Vspd) update(ctx context.Context) {
 	const funcName = "update"
 
@@ -44,7 +45,8 @@ func (v *Vspd) update(ctx context.Context) {
 		return
 	}
 
-	// Step 4/4: Set ticket outcome in database if any tickets are voted/revoked.
+	// Step 4/4: Set ticket outcome in database if any tickets are
+	// voted/revoked.
 	v.setOutcomes(ctx, dcrdClient)
 	if ctx.Err() != nil {
 		return
