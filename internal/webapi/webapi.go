@@ -217,6 +217,7 @@ func (w *WebAPI) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 		"atomsToDCR":       atomsToDCR,
 		"float32ToPercent": float32ToPercent,
 		"comma":            humanize.Comma,
+		"pluralize":        pluralize,
 	})
 
 	router.LoadHTMLGlob("internal/webapi/templates/*.html")

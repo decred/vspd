@@ -146,11 +146,21 @@ func (w *WebAPI) statusJSON(c *gin.Context) {
 func (w *WebAPI) adminPage(c *gin.Context) {
 	cacheData := c.MustGet(cacheKey).(cacheData)
 
+	missed, err := w.db.GetMissedTickets()
+	if err != nil {
+		w.log.Errorf("db.GetMissedTickets error: %v", err)
+		c.String(http.StatusInternalServerError, "Error getting missed tickets from db")
+		return
+	}
+
+	missed.SortByPurchaseHeight()
+
 	c.HTML(http.StatusOK, "admin.html", gin.H{
-		"WebApiCache":  cacheData,
-		"WebApiCfg":    w.cfg,
-		"WalletStatus": w.walletStatus(c),
-		"DcrdStatus":   w.dcrdStatus(c),
+		"WebApiCache":   cacheData,
+		"WebApiCfg":     w.cfg,
+		"WalletStatus":  w.walletStatus(c),
+		"DcrdStatus":    w.dcrdStatus(c),
+		"MissedTickets": missed,
 	})
 }
 
@@ -212,6 +222,15 @@ func (w *WebAPI) ticketSearch(c *gin.Context) {
 		feeTxDecoded = string(decoded)
 	}
 
+	missed, err := w.db.GetMissedTickets()
+	if err != nil {
+		w.log.Errorf("db.GetMissedTickets error: %v", err)
+		c.String(http.StatusInternalServerError, "Error getting missed tickets from db")
+		return
+	}
+
+	missed.SortByPurchaseHeight()
+
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"SearchResult": searchResult{
 			Hash:            hash,
@@ -222,10 +241,11 @@ func (w *WebAPI) ticketSearch(c *gin.Context) {
 			VoteChanges:     voteChanges,
 			MaxVoteChanges:  w.cfg.MaxVoteChangeRecords,
 		},
-		"WebApiCache":  cacheData,
-		"WebApiCfg":    w.cfg,
-		"WalletStatus": w.walletStatus(c),
-		"DcrdStatus":   w.dcrdStatus(c),
+		"WebApiCache":   cacheData,
+		"WebApiCfg":     w.cfg,
+		"WalletStatus":  w.walletStatus(c),
+		"DcrdStatus":    w.dcrdStatus(c),
+		"MissedTickets": missed,
 	})
 }
 
