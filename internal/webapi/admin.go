@@ -7,7 +7,6 @@ package webapi
 import (
 	"encoding/json"
 	"net/http"
-	"sort"
 
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
@@ -154,10 +153,7 @@ func (w *WebAPI) adminPage(c *gin.Context) {
 		return
 	}
 
-	// Sort missed tickets by purchase height.
-	sort.Slice(missed, func(i, j int) bool {
-		return missed[i].PurchaseHeight > missed[j].PurchaseHeight
-	})
+	missed.SortByPurchaseHeight()
 
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"WebApiCache":   cacheData,
@@ -233,10 +229,7 @@ func (w *WebAPI) ticketSearch(c *gin.Context) {
 		return
 	}
 
-	// Sort missed tickets by purchase height.
-	sort.Slice(missed, func(i, j int) bool {
-		return missed[i].PurchaseHeight > missed[j].PurchaseHeight
-	})
+	missed.SortByPurchaseHeight()
 
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"SearchResult": searchResult{

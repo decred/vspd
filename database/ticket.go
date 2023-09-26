@@ -6,6 +6,7 @@ package database
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -114,6 +115,12 @@ func (t TicketList) EarliestPurchaseHeight() int64 {
 		}
 	}
 	return oldestHeight
+}
+
+func (t TicketList) SortByPurchaseHeight() {
+	sort.Slice(t, func(i, j int) bool {
+		return t[i].PurchaseHeight > t[j].PurchaseHeight
+	})
 }
 
 func (t *Ticket) FeeExpired() bool {
