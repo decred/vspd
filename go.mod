@@ -3,7 +3,7 @@ module github.com/decred/vspd
 go 1.19
 
 require (
-	decred.org/dcrwallet/v4 v4.0.0-20230914182405-90232ed6062b
+	decred.org/dcrwallet/v4 v4.0.0-20230924083701-09bb3c2c5095
 	github.com/decred/dcrd/blockchain/stake/v5 v5.0.0
 	github.com/decred/dcrd/blockchain/standalone/v2 v2.2.0
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.4
@@ -62,7 +62,7 @@ require (
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
-	golang.org/x/sys v0.9.0 // indirect
+	golang.org/x/sys v0.12.0 // indirect
 	golang.org/x/text v0.10.0 // indirect
 	golang.org/x/time v0.3.0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
