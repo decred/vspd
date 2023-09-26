@@ -26,7 +26,7 @@ const (
 // so it can be modified at link time (e.g.
 // `-ldflags "-X decred.org/vspd/version.preRelease=rc1"`).
 // It must only contain characters from the semantic version alphabet.
-var preRelease = "pre"
+var preRelease = ""
 
 func IsPreRelease() bool {
 	return preRelease != ""
