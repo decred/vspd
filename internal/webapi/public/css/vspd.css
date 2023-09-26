@@ -92,7 +92,7 @@ footer .code {
     }
 }
 
-.btn {
+.btn-primary, .btn-secondary {
     outline: 0;
     -webkit-box-shadow: 1px 3px 14px 0px rgba(0,0,0,0.19);
             box-shadow: 1px 3px 14px 0px rgba(0,0,0,0.19);
@@ -206,6 +206,12 @@ footer .code {
     padding-left: 40px;
 }
 
+table.missed-tickets th,
+table.missed-tickets td {
+    border: 1px solid #edeff1;
+    vertical-align: middle;
+    text-align: center;
+}
 
 .tabset > input {
     display:block; /* "enable" hidden elements in IE/edge */
