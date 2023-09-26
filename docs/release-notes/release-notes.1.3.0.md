@@ -63,7 +63,7 @@ The upgrade path assumes dcrd and dcrwallet are already version 1.8.0.
   sendrawtransaction
   ([#398](https://github.com/decred/vspd/pull/398)).
 - Calculate missed/expired/revoked ticket ratios as percentage of all tickets,
-- not just voted tickets
+  not just voted tickets
   ([#417](https://github.com/decred/vspd/pull/417)).
 - Web server returns explicit errors intead of zero values when cache is not ready
   ([#440](https://github.com/decred/vspd/pull/440)).
