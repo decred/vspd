@@ -45,11 +45,18 @@
                         id="tabset_1_4"
                         hidden
                     >
+                    <input
+                        type="radio"
+                        name="tabset_1"
+                        id="tabset_1_5"
+                        hidden
+                    >
                     <ul>
                         <li><label for="tabset_1_1">VSP Status</label></li>
                         <li><label for="tabset_1_2">Ticket Search</label></li>
-                        <li><label for="tabset_1_3">Database</label></li>
-                        <li><label for="tabset_1_4">Logout</label></li>
+                        <li><label for="tabset_1_3">Missed Tickets</label></li>
+                        <li><label for="tabset_1_4">Database</label></li>
+                        <li><label for="tabset_1_5">Logout</label></li>
                     </ul>
                     
                     <div>
@@ -188,6 +195,31 @@
                             {{ with .SearchResult }}
                                 {{ template "ticket-search-result" . }}
                             {{ end }}
+                        </section>
+
+                        <section>
+                            <h1>{{ pluralize (len .MissedTickets) "Missed Ticket" }}</h1>
+                            {{ with .MissedTickets }}
+                            <table class="missed-tickets mx-auto">
+                                <thead>
+                                    <th>Purchase Height</th>
+                                    <th>Ticket Hash</th>
+                                </thead>
+                                <tbody>
+                                {{ range . }}
+                                    <tr>
+                                        <td>{{ .PurchaseHeight }}</td>
+                                        <td>
+                                            <form action="/admin/ticket" method="post">
+                                                <input type="hidden" name="hash" value="{{ .Hash }}">
+                                                <button class="btn btn-link p-0 code" type="submit">{{ .Hash }}</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {{ end }}
+                                </tbody>
+                            </table>
+                            {{ end}}
                         </section>
 
                         <section>

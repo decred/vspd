@@ -385,6 +385,13 @@ func (vdb *VspDatabase) GetMissingPurchaseHeight() (TicketList, error) {
 	})
 }
 
+// GetMissedTickets returns all tickets which have outcome == missed.
+func (vdb *VspDatabase) GetMissedTickets() (TicketList, error) {
+	return vdb.filterTickets(func(t *bolt.Bucket) bool {
+		return TicketOutcome(t.Get(outcomeK)) == Missed
+	})
+}
+
 // filterTickets accepts a filter function and returns all tickets from the
 // database which match the filter.
 func (vdb *VspDatabase) filterTickets(filter func(*bolt.Bucket) bool) (TicketList, error) {

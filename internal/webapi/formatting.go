@@ -62,3 +62,16 @@ func atomsToDCR(atoms int64) string {
 func float32ToPercent(input float32) string {
 	return fmt.Sprintf("%.2f%%", input*100)
 }
+
+// pluralize suffixes the provided noun with "s" if n is not 1, then
+// concatenates n and noun with a space between them. For example:
+//
+//	(0, "biscuit") will return "0 biscuits"
+//	(1, "biscuit") will return "1 biscuit"
+//	(3, "biscuit") will return "3 biscuits"
+func pluralize(n int, noun string) string {
+	if n != 1 {
+		noun += "s"
+	}
+	return fmt.Sprintf("%d %s", n, noun)
+}
