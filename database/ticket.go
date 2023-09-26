@@ -6,6 +6,7 @@ package database
 
 import (
 	"fmt"
+	"sort"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -114,6 +115,12 @@ func (t TicketList) EarliestPurchaseHeight() int64 {
 		}
 	}
 	return oldestHeight
+}
+
+func (t TicketList) SortByPurchaseHeight() {
+	sort.Slice(t, func(i, j int) bool {
+		return t[i].PurchaseHeight > t[j].PurchaseHeight
+	})
 }
 
 func (t *Ticket) FeeExpired() bool {
@@ -382,6 +389,13 @@ func (vdb *VspDatabase) GetRevokedTickets() (TicketList, error) {
 func (vdb *VspDatabase) GetMissingPurchaseHeight() (TicketList, error) {
 	return vdb.filterTickets(func(t *bolt.Bucket) bool {
 		return bytesToBool(t.Get(confirmedK)) && bytesToInt64(t.Get(purchaseHeightK)) == 0
+	})
+}
+
+// GetMissedTickets returns all tickets which have outcome == missed.
+func (vdb *VspDatabase) GetMissedTickets() (TicketList, error) {
+	return vdb.filterTickets(func(t *bolt.Bucket) bool {
+		return TicketOutcome(t.Get(outcomeK)) == Missed
 	})
 }
 
