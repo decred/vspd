@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"strings"
 
-	wallettypes "decred.org/dcrwallet/v4/rpc/jsonrpc/types"
+	wallettypes "decred.org/dcrwallet/v3/rpc/jsonrpc/types"
 	"github.com/decred/dcrd/blockchain/stake/v5"
 	"github.com/decred/dcrd/chaincfg/v3"
 	"github.com/decred/dcrd/dcrutil/v4"
