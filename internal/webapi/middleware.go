@@ -275,10 +275,37 @@ func (w *WebAPI) broadcastTicket(c *gin.Context) {
 			w.log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
 			err = dcrdClient.SendRawTransaction(request.ParentHex)
 			if err != nil {
-				w.log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
-					funcName, request.TicketHash, err)
-				w.sendError(types.ErrCannotBroadcastTicket, c)
-				return
+				// Unknown output errors have special handling because they
+				// could be resolved by waiting for network propagation. Any
+				// other errors are returned to client immediately.
+				if !strings.Contains(err.Error(), rpc.ErrUnknownOutputs) {
+					w.log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
+						funcName, request.TicketHash, err)
+					w.sendError(types.ErrCannotBroadcastTicket, c)
+					return
+				}
+
+				w.log.Debugf("%s: Parent tx references an unknown output, waiting for it in mempool (ticketHash=%s)",
+					funcName, request.TicketHash)
+
+				txBroadcast := func() bool {
+					// Wait for 1 second and try again, max 7 attempts.
+					for i := 0; i < 7; i++ {
+						time.Sleep(1 * time.Second)
+						err := dcrdClient.SendRawTransaction(request.ParentHex)
+						if err == nil {
+							return true
+						}
+					}
+					return false
+				}()
+
+				if !txBroadcast {
+					w.log.Errorf("%s: Failed to broadcast parent tx, waiting didn't help (ticketHash=%s)",
+						funcName, request.TicketHash)
+					w.sendError(types.ErrCannotBroadcastTicket, c)
+					return
+				}
 			}
 
 		} else {
