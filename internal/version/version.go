@@ -19,7 +19,7 @@ const semverAlphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrst
 const (
 	major = 1
 	minor = 3
-	patch = 1
+	patch = 2
 )
 
 // preRelease contains the prerelease name of the application. It is a variable
