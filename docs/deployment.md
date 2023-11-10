@@ -4,6 +4,9 @@ This guide is deliberately written at a high level and with minimal details
 because it is assumed that VSP operators will already have a level of
 familiarity with Decred software and a level of sysadmin experience.
 
+A vspd deployment consists of a single front-end server which handles web
+requests, and a number of remote servers which host voting wallets.
+
 ```mermaid
 %%{init:{
     "theme": "neutral",
