@@ -226,5 +226,4 @@ into all of the voting wallets.
 ## Listing on decred.org
 
 The process for listing a new VSP on [decred.org](https://decred.org/vsp/), and
-consequently in Decrediton, is detailed at
-[docs.decred.org](https://docs.decred.org/advanced/operating-a-vsp/).
+consequently in Decrediton, is detailed in [listing.md](./listing.md).

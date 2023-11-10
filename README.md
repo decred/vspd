@@ -59,6 +59,9 @@ requests, and a number of remote servers which host voting wallets. For more
 information about deploying vspd, check out
 [deployment.md](./docs/deployment.md).
 
+The process for listing a new VSP on [decred.org](https://decred.org/vsp/), and
+consequently in Decrediton, is detailed in [listing.md](./docs/listing.md).
+
 ## Development
 
 ### Test Harness
