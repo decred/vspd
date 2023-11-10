@@ -41,7 +41,7 @@ web(Internet<br />Traffic) ---> nginx
 
 ## Prerequisites
 
-### Build from source
+### Build from Source
 
 Compiled binaries are not provided for vspd - VSP operators are expected to
 build vspd from source.
@@ -51,7 +51,7 @@ branches.
 Neither vspd nor its dependencies (dcrd/dcrwallet) should be built from master
 when handling mainnet tickets.
 
-### Fee wallet
+### Fee Wallet
 
 A wallet should be created to collect VSP fees. Ideally this would be a cold
 wallet which is not used for any other purpose, and it should be completely
