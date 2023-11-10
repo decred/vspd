@@ -5,8 +5,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/decred/vspd)](https://goreportcard.com/report/github.com/decred/vspd)
 [![Release](https://img.shields.io/github/release/decred/vspd.svg?style=flat-square)](https://github.com/decred/vspd/releases/latest)
 
-## Overview
-
 <img src="./docs/img/stakey.png" align="right" />
 
 [First announced in 2020](https://blog.decred.org/2020/06/02/A-More-Private-Way-to-Stake/),
