@@ -8,6 +8,9 @@ decentralization and improve the stability of the Decred network.
 
 ## Operator Requirements
 
+* Familiarity with system administration work on Linux.
+* Ability to compile from source, setting up and maintaining `dcrd` and
+  `dcrwallet`.
 * Willingness to stay in touch with the Decred community for important news and
   updates. A private channel on [Matrix](https://chat.decred.org) exists for
   this purpose.
@@ -25,6 +28,8 @@ decentralization and improve the stability of the Decred network.
   of dcrd.
 * The machines used to host the voting wallets must be spread across 3 or more
   physically separate locations.
+* The web frontend must have an IP that is distinct from those of the voting
+  wallets, and is ideally located in another physical location.
 * The VSP must be run on testnet for 1 week to confirm it is working properly.
   Uptime and number of votes made versus missed will be checked.
 * The VSP must be run on mainnet in test mode (no public access) until a VSP
