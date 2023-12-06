@@ -5,8 +5,6 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/decred/vspd)](https://goreportcard.com/report/github.com/decred/vspd)
 [![Release](https://img.shields.io/github/release/decred/vspd.svg?style=flat-square)](https://github.com/decred/vspd/releases/latest)
 
-## Overview
-
 <img src="./docs/img/stakey.png" align="right" />
 
 [First announced in 2020](https://blog.decred.org/2020/06/02/A-More-Private-Way-to-Stake/),
@@ -60,6 +58,9 @@ A vspd deployment consists of a single front-end server which handles web
 requests, and a number of remote servers which host voting wallets. For more
 information about deploying vspd, check out
 [deployment.md](./docs/deployment.md).
+
+The process for listing a new VSP on [decred.org](https://decred.org/vsp/), and
+consequently in Decrediton, is detailed in [listing.md](./docs/listing.md).
 
 ## Development
 

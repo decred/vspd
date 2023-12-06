@@ -4,6 +4,9 @@ This guide is deliberately written at a high level and with minimal details
 because it is assumed that VSP operators will already have a level of
 familiarity with Decred software and a level of sysadmin experience.
 
+A vspd deployment consists of a single front-end server which handles web
+requests, and a number of remote servers which host voting wallets.
+
 ```mermaid
 %%{init:{
     "theme": "neutral",
@@ -41,7 +44,7 @@ web(Internet<br />Traffic) ---> nginx
 
 ## Prerequisites
 
-### Build from source
+### Build from Source
 
 Compiled binaries are not provided for vspd - VSP operators are expected to
 build vspd from source.
@@ -51,7 +54,7 @@ branches.
 Neither vspd nor its dependencies (dcrd/dcrwallet) should be built from master
 when handling mainnet tickets.
 
-### Fee wallet
+### Fee Wallet
 
 A wallet should be created to collect VSP fees. Ideally this would be a cold
 wallet which is not used for any other purpose, and it should be completely
@@ -223,5 +226,4 @@ into all of the voting wallets.
 ## Listing on decred.org
 
 The process for listing a new VSP on [decred.org](https://decred.org/vsp/), and
-consequently in Decrediton, is detailed at
-[docs.decred.org](https://docs.decred.org/advanced/operating-a-vsp/).
+consequently in Decrediton, is detailed in [listing.md](./listing.md).
