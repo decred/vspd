@@ -1,10 +1,11 @@
-// Copyright (c) 2020-2023 The Decred developers
+// Copyright (c) 2020-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package database
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
 	"fmt"
@@ -285,8 +286,7 @@ func (vdb *VspDatabase) KeyPair() (ed25519.PrivateKey, ed25519.PublicKey, error)
 
 		// Byte slices returned from Bolt are only valid during a transaction.
 		// Need to make a copy.
-		seed = make([]byte, len(s))
-		copy(seed, s)
+		seed = bytes.Clone(s)
 
 		if seed == nil {
 			// should not happen
@@ -341,8 +341,7 @@ func (vdb *VspDatabase) CookieSecret() ([]byte, error) {
 
 		// Byte slices returned from Bolt are only valid during a transaction.
 		// Need to make a copy.
-		cookieSecret = make([]byte, len(cs))
-		copy(cookieSecret, cs)
+		cookieSecret = bytes.Clone(cs)
 
 		return nil
 	})
