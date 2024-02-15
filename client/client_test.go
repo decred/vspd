@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023 The Decred developers
+// Copyright (c) 2022-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -72,7 +72,7 @@ func TestErrorDetails(t *testing.T) {
 	for testName, testData := range tests {
 		t.Run(testName, func(t *testing.T) {
 
-			testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 				res.WriteHeader(testData.respHTTPStatus)
 				_, err := res.Write(testData.respBodyBytes)
 				if err != nil {
@@ -156,7 +156,7 @@ func TestSignatureValidation(t *testing.T) {
 	for testName, testData := range tests {
 		t.Run(testName, func(t *testing.T) {
 
-			testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			testServer := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, _ *http.Request) {
 				res.Header().Add("VSP-Server-Signature", testData.responseSig)
 				res.WriteHeader(http.StatusOK)
 				_, err := res.Write(emptyJSON)

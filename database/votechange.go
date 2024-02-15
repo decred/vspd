@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2021 The Decred developers
+// Copyright (c) 2020-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -41,7 +41,7 @@ func (vdb *VspDatabase) SaveVoteChange(ticketHash string, record VoteChangeRecor
 		var count int
 		newest := uint32(0)
 		oldest := uint32(math.MaxUint32)
-		err = bkt.ForEach(func(k, v []byte) error {
+		err = bkt.ForEach(func(k, _ []byte) error {
 			count++
 			key := bytesToUint32(k)
 			if key > newest {
