@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 The Decred developers
+// Copyright (c) 2021-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -23,7 +23,7 @@ func ticketBucketUpgrade(db *bolt.DB, log slog.Logger) error {
 
 		// Count tickets so migration progress can be logged.
 		todo := 0
-		err := ticketBkt.ForEach(func(k, v []byte) error {
+		err := ticketBkt.ForEach(func(_, _ []byte) error {
 			todo++
 			return nil
 		})
