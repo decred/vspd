@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023 The Decred developers
+// Copyright (c) 2022-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -85,11 +85,6 @@ func run() int {
 		PubKey: pubKey,
 		Sign:   walletRPC.SignMessage,
 		Log:    log,
-	}
-
-	if err != nil {
-		log.Errorf("%v", err)
-		return 1
 	}
 
 	// Get list of tickets
