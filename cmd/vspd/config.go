@@ -33,7 +33,7 @@ var (
 	defaultMaxLogSize     = int64(10)
 	defaultLogsToKeep     = 20
 	defaultVSPFee         = 3.0
-	defaultNetwork        = "testnet"
+	defaultNetworkName    = "testnet"
 	defaultHomeDir        = dcrutil.AppDataDir(appName, false)
 	defaultConfigFilename = fmt.Sprintf("%s.conf", appName)
 	defaultDBFilename     = fmt.Sprintf("%s.db", appName)
@@ -52,7 +52,7 @@ type vspdConfig struct {
 	LogLevel        string        `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
 	MaxLogSize      int64         `long:"maxlogsize" ini-name:"maxlogsize" description:"File size threshold for log file rotation (MB)."`
 	LogsToKeep      int           `long:"logstokeep" ini-name:"logstokeep" description:"The number of rotated log files to keep."`
-	Network         string        `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
+	NetworkName     string        `long:"network" ini-name:"network" description:"Decred network to use." choice:"testnet" choice:"mainnet" choice:"simnet"`
 	VSPFee          float64       `long:"vspfee" ini-name:"vspfee" description:"Fee percentage charged for VSP use. eg. 2.0 (2%), 0.5 (0.5%)."`
 	DcrdHost        string        `long:"dcrdhost" ini-name:"dcrdhost" description:"The ip:port to establish a JSON-RPC connection with dcrd. Should be the same host where vspd is running."`
 	DcrdUser        string        `long:"dcrduser" ini-name:"dcrduser" description:"Username for dcrd RPC connections."`
@@ -178,7 +178,7 @@ func loadConfig() (*vspdConfig, error) {
 		LogLevel:       defaultLogLevel,
 		MaxLogSize:     defaultMaxLogSize,
 		LogsToKeep:     defaultLogsToKeep,
-		Network:        defaultNetwork,
+		NetworkName:    defaultNetworkName,
 		VSPFee:         defaultVSPFee,
 		HomeDir:        defaultHomeDir,
 		ConfigFile:     defaultConfigFile,
@@ -279,13 +279,9 @@ func loadConfig() (*vspdConfig, error) {
 	}
 
 	// Set the active network.
-	switch cfg.Network {
-	case "testnet":
-		cfg.network = &config.TestNet3
-	case "mainnet":
-		cfg.network = &config.MainNet
-	case "simnet":
-		cfg.network = &config.SimNet
+	cfg.network, err = config.NetworkFromName(cfg.NetworkName)
+	if err != nil {
+		return nil, err
 	}
 
 	// Ensure backup interval is greater than 30 seconds.
