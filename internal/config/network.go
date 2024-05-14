@@ -1,10 +1,12 @@
-// Copyright (c) 2020-2023 The Decred developers
+// Copyright (c) 2020-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package config
 
 import (
+	"fmt"
+
 	"github.com/decred/dcrd/chaincfg/v3"
 )
 
@@ -74,6 +76,19 @@ var SimNet = Network{
 	DCP0010Height: 1,
 	// DCP0012Height on simnet is 1 because the agenda will always be active.
 	DCP0012Height: 1,
+}
+
+func NetworkFromName(name string) (*Network, error) {
+	switch name {
+	case "mainnet":
+		return &MainNet, nil
+	case "testnet":
+		return &TestNet3, nil
+	case "simnet":
+		return &SimNet, nil
+	default:
+		return nil, fmt.Errorf("%q is not a supported network", name)
+	}
 }
 
 // DCP5Active returns true if the DCP-0005 block header commitments agenda is
