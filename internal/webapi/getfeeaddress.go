@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 The Decred developers
+// Copyright (c) 2021-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -61,9 +61,7 @@ func (w *WebAPI) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) 
 
 	fee := txrules.StakePoolTicketFee(sDiff, defaultMinRelayTxFee, int32(bestBlock.Height),
 		w.cfg.VSPFee, w.cfg.Network.Params, isDCP0010Active)
-	if err != nil {
-		return 0, err
-	}
+
 	return fee, nil
 }
 
