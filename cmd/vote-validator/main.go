@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023 The Decred developers
+// Copyright (c) 2022-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -48,15 +48,14 @@ func main() {
 }
 
 func run() int {
-	// Load config, display help if requested.
+	// If command line options are requesting help, write it to stdout and exit.
+	if config.WriteHelp(&cfg) {
+		return 0
+	}
+
+	// Parse command line options.
 	_, err := flags.Parse(&cfg)
 	if err != nil {
-		var e *flags.Error
-		if errors.As(err, &e) {
-			if e.Type == flags.ErrHelp {
-				return 0
-			}
-		}
 		return 1
 	}
 
