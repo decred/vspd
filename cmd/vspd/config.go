@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 The Decred developers
+// Copyright (c) 2021-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -190,20 +190,18 @@ func loadConfig() (*vspdConfig, error) {
 		Designation:    defaultDesignation,
 	}
 
-	// Pre-parse the command line options to see if an alternative config
-	// file or the version flag was specified.  Any errors aside from the
-	// help message error can be ignored here since they will be caught by
-	// the final parse below.
+	// If command line options are requesting help, write it to stdout and exit.
+	if config.WriteHelp(&cfg) {
+		os.Exit(0)
+	}
+
+	// Pre-parse the command line options to see if an alternative config file,
+	// home dir, or the version flag were specified.
 	preCfg := cfg
 
-	preParser := flags.NewParser(&preCfg, flags.HelpFlag)
+	preParser := flags.NewParser(&preCfg, flags.None)
 	_, err := preParser.Parse()
 	if err != nil {
-		var e *flags.Error
-		if errors.As(err, &e) && e.Type == flags.ErrHelp {
-			fmt.Fprintln(os.Stdout, err)
-			os.Exit(0)
-		}
 		return nil, err
 	}
 
@@ -261,7 +259,7 @@ func loadConfig() (*vspdConfig, error) {
 	}
 
 	// Load additional config from file.
-	parser := flags.NewParser(&cfg, flags.Default)
+	parser := flags.NewParser(&cfg, flags.None)
 
 	err = flags.NewIniParser(parser).ParseFile(preCfg.ConfigFile)
 	if err != nil {
@@ -271,10 +269,7 @@ func loadConfig() (*vspdConfig, error) {
 	// Parse command line options again to ensure they take precedence.
 	_, err = parser.Parse()
 	if err != nil {
-		var e *flags.Error
-		if !errors.As(err, &e) || e.Type != flags.ErrHelp {
-			fmt.Fprintln(os.Stderr, usageMessage)
-		}
+		fmt.Fprintln(os.Stderr, usageMessage)
 		return nil, err
 	}
 
