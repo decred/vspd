@@ -170,10 +170,10 @@ EOF
 tmux new-window -t $TMUX_SESSION -n "vspd"
 
 echo "Creating vspd database"
-tmux send-keys "vspd --configfile=${HARNESS_ROOT}/vspd/vspd.conf --homedir=${HARNESS_ROOT}/vspd --feexpub=${VSPD_FEE_XPUB}" C-m 
+tmux send-keys "vspd --homedir=${HARNESS_ROOT}/vspd --feexpub=${VSPD_FEE_XPUB}" C-m 
 sleep 3 # wait for database creation and ensure dcrwallet rpc listeners are started
 echo "Starting vspd"
-tmux send-keys "vspd --configfile=${HARNESS_ROOT}/vspd/vspd.conf --homedir=${HARNESS_ROOT}/vspd" C-m 
+tmux send-keys "vspd --homedir=${HARNESS_ROOT}/vspd" C-m 
 
 #################################################
 # All done - attach to tmux session.

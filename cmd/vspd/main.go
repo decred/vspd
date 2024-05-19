@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023 The Decred developers
+// Copyright (c) 2020-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -55,13 +55,19 @@ func run() int {
 
 	if cfg.network == &config.MainNet && version.IsPreRelease() {
 		log.Warnf("")
-		log.Warnf("\tWARNING: This is a pre-release version of vspd which should not be used on mainnet.")
+		log.Warnf("\tWARNING: This is a pre-release version of vspd which should not be used on mainnet")
 		log.Warnf("")
 	}
 
 	if cfg.VspClosed {
 		log.Warnf("")
-		log.Warnf("\tWARNING: Config --vspclosed is set. This will prevent vspd from accepting new tickets.")
+		log.Warnf("\tWARNING: Config --vspclosed is set. This will prevent vspd from accepting new tickets")
+		log.Warnf("")
+	}
+
+	if cfg.ConfigFile != "" {
+		log.Warnf("")
+		log.Warnf("\tWARNING: Config --configfile is set. This is a deprecated option which has no effect and will be removed in a future release")
 		log.Warnf("")
 	}
 
