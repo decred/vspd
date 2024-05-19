@@ -37,7 +37,6 @@ var (
 	defaultHomeDir        = dcrutil.AppDataDir(appName, false)
 	defaultConfigFilename = fmt.Sprintf("%s.conf", appName)
 	defaultDBFilename     = fmt.Sprintf("%s.db", appName)
-	defaultConfigFile     = filepath.Join(defaultHomeDir, defaultConfigFilename)
 	defaultDcrdHost       = "127.0.0.1"
 	defaultWalletHost     = "127.0.0.1"
 	defaultWebServerDebug = false
@@ -74,7 +73,7 @@ type vspdConfig struct {
 	ShowVersion bool   `long:"version" no-ini:"true" description:"Display version information and exit."`
 	FeeXPub     string `long:"feexpub" no-ini:"true" description:"Cold wallet xpub used for collecting fees. Should be provided once to initialize a vspd database."`
 	HomeDir     string `long:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
-	ConfigFile  string `long:"configfile" no-ini:"true" description:"Path to configuration file."`
+	ConfigFile  string `long:"configfile" no-ini:"true" description:"DEPRECATED: This behavior is no longer available and this option will be removed in a future version of the software."`
 
 	logBackend *slog.Backend
 	logLevel   slog.Level
@@ -181,7 +180,6 @@ func loadConfig() (*vspdConfig, error) {
 		NetworkName:    defaultNetworkName,
 		VSPFee:         defaultVSPFee,
 		HomeDir:        defaultHomeDir,
-		ConfigFile:     defaultConfigFile,
 		DcrdHost:       defaultDcrdHost,
 		WalletHosts:    defaultWalletHost,
 		WebServerDebug: defaultWebServerDebug,
@@ -195,8 +193,8 @@ func loadConfig() (*vspdConfig, error) {
 		os.Exit(0)
 	}
 
-	// Pre-parse the command line options to see if an alternative config file,
-	// home dir, or the version flag were specified.
+	// Pre-parse the command line options to see if an alternative home dir or
+	// the version flag were specified.
 	preCfg := cfg
 
 	preParser := flags.NewParser(&preCfg, flags.None)
@@ -217,20 +215,9 @@ func loadConfig() (*vspdConfig, error) {
 	appName = strings.TrimSuffix(appName, filepath.Ext(appName))
 	usageMessage := fmt.Sprintf("Use %s -h to show usage", appName)
 
-	// Update the home directory if specified on CLI. Since the home
-	// directory is updated, other variables need to be updated to
-	// reflect the new changes.
+	// Update the home directory if specified on CLI.
 	if preCfg.HomeDir != "" {
-		cfg.HomeDir = cleanAndExpandPath(cfg.HomeDir)
-		cfg.HomeDir, _ = filepath.Abs(preCfg.HomeDir)
-
-		if preCfg.ConfigFile == defaultConfigFile {
-			defaultConfigFile = filepath.Join(cfg.HomeDir, defaultConfigFilename)
-			preCfg.ConfigFile = defaultConfigFile
-			cfg.ConfigFile = defaultConfigFile
-		} else {
-			cfg.ConfigFile = preCfg.ConfigFile
-		}
+		cfg.HomeDir = cleanAndExpandPath(preCfg.HomeDir)
 	}
 
 	// Create the home directory if it doesn't already exist.
@@ -243,15 +230,16 @@ func loadConfig() (*vspdConfig, error) {
 
 	// Create a default config file when one does not exist and the user did
 	// not specify an override.
-	if preCfg.ConfigFile == defaultConfigFile && !fileExists(preCfg.ConfigFile) {
+	configFile := filepath.Join(cfg.HomeDir, defaultConfigFilename)
+	if !fileExists(configFile) {
 		preIni := flags.NewIniParser(preParser)
-		err = preIni.WriteFile(preCfg.ConfigFile,
+		err = preIni.WriteFile(configFile,
 			flags.IniIncludeComments|flags.IniIncludeDefaults)
 		if err != nil {
 			return nil, fmt.Errorf("error creating a default "+
 				"config file: %w", err)
 		}
-		fmt.Printf("Config file with default values written to %s\n", defaultConfigFile)
+		fmt.Printf("Config file with default values written to %s\n", configFile)
 
 		// File created, user now has to fill in values. Proceeding with the
 		// default file just causes errors.
@@ -261,7 +249,7 @@ func loadConfig() (*vspdConfig, error) {
 	// Load additional config from file.
 	parser := flags.NewParser(&cfg, flags.None)
 
-	err = flags.NewIniParser(parser).ParseFile(preCfg.ConfigFile)
+	err = flags.NewIniParser(parser).ParseFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing config file: %w", err)
 	}
