@@ -25,24 +25,9 @@ import (
 	flags "github.com/jessevdk/go-flags"
 )
 
-const appName = "vspd"
-
-var (
-	defaultListen         = ":8800"
-	defaultLogLevel       = "debug"
-	defaultMaxLogSize     = int64(10)
-	defaultLogsToKeep     = 20
-	defaultVSPFee         = 3.0
-	defaultNetworkName    = "testnet"
-	defaultHomeDir        = dcrutil.AppDataDir(appName, false)
-	defaultConfigFilename = fmt.Sprintf("%s.conf", appName)
-	defaultDBFilename     = fmt.Sprintf("%s.db", appName)
-	defaultDcrdHost       = "127.0.0.1"
-	defaultWalletHost     = "127.0.0.1"
-	defaultWebServerDebug = false
-	defaultBackupInterval = time.Minute * 3
-	defaultVspClosed      = false
-	defaultDesignation    = "Voting Service Provider"
+const (
+	configFilename = "vspd.conf"
+	dbFilename     = "vspd.db"
 )
 
 // vspdConfig defines the configuration options for the vspd process.
@@ -83,6 +68,22 @@ type vspdConfig struct {
 	dcrdCert                                  []byte
 	walletHosts, walletUsers, walletPasswords []string
 	walletCerts                               [][]byte
+}
+
+var defaultConfig = vspdConfig{
+	Listen:         ":8800",
+	LogLevel:       "debug",
+	MaxLogSize:     int64(10),
+	LogsToKeep:     20,
+	NetworkName:    "testnet",
+	VSPFee:         3.0,
+	HomeDir:        dcrutil.AppDataDir("vspd", false),
+	DcrdHost:       "127.0.0.1",
+	WalletHosts:    "127.0.0.1",
+	WebServerDebug: false,
+	BackupInterval: time.Minute * 3,
+	VspClosed:      false,
+	Designation:    "Voting Service Provider",
 }
 
 // fileExists reports whether the named file or directory exists.
@@ -170,23 +171,7 @@ func normalizeAddress(addr, defaultPort string) string {
 // while still allowing the user to override settings with config files and
 // command line options.  Command line options always take precedence.
 func loadConfig() (*vspdConfig, error) {
-
-	// Default config.
-	cfg := vspdConfig{
-		Listen:         defaultListen,
-		LogLevel:       defaultLogLevel,
-		MaxLogSize:     defaultMaxLogSize,
-		LogsToKeep:     defaultLogsToKeep,
-		NetworkName:    defaultNetworkName,
-		VSPFee:         defaultVSPFee,
-		HomeDir:        defaultHomeDir,
-		DcrdHost:       defaultDcrdHost,
-		WalletHosts:    defaultWalletHost,
-		WebServerDebug: defaultWebServerDebug,
-		BackupInterval: defaultBackupInterval,
-		VspClosed:      defaultVspClosed,
-		Designation:    defaultDesignation,
-	}
+	cfg := defaultConfig
 
 	// If command line options are requesting help, write it to stdout and exit.
 	if config.WriteHelp(&cfg) {
@@ -230,7 +215,7 @@ func loadConfig() (*vspdConfig, error) {
 
 	// Create a default config file when one does not exist and the user did
 	// not specify an override.
-	configFile := filepath.Join(cfg.HomeDir, defaultConfigFilename)
+	configFile := filepath.Join(cfg.HomeDir, configFilename)
 	if !fileExists(configFile) {
 		preIni := flags.NewIniParser(preParser)
 		err = preIni.WriteFile(configFile,
@@ -407,8 +392,8 @@ func loadConfig() (*vspdConfig, error) {
 		return nil, fmt.Errorf("unknown log level: %s", cfg.LogLevel)
 	}
 
-	// Set the database path
-	cfg.dbPath = filepath.Join(dataDir, defaultDBFilename)
+	// Set the database path.
+	cfg.dbPath = filepath.Join(dataDir, dbFilename)
 
 	// If xpub has been provided, create a new database and exit.
 	if cfg.FeeXPub != "" {
