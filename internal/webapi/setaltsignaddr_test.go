@@ -73,7 +73,7 @@ func TestMain(m *testing.M) {
 	os.Remove(testDb)
 
 	// Create a new blank database for all tests.
-	err := database.CreateNew(testDb, feeXPub, log)
+	err := database.CreateNew(testDb, feeXPub)
 	if err != nil {
 		panic(fmt.Errorf("error creating test database: %w", err))
 	}

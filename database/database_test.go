@@ -91,7 +91,7 @@ func TestDatabase(t *testing.T) {
 	for testName, test := range tests {
 
 		// Create a new blank database for each sub-test.
-		err := CreateNew(testDb, feeXPub, log)
+		err := CreateNew(testDb, feeXPub)
 		if err != nil {
 			t.Fatalf("error creating test database: %v", err)
 		}
