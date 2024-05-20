@@ -410,12 +410,14 @@ func loadConfig() (*vspdConfig, error) {
 		}
 
 		// Create new database.
-		err = database.CreateNew(cfg.dbPath, cfg.FeeXPub, cfg.logger(" DB"))
+		fmt.Printf("Initializing new database at %s\n", cfg.dbPath)
+		err = database.CreateNew(cfg.dbPath, cfg.FeeXPub)
 		if err != nil {
 			return nil, fmt.Errorf("error creating db file %s: %w", cfg.dbPath, err)
 		}
 
 		// Exit with success
+		fmt.Printf("Database initialized\n")
 		os.Exit(0)
 	}
 
