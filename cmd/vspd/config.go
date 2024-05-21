@@ -18,7 +18,6 @@ import (
 
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/hdkeychain/v3"
-	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/internal/version"
@@ -60,9 +59,7 @@ type vspdConfig struct {
 	HomeDir     string `long:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile  string `long:"configfile" no-ini:"true" description:"DEPRECATED: This behavior is no longer available and this option will be removed in a future version of the software."`
 
-	logBackend *slog.Backend
-	logLevel   slog.Level
-
+	logPath                                   string
 	dbPath                                    string
 	network                                   *config.Network
 	dcrdCert                                  []byte
@@ -379,18 +376,8 @@ func loadConfig() (*vspdConfig, error) {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	// Initialize loggers and log rotation.
-	logDir := filepath.Join(cfg.HomeDir, "logs", cfg.network.Name)
-	cfg.logBackend, err = newLogBackend(logDir, appName, cfg.MaxLogSize, cfg.LogsToKeep)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize logger: %w", err)
-	}
-
-	var ok bool
-	cfg.logLevel, ok = slog.LevelFromString(cfg.LogLevel)
-	if !ok {
-		return nil, fmt.Errorf("unknown log level: %s", cfg.LogLevel)
-	}
+	// Set the log path.
+	cfg.logPath = filepath.Join(cfg.HomeDir, "logs", cfg.network.Name)
 
 	// Set the database path.
 	cfg.dbPath = filepath.Join(dataDir, dbFilename)
@@ -428,10 +415,4 @@ func loadConfig() (*vspdConfig, error) {
 	}
 
 	return &cfg, nil
-}
-
-func (cfg *vspdConfig) logger(subsystem string) slog.Logger {
-	log := cfg.logBackend.Logger(subsystem)
-	log.SetLevel(cfg.logLevel)
-	return log
 }
