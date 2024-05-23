@@ -2,7 +2,7 @@
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
-package main
+package vspd
 
 import (
 	"errors"
@@ -29,8 +29,8 @@ const (
 	dbFilename     = "vspd.db"
 )
 
-// vspdConfig defines the configuration options for the vspd process.
-type vspdConfig struct {
+// Config defines the configuration options for the vspd process.
+type Config struct {
 	Listen          string        `long:"listen" ini-name:"listen" description:"The ip:port to listen for API requests."`
 	LogLevel        string        `long:"loglevel" ini-name:"loglevel" description:"Logging level." choice:"trace" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"critical"`
 	MaxLogSize      int64         `long:"maxlogsize" ini-name:"maxlogsize" description:"File size threshold for log file rotation (MB)."`
@@ -59,7 +59,7 @@ type vspdConfig struct {
 	HomeDir     string `long:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile  string `long:"configfile" no-ini:"true" description:"DEPRECATED: This behavior is no longer available and this option will be removed in a future version of the software."`
 
-	// The following fields are derived from the above fields by loadConfig().
+	// The following fields are derived from the above fields by LoadConfig().
 	dataDir                                   string
 	network                                   *config.Network
 	dcrdCert                                  []byte
@@ -67,27 +67,27 @@ type vspdConfig struct {
 	walletCerts                               [][]byte
 }
 
-func (cfg *vspdConfig) Network() *config.Network {
+func (cfg *Config) Network() *config.Network {
 	return cfg.network
 }
 
-func (cfg *vspdConfig) LogDir() string {
+func (cfg *Config) LogDir() string {
 	return filepath.Join(cfg.HomeDir, "logs", cfg.network.Name)
 }
 
-func (cfg *vspdConfig) DatabaseFile() string {
+func (cfg *Config) DatabaseFile() string {
 	return filepath.Join(cfg.dataDir, dbFilename)
 }
 
-func (cfg *vspdConfig) DcrdDetails() (string, string, string, []byte) {
+func (cfg *Config) DcrdDetails() (string, string, string, []byte) {
 	return cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert
 }
 
-func (cfg *vspdConfig) WalletDetails() ([]string, []string, []string, [][]byte) {
+func (cfg *Config) WalletDetails() ([]string, []string, []string, [][]byte) {
 	return cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts
 }
 
-var defaultConfig = vspdConfig{
+var DefaultConfig = Config{
 	Listen:         ":8800",
 	LogLevel:       "debug",
 	MaxLogSize:     int64(10),
@@ -175,7 +175,7 @@ func normalizeAddress(addr, defaultPort string) string {
 	return addr
 }
 
-// loadConfig initializes and parses the config using a config file and command
+// LoadConfig initializes and parses the config using a config file and command
 // line options.
 //
 // The configuration proceeds as follows:
@@ -187,8 +187,8 @@ func normalizeAddress(addr, defaultPort string) string {
 // The above results in vspd functioning properly without any config settings
 // while still allowing the user to override settings with config files and
 // command line options.  Command line options always take precedence.
-func loadConfig() (*vspdConfig, error) {
-	cfg := defaultConfig
+func LoadConfig() (*Config, error) {
+	cfg := DefaultConfig
 
 	// If command line options are requesting help, write it to stdout and exit.
 	if config.WriteHelp(&cfg) {
