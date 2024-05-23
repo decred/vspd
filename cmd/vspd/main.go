@@ -37,7 +37,7 @@ func main() {
 // initLogging uses the provided vspd config to create a logging backend, and
 // returns a function which can be used to create ready-to-use subsystem
 // loggers.
-func initLogging(cfg *vspdConfig) (func(subsystem string) slog.Logger, error) {
+func initLogging(cfg *vspd.Config) (func(subsystem string) slog.Logger, error) {
 	backend, err := newLogBackend(cfg.LogDir(), "vspd", cfg.MaxLogSize, cfg.LogsToKeep)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
@@ -60,7 +60,7 @@ func initLogging(cfg *vspdConfig) (func(subsystem string) slog.Logger, error) {
 // fact that deferred functions do not run when os.Exit() is called.
 func run() int {
 	// Load config file and parse CLI args.
-	cfg, err := loadConfig()
+	cfg, err := vspd.LoadConfig()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "loadConfig error: %v\n", err)
 		return 1
