@@ -59,12 +59,32 @@ type vspdConfig struct {
 	HomeDir     string `long:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile  string `long:"configfile" no-ini:"true" description:"DEPRECATED: This behavior is no longer available and this option will be removed in a future version of the software."`
 
-	logPath                                   string
-	dbPath                                    string
+	// The following fields are derived from the above fields by loadConfig().
+	dataDir                                   string
 	network                                   *config.Network
 	dcrdCert                                  []byte
 	walletHosts, walletUsers, walletPasswords []string
 	walletCerts                               [][]byte
+}
+
+func (cfg *vspdConfig) Network() *config.Network {
+	return cfg.network
+}
+
+func (cfg *vspdConfig) LogDir() string {
+	return filepath.Join(cfg.HomeDir, "logs", cfg.network.Name)
+}
+
+func (cfg *vspdConfig) DatabaseFile() string {
+	return filepath.Join(cfg.dataDir, dbFilename)
+}
+
+func (cfg *vspdConfig) DcrdDetails() (string, string, string, []byte) {
+	return cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert
+}
+
+func (cfg *vspdConfig) WalletDetails() ([]string, []string, []string, [][]byte) {
+	return cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts
 }
 
 var defaultConfig = vspdConfig{
@@ -370,24 +390,20 @@ func loadConfig() (*vspdConfig, error) {
 	cfg.DcrdHost = normalizeAddress(cfg.DcrdHost, cfg.network.DcrdRPCServerPort)
 
 	// Create the data directory.
-	dataDir := filepath.Join(cfg.HomeDir, "data", cfg.network.Name)
-	err = os.MkdirAll(dataDir, 0700)
+	cfg.dataDir = filepath.Join(cfg.HomeDir, "data", cfg.network.Name)
+	err = os.MkdirAll(cfg.dataDir, 0700)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
 	}
 
-	// Set the log path.
-	cfg.logPath = filepath.Join(cfg.HomeDir, "logs", cfg.network.Name)
-
-	// Set the database path.
-	cfg.dbPath = filepath.Join(dataDir, dbFilename)
+	dbPath := cfg.DatabaseFile()
 
 	// If xpub has been provided, create a new database and exit.
 	if cfg.FeeXPub != "" {
 		// If database already exists, return error.
-		if fileExists(cfg.dbPath) {
+		if fileExists(dbPath) {
 			return nil, fmt.Errorf("database already initialized at %s, "+
-				"--feexpub option is not needed", cfg.dbPath)
+				"--feexpub option is not needed", dbPath)
 		}
 
 		// Ensure provided value is a valid key for the selected network.
@@ -397,10 +413,10 @@ func loadConfig() (*vspdConfig, error) {
 		}
 
 		// Create new database.
-		fmt.Printf("Initializing new database at %s\n", cfg.dbPath)
-		err = database.CreateNew(cfg.dbPath, cfg.FeeXPub)
+		fmt.Printf("Initializing new database at %s\n", dbPath)
+		err = database.CreateNew(dbPath, cfg.FeeXPub)
 		if err != nil {
-			return nil, fmt.Errorf("error creating db file %s: %w", cfg.dbPath, err)
+			return nil, fmt.Errorf("error creating db file %s: %w", dbPath, err)
 		}
 
 		// Exit with success
@@ -409,9 +425,9 @@ func loadConfig() (*vspdConfig, error) {
 	}
 
 	// If database does not exist, return error.
-	if !fileExists(cfg.dbPath) {
+	if !fileExists(dbPath) {
 		return nil, fmt.Errorf("no database exists in %s. Run vspd with the"+
-			" --feexpub option to initialize one", dataDir)
+			" --feexpub option to initialize one", cfg.dataDir)
 	}
 
 	return &cfg, nil
