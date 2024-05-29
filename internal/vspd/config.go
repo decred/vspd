@@ -60,11 +60,24 @@ type Config struct {
 	ConfigFile  string `long:"configfile" no-ini:"true" description:"DEPRECATED: This behavior is no longer available and this option will be removed in a future version of the software."`
 
 	// The following fields are derived from the above fields by LoadConfig().
-	dataDir                                   string
-	network                                   *config.Network
-	dcrdCert                                  []byte
-	walletHosts, walletUsers, walletPasswords []string
-	walletCerts                               [][]byte
+	dataDir       string
+	network       *config.Network
+	dcrdDetails   *DcrdDetails
+	walletDetails *WalletDetails
+}
+
+type DcrdDetails struct {
+	User     string
+	Password string
+	Host     string
+	Cert     []byte
+}
+
+type WalletDetails struct {
+	Users     []string
+	Passwords []string
+	Hosts     []string
+	Certs     [][]byte
 }
 
 func (cfg *Config) Network() *config.Network {
@@ -79,12 +92,12 @@ func (cfg *Config) DatabaseFile() string {
 	return filepath.Join(cfg.dataDir, dbFilename)
 }
 
-func (cfg *Config) DcrdDetails() (string, string, string, []byte) {
-	return cfg.DcrdUser, cfg.DcrdPass, cfg.DcrdHost, cfg.dcrdCert
+func (cfg *Config) DcrdDetails() *DcrdDetails {
+	return cfg.dcrdDetails
 }
 
-func (cfg *Config) WalletDetails() ([]string, []string, []string, [][]byte) {
-	return cfg.walletUsers, cfg.walletPasswords, cfg.walletHosts, cfg.walletCerts
+func (cfg *Config) WalletDetails() *WalletDetails {
+	return cfg.walletDetails
 }
 
 var DefaultConfig = Config{
@@ -319,9 +332,20 @@ func LoadConfig() (*Config, error) {
 
 	// Load dcrd RPC certificate.
 	cfg.DcrdCert = cleanAndExpandPath(cfg.DcrdCert)
-	cfg.dcrdCert, err = os.ReadFile(cfg.DcrdCert)
+	dcrdCert, err := os.ReadFile(cfg.DcrdCert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read dcrd cert file: %w", err)
+	}
+
+	// Add default port for the active network if there is no port specified.
+	cfg.DcrdHost = normalizeAddress(cfg.DcrdHost, cfg.network.DcrdRPCServerPort)
+
+	// All dcrd connection details are validated and preprocessed.
+	cfg.dcrdDetails = &DcrdDetails{
+		User:     cfg.DcrdUser,
+		Password: cfg.DcrdPass,
+		Host:     cfg.DcrdHost,
+		Cert:     dcrdCert,
 	}
 
 	// Ensure the dcrwallet RPC username is set.
@@ -340,20 +364,20 @@ func LoadConfig() (*Config, error) {
 	}
 
 	// Parse list of wallet hosts.
-	cfg.walletHosts = strings.Split(cfg.WalletHosts, ",")
-	numHost := len(cfg.walletHosts)
+	walletHosts := strings.Split(cfg.WalletHosts, ",")
+	numHost := len(walletHosts)
 
 	// An RPC username must be specified for each wallet host.
-	cfg.walletUsers = strings.Split(cfg.WalletUsers, ",")
-	numUser := len(cfg.walletUsers)
+	walletUsers := strings.Split(cfg.WalletUsers, ",")
+	numUser := len(walletUsers)
 	if numUser != numHost {
 		return nil, fmt.Errorf("%d wallet hosts specified, expected %d RPC usernames, got %d",
 			numHost, numHost, numUser)
 	}
 
 	// An RPC password must be specified for each wallet host.
-	cfg.walletPasswords = strings.Split(cfg.WalletPasswords, ",")
-	numPass := len(cfg.walletPasswords)
+	walletPasswords := strings.Split(cfg.WalletPasswords, ",")
+	numPass := len(walletPasswords)
 	if numPass != numHost {
 		return nil, fmt.Errorf("%d wallet hosts specified, expected %d RPC passwords, got %d",
 			numHost, numHost, numPass)
@@ -368,10 +392,10 @@ func LoadConfig() (*Config, error) {
 	}
 
 	// Load dcrwallet RPC certificate(s).
-	cfg.walletCerts = make([][]byte, numCert)
+	walletCerts := make([][]byte, numCert)
 	for i := 0; i < numCert; i++ {
 		certs[i] = cleanAndExpandPath(certs[i])
-		cfg.walletCerts[i], err = os.ReadFile(certs[i])
+		walletCerts[i], err = os.ReadFile(certs[i])
 		if err != nil {
 			return nil, fmt.Errorf("failed to read dcrwallet cert file: %w", err)
 		}
@@ -385,9 +409,16 @@ func LoadConfig() (*Config, error) {
 
 	// Add default port for the active network if there is no port specified.
 	for i := 0; i < numHost; i++ {
-		cfg.walletHosts[i] = normalizeAddress(cfg.walletHosts[i], cfg.network.WalletRPCServerPort)
+		walletHosts[i] = normalizeAddress(walletHosts[i], cfg.network.WalletRPCServerPort)
 	}
-	cfg.DcrdHost = normalizeAddress(cfg.DcrdHost, cfg.network.DcrdRPCServerPort)
+
+	// All dcrwallet connection details are validated and preprocessed.
+	cfg.walletDetails = &WalletDetails{
+		Users:     walletUsers,
+		Passwords: walletPasswords,
+		Hosts:     walletHosts,
+		Certs:     walletCerts,
+	}
 
 	// Create the data directory.
 	cfg.dataDir = filepath.Join(cfg.HomeDir, "data", cfg.network.Name)
