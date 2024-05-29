@@ -118,14 +118,14 @@ func run() int {
 
 	// Create RPC client for local dcrd instance (used for broadcasting and
 	// checking the status of fee transactions).
-	dUser, dPass, dHost, dCert := cfg.DcrdDetails()
-	dcrd := rpc.SetupDcrd(dUser, dPass, dHost, dCert, network.Params, rpcLog, blockNotifChan)
+	dd := cfg.DcrdDetails()
+	dcrd := rpc.SetupDcrd(dd.User, dd.Password, dd.Host, dd.Cert, network.Params, rpcLog, blockNotifChan)
 
 	defer dcrd.Close()
 
 	// Create RPC client for remote dcrwallet instances (used for voting).
-	wUsers, wPasswords, wHosts, wCerts := cfg.WalletDetails()
-	wallets := rpc.SetupWallet(wUsers, wPasswords, wHosts, wCerts, network.Params, rpcLog)
+	wd := cfg.WalletDetails()
+	wallets := rpc.SetupWallet(wd.Users, wd.Passwords, wd.Hosts, wd.Certs, network.Params, rpcLog)
 	defer wallets.Close()
 
 	// Create webapi server.
