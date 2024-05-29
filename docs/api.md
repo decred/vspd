@@ -56,7 +56,6 @@ when a VSP is closed will result in an error.
         "voted":25,
         "totalvotingwallets":3,
         "votingwalletsonline":3,
-        "revoked":3,
         "expired":2,
         "missed":1,
         "blockheight":623212,
