@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/decred/slog"
-	"github.com/decred/vspd/types/v2"
+	"github.com/decred/vspd/types/v3"
 )
 
 // TestErrorDetails ensures errors returned by client.do contain adequate

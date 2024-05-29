@@ -1,12 +1,14 @@
-module github.com/decred/vspd/client/v3
+module github.com/decred/vspd/client/v4
 
 go 1.19
 
 require (
 	github.com/decred/dcrd/txscript/v4 v4.1.0
 	github.com/decred/slog v1.2.0
-	github.com/decred/vspd/types/v2 v2.1.0
+	github.com/decred/vspd/types/v3 v3.0.0
 )
+
+replace github.com/decred/vspd/types/v3 => ../types
 
 require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
