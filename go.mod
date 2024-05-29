@@ -16,8 +16,8 @@ require (
 	github.com/decred/dcrd/txscript/v4 v4.1.0
 	github.com/decred/dcrd/wire v1.6.0
 	github.com/decred/slog v1.2.0
-	github.com/decred/vspd/client/v3 v3.0.0
-	github.com/decred/vspd/types/v2 v2.1.0
+	github.com/decred/vspd/client/v4 v4.0.0
+	github.com/decred/vspd/types/v3 v3.0.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/gorilla/sessions v1.2.2
@@ -26,6 +26,11 @@ require (
 	github.com/jrick/logrotate v1.0.0
 	github.com/jrick/wsrpc/v2 v2.3.5
 	go.etcd.io/bbolt v1.3.9
+)
+
+replace (
+	github.com/decred/vspd/client/v4 => ./client
+	github.com/decred/vspd/types/v3 => ./types
 )
 
 require (

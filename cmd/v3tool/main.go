@@ -14,10 +14,10 @@ import (
 	"time"
 
 	"github.com/decred/slog"
-	"github.com/decred/vspd/client/v3"
+	"github.com/decred/vspd/client/v4"
 	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/internal/signal"
-	"github.com/decred/vspd/types/v2"
+	"github.com/decred/vspd/types/v3"
 )
 
 const (

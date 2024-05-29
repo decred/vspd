@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2023 The Decred developers
+// Copyright (c) 2022-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -18,7 +18,7 @@ import (
 
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/slog"
-	"github.com/decred/vspd/types/v2"
+	"github.com/decred/vspd/types/v3"
 )
 
 type Client struct {
