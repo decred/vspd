@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2020-2023 The Decred developers
+# Copyright (c) 2020-2024 The Decred developers
 # Use of this source code is governed by an ISC
 # license that can be found in the LICENSE file.
 #
@@ -11,30 +11,33 @@ set -e
 
 go version
 
-# Run tests on root module and all submodules.
-echo "==> test all modules"
-ROOTPKG="github.com/decred/vspd"
-GORACE="halt_on_error=1" go test -race $ROOTPKG/...
+# This list needs to be updated if new submodules are added to the vspd repo.
+submodules="client types"
 
-# Find submodules.
-ROOTPKGPATTERN=$(echo $ROOTPKG | sed 's/\\/\\\\/g' | sed 's/\//\\\//g')
-MODPATHS=$(go list -m all | grep "^$ROOTPKGPATTERN" | cut -d' ' -f1)
+# Test main module.
+echo "==> test main module"
+GORACE="halt_on_error=1" go test -race ./...
 
-for module in $MODPATHS; do
-
-  echo "==> lint ${module}"
-
-  # Get the path of the module.
-  MODNAME=$(echo $module | sed -E -e "s/^$ROOTPKGPATTERN//" \
-    -e 's,^/,,' -e 's,/v[0-9]+$,,')
-  if [ -z "$MODNAME" ]; then
-    MODNAME=.
-  fi
-
-  # Run commands in the module directory as a subshell.
+# Test all submodules in a subshell.
+for module in $submodules
+do
+  echo "==> test ${module}"
   (
-    cd $MODNAME
+    cd $module
+    GORACE="halt_on_error=1" go test -race .
+  )
+done
 
+# Lint main module.
+echo "==> lint main module"
+golangci-lint run
+
+# Lint all submodules in a subshell.
+for module in $submodules
+do
+  echo "==> lint ${module}"
+  (
+    cd $module
     golangci-lint run
   )
 done
