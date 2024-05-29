@@ -29,7 +29,6 @@ func (w *WebAPI) vspInfo(c *gin.Context) {
 		Voted:               cachedStats.Voted,
 		TotalVotingWallets:  cachedStats.TotalVotingWallets,
 		VotingWalletsOnline: cachedStats.VotingWalletsOnline,
-		Revoked:             cachedStats.Expired + cachedStats.Missed,
 		Expired:             cachedStats.Expired,
 		Missed:              cachedStats.Missed,
 		BlockHeight:         cachedStats.BlockHeight,
