@@ -17,8 +17,6 @@ import (
 	"time"
 
 	"github.com/decred/dcrd/dcrutil/v4"
-	"github.com/decred/dcrd/hdkeychain/v3"
-	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/internal/version"
 	flags "github.com/jessevdk/go-flags"
@@ -55,12 +53,11 @@ type Config struct {
 
 	// The following flags should be set on CLI only, not via config file.
 	ShowVersion bool   `long:"version" no-ini:"true" description:"Display version information and exit."`
-	FeeXPub     string `long:"feexpub" no-ini:"true" description:"Cold wallet xpub used for collecting fees. Should be provided once to initialize a vspd database."`
+	FeeXPub     string `long:"feexpub" no-ini:"true" description:"DEPRECATED: This behavior has been moved into vspadmin and will be removed from vspd in a future version of the software."`
 	HomeDir     string `long:"homedir" no-ini:"true" description:"Path to application home directory. Used for storing VSP database and logs."`
 	ConfigFile  string `long:"configfile" no-ini:"true" description:"DEPRECATED: This behavior is no longer available and this option will be removed in a future version of the software."`
 
 	// The following fields are derived from the above fields by LoadConfig().
-	dataDir       string
 	network       *config.Network
 	dcrdDetails   *DcrdDetails
 	walletDetails *WalletDetails
@@ -89,7 +86,7 @@ func (cfg *Config) LogDir() string {
 }
 
 func (cfg *Config) DatabaseFile() string {
-	return filepath.Join(cfg.dataDir, dbFilename)
+	return filepath.Join(cfg.HomeDir, "data", cfg.network.Name, dbFilename)
 }
 
 func (cfg *Config) DcrdDetails() *DcrdDetails {
@@ -420,45 +417,10 @@ func LoadConfig() (*Config, error) {
 		Certs:     walletCerts,
 	}
 
-	// Create the data directory.
-	cfg.dataDir = filepath.Join(cfg.HomeDir, "data", cfg.network.Name)
-	err = os.MkdirAll(cfg.dataDir, 0700)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create data directory: %w", err)
-	}
-
-	dbPath := cfg.DatabaseFile()
-
-	// If xpub has been provided, create a new database and exit.
-	if cfg.FeeXPub != "" {
-		// If database already exists, return error.
-		if fileExists(dbPath) {
-			return nil, fmt.Errorf("database already initialized at %s, "+
-				"--feexpub option is not needed", dbPath)
-		}
-
-		// Ensure provided value is a valid key for the selected network.
-		_, err = hdkeychain.NewKeyFromString(cfg.FeeXPub, cfg.network.Params)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse feexpub: %w", err)
-		}
-
-		// Create new database.
-		fmt.Printf("Initializing new database at %s\n", dbPath)
-		err = database.CreateNew(dbPath, cfg.FeeXPub)
-		if err != nil {
-			return nil, fmt.Errorf("error creating db file %s: %w", dbPath, err)
-		}
-
-		// Exit with success
-		fmt.Printf("Database initialized\n")
-		os.Exit(0)
-	}
-
 	// If database does not exist, return error.
-	if !fileExists(dbPath) {
-		return nil, fmt.Errorf("no database exists in %s. Run vspd with the"+
-			" --feexpub option to initialize one", cfg.dataDir)
+	if !fileExists(cfg.DatabaseFile()) {
+		return nil, fmt.Errorf("no %s database exists in %s. A new database can"+
+			" be created with vspadmin", cfg.network.Name, cfg.HomeDir)
 	}
 
 	return &cfg, nil
