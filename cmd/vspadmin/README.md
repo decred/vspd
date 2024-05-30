@@ -26,5 +26,15 @@ used for collecting fees as a parameter.
 Example:
 
 ```no-highlight
-  go run ./cmd/vspadmin createdatabase <xpub>
+$ go run ./cmd/vspadmin createdatabase <xpub>
+```
+
+### `writeconfig`
+
+Writes a config file with default values to the application home directory.
+
+Example:
+
+```no-highlight
+$ go run ./cmd/vspadmin writeconfig
 ```

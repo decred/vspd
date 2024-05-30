@@ -92,9 +92,13 @@ vspd. **Do not run a voting wallet on your webserver.**
    receiving `blockconnected` notifications, and for broadcasting and checking
    the status of fee transactions.
 
-1. Run `vspd` with no arguments to write a default config file. Modify the
-   config file to set your dcrd and dcrwallet connection details, and any other
-   required customization.
+1. Use [vspadmin](./cmd/vspadmin) to write a config file containing default
+   values. Modify the config file to set your dcrd and dcrwallet connection
+   details, and any other required customization.
+
+   ```no-highlight
+    $ go run ./cmd/vspadmin writeconfig
+    ```
 
 1. Use [vspadmin](./cmd/vspadmin) to initialize a vpsd database. The xpub key to
    be used for collecting fees must be passed in as an argument.
@@ -103,7 +107,8 @@ vspd. **Do not run a voting wallet on your webserver.**
     $ go run ./cmd/vspadmin createdatabase tpubVppjaMjp8GEW...
     ```
 
-1. Once the database is initialized, vspd can be started for normal operation.
+1. Once the database is initialized and required fields in the config file have
+   been entered, vspd can be started for normal operation.
 
 1. Configure nginx with SSL and set up reverse proxy to forward requests to the
    vspd process. nginx must also set the `X-Forwarded-For` header to make vspd
