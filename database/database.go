@@ -92,8 +92,10 @@ func (vdb *VspDatabase) WriteHotBackupFile() error {
 // - the provided extended pubkey (to be used for deriving fee addresses).
 // - an ed25519 keypair to sign API responses.
 // - a secret key to use for initializing a HTTP cookie store.
+// Note: CreateNew should always initialize a database of the most recent
+// version, meaning that every change described in upgrade_vX.go files is
+// already applied.
 func CreateNew(dbFile, feeXPub string) error {
-
 	db, err := bolt.Open(dbFile, 0600, &bolt.Options{Timeout: 1 * time.Second})
 	if err != nil {
 		return fmt.Errorf("unable to open db file: %w", err)
@@ -108,13 +110,13 @@ func CreateNew(dbFile, feeXPub string) error {
 			return fmt.Errorf("failed to create %s bucket: %w", string(vspBktK), err)
 		}
 
-		// Initialize with initial database version (1).
-		err = vspBkt.Put(versionK, uint32ToBytes(initialVersion))
+		// Set the database version number to the latest.
+		err = vspBkt.Put(versionK, uint32ToBytes(latestVersion))
 		if err != nil {
 			return err
 		}
 
-		// Generate ed25519 key
+		// Generate ed25519 key.
 		_, signKey, err := ed25519.GenerateKey(rand.Reader)
 		if err != nil {
 			return fmt.Errorf("failed to generate signing key: %w", err)
@@ -135,7 +137,7 @@ func CreateNew(dbFile, feeXPub string) error {
 			return err
 		}
 
-		// Store fee xpub
+		// Store fee xpub.
 		err = vspBkt.Put(feeXPubK, []byte(feeXPub))
 		if err != nil {
 			return err
@@ -151,6 +153,12 @@ func CreateNew(dbFile, feeXPub string) error {
 		_, err = vspBkt.CreateBucket(voteChangeBktK)
 		if err != nil {
 			return fmt.Errorf("failed to create %s bucket: %w", string(voteChangeBktK), err)
+		}
+
+		// Create alternate signing address bucket (added in upgrade to v4).
+		_, err = vspBkt.CreateBucket(altSignAddrBktK)
+		if err != nil {
+			return fmt.Errorf("failed to create %s bucket: %w", altSignAddrBktK, err)
 		}
 
 		return nil
