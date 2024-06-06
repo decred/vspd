@@ -5,6 +5,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -54,9 +55,14 @@ func createDatabase(homeDir string, feeXPub string, network *config.Network) err
 	}
 
 	// Ensure provided xpub is a valid key for the selected network.
-	_, err := hdkeychain.NewKeyFromString(feeXPub, network.Params)
+	feeXpub, err := hdkeychain.NewKeyFromString(feeXPub, network.Params)
 	if err != nil {
 		return fmt.Errorf("failed to parse feexpub: %w", err)
+	}
+
+	// Ensure key is public.
+	if feeXpub.IsPrivate() {
+		return errors.New("feexpub is a private key, should be public")
 	}
 
 	// Ensure the data directory exists.
