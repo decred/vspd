@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -77,7 +77,7 @@ func TestDatabase(t *testing.T) {
 		"testTicketFeeExpired":  testTicketFeeExpired,
 		"testFilterTickets":     testFilterTickets,
 		"testCountTickets":      testCountTickets,
-		"testAddressIndex":      testAddressIndex,
+		"testFeeXPub":           testFeeXPub,
 		"testDeleteTicket":      testDeleteTicket,
 		"testVoteChangeRecords": testVoteChangeRecords,
 		"testHTTPBackup":        testHTTPBackup,
@@ -133,16 +133,6 @@ func testCreateNew(t *testing.T) {
 
 	if len(secret) != 32 {
 		t.Fatalf("expected a 32 byte cookie secret, got %d bytes", len(secret))
-	}
-
-	// A newly created DB should store the fee xpub it was initialized with.
-	retrievedXPub, err := db.FeeXPub()
-	if err != nil {
-		t.Fatalf("error getting fee xpub: %v", err)
-	}
-
-	if retrievedXPub != feeXPub {
-		t.Fatalf("expected fee xpub %v, got %v", feeXPub, retrievedXPub)
 	}
 }
 

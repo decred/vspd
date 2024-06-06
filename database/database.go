@@ -138,7 +138,7 @@ func CreateNew(dbFile, feeXPub string) error {
 		}
 
 		// Store fee xpub.
-		err = vspBkt.Put(feeXPubK, []byte(feeXPub))
+		err = insertFeeXPub(tx, feeXPub)
 		if err != nil {
 			return err
 		}
@@ -309,26 +309,6 @@ func (vdb *VspDatabase) KeyPair() (ed25519.PrivateKey, ed25519.PublicKey, error)
 	}
 
 	return signKey, pubKey, err
-}
-
-// FeeXPub retrieves the extended pubkey used for generating fee addresses
-// from the database.
-func (vdb *VspDatabase) FeeXPub() (string, error) {
-	var feeXPub string
-	err := vdb.db.View(func(tx *bolt.Tx) error {
-		vspBkt := tx.Bucket(vspBktK)
-
-		xpubBytes := vspBkt.Get(feeXPubK)
-		if xpubBytes == nil {
-			return nil
-		}
-
-		feeXPub = string(xpubBytes)
-
-		return nil
-	})
-
-	return feeXPub, err
 }
 
 // CookieSecret retrieves the generated cookie store secret key from the
