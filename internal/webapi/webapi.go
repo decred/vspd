@@ -95,17 +95,15 @@ func New(vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
 		log.Errorf("Could not initialize VSP stats cache: %v", err)
 	}
 
-	// Get the last used address index and the feeXpub from the database, and
-	// use them to initialize the address generator.
-	idx, err := vdb.GetLastAddressIndex()
-	if err != nil {
-		return nil, fmt.Errorf("db.GetLastAddressIndex error: %w", err)
-	}
+	// Get the current fee xpub details from the database.
 	feeXPub, err := vdb.FeeXPub()
 	if err != nil {
-		return nil, fmt.Errorf("db.GetFeeXPub error: %w", err)
+		return nil, fmt.Errorf("db.FeeXPub error: %w", err)
 	}
-	addrGen, err := newAddressGenerator(feeXPub, cfg.Network.Params, idx, log)
+
+	// Use the retrieved pubkey to initialize an address generator which can
+	// later be used to derive new fee addresses.
+	addrGen, err := newAddressGenerator(feeXPub, cfg.Network.Params, log)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize fee address generator: %w", err)
 	}

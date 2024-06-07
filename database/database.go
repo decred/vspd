@@ -138,7 +138,11 @@ func CreateNew(dbFile, feeXPub string) error {
 		}
 
 		// Store fee xpub.
-		err = insertFeeXPub(tx, feeXPub)
+		xpub := FeeXPub{
+			Key:         feeXPub,
+			LastUsedIdx: 0,
+		}
+		err = insertFeeXPub(tx, xpub)
 		if err != nil {
 			return err
 		}
