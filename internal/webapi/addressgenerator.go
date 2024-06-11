@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2022 The Decred developers
+// Copyright (c) 2020-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -11,6 +11,7 @@ import (
 	"github.com/decred/dcrd/hdkeychain/v3"
 	"github.com/decred/dcrd/txscript/v4/stdaddr"
 	"github.com/decred/slog"
+	"github.com/decred/vspd/database"
 )
 
 type addressGenerator struct {
@@ -20,8 +21,8 @@ type addressGenerator struct {
 	log           slog.Logger
 }
 
-func newAddressGenerator(xPub string, netParams *chaincfg.Params, lastUsedIdx uint32, log slog.Logger) (*addressGenerator, error) {
-	xPubKey, err := hdkeychain.NewKeyFromString(xPub, netParams)
+func newAddressGenerator(xPub database.FeeXPub, netParams *chaincfg.Params, log slog.Logger) (*addressGenerator, error) {
+	xPubKey, err := hdkeychain.NewKeyFromString(xPub.Key, netParams)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +40,7 @@ func newAddressGenerator(xPub string, netParams *chaincfg.Params, lastUsedIdx ui
 	return &addressGenerator{
 		external:      external,
 		netParams:     netParams,
-		lastUsedIndex: lastUsedIdx,
+		lastUsedIndex: xPub.LastUsedIdx,
 		log:           log,
 	}, nil
 }
