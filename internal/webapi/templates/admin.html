@@ -51,12 +51,19 @@
                         id="tabset_1_5"
                         hidden
                     >
+                    <input
+                        type="radio"
+                        name="tabset_1"
+                        id="tabset_1_6"
+                        hidden
+                    >
                     <ul>
                         <li><label for="tabset_1_1">VSP Status</label></li>
                         <li><label for="tabset_1_2">Ticket Search</label></li>
                         <li><label for="tabset_1_3">Missed Tickets</label></li>
-                        <li><label for="tabset_1_4">Database</label></li>
-                        <li><label for="tabset_1_5">Logout</label></li>
+                        <li><label for="tabset_1_4">Fee X Pubs</label></li>
+                        <li><label for="tabset_1_5">Database</label></li>
+                        <li><label for="tabset_1_6">Logout</label></li>
                     </ul>
                     
                     <div>
@@ -215,6 +222,30 @@
                                                 <button class="btn btn-link p-0 code" type="submit">{{ .Hash }}</button>
                                             </form>
                                         </td>
+                                    </tr>
+                                {{ end }}
+                                </tbody>
+                            </table>
+                            {{ end}}
+                        </section>
+
+                        <section>
+                            <h1>All X Pubs</h1>
+                            {{ with .XPubs }}
+                            <table class="mx-auto">
+                                <thead>
+                                    <th>ID</th>
+                                    <th>Key</th>
+                                    <th>Last Address Index</th>
+                                    <th>Retired</th>
+                                </thead>
+                                <tbody>
+                                {{ range . }}
+                                    <tr>
+                                        <td>{{ .ID }}</td>
+                                        <td>{{ .Key }}</td>
+                                        <td>{{ .LastUsedIdx }}</td>
+                                        <td>{{ dateTime .Retired }}</td>
                                     </tr>
                                 {{ end }}
                                 </tbody>

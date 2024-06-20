@@ -246,7 +246,9 @@ table.missed-tickets td {
 .tabset > input:nth-child(4):focus ~ ul li:nth-child(4) label,
 .tabset > input:nth-child(4):hover ~ ul li:nth-child(4) label,
 .tabset > input:nth-child(5):focus ~ ul li:nth-child(5) label,
-.tabset > input:nth-child(5):hover ~ ul li:nth-child(5) label {
+.tabset > input:nth-child(5):hover ~ ul li:nth-child(5) label,
+.tabset > input:nth-child(6):focus ~ ul li:nth-child(6) label,
+.tabset > input:nth-child(6):hover ~ ul li:nth-child(6) label {
     cursor: pointer;
     color: #091440;
 }
@@ -255,7 +257,8 @@ table.missed-tickets td {
 .tabset > input:nth-child(2):checked ~ ul li:nth-child(2) label,
 .tabset > input:nth-child(3):checked ~ ul li:nth-child(3) label,
 .tabset > input:nth-child(4):checked ~ ul li:nth-child(4) label,
-.tabset > input:nth-child(5):checked ~ ul li:nth-child(5) label {
+.tabset > input:nth-child(5):checked ~ ul li:nth-child(5) label,
+.tabset > input:nth-child(6):checked ~ ul li:nth-child(6) label {
     border-bottom: 5px solid #2ed8a3;
     color: #091440;
     cursor: default;
@@ -275,6 +278,7 @@ table.missed-tickets td {
 .tabset > input:nth-child(2):checked ~ div > section:nth-child(2),
 .tabset > input:nth-child(3):checked ~ div > section:nth-child(3),
 .tabset > input:nth-child(4):checked ~ div > section:nth-child(4),
-.tabset > input:nth-child(5):checked ~ div > section:nth-child(5) {
+.tabset > input:nth-child(5):checked ~ div > section:nth-child(5),
+.tabset > input:nth-child(6):checked ~ div > section:nth-child(6) {
     position:static;
 }

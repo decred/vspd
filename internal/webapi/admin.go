@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023 The Decred developers
+// Copyright (c) 2020-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -155,12 +155,20 @@ func (w *WebAPI) adminPage(c *gin.Context) {
 
 	missed.SortByPurchaseHeight()
 
+	xpubs, err := w.db.AllXPubs()
+	if err != nil {
+		w.log.Errorf("db.AllXPubs error: %v", err)
+		c.String(http.StatusInternalServerError, "Error getting xpubs from db")
+		return
+	}
+
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"WebApiCache":   cacheData,
 		"WebApiCfg":     w.cfg,
 		"WalletStatus":  w.walletStatus(c),
 		"DcrdStatus":    w.dcrdStatus(c),
 		"MissedTickets": missed,
+		"XPubs":         xpubs,
 	})
 }
 
@@ -231,6 +239,13 @@ func (w *WebAPI) ticketSearch(c *gin.Context) {
 
 	missed.SortByPurchaseHeight()
 
+	xpubs, err := w.db.AllXPubs()
+	if err != nil {
+		w.log.Errorf("db.AllXPubs error: %v", err)
+		c.String(http.StatusInternalServerError, "Error getting xpubs from db")
+		return
+	}
+
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"SearchResult": searchResult{
 			Hash:            hash,
@@ -246,6 +261,7 @@ func (w *WebAPI) ticketSearch(c *gin.Context) {
 		"WalletStatus":  w.walletStatus(c),
 		"DcrdStatus":    w.dcrdStatus(c),
 		"MissedTickets": missed,
+		"XPubs":         xpubs,
 	})
 }
 
