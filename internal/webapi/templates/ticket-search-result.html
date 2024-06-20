@@ -51,11 +51,8 @@
                     <a href="{{ addressURL .Ticket.FeeAddress }}">
                         {{ .Ticket.FeeAddress }}
                     </a>
+                    (XPub ID: {{ .Ticket.FeeAddressXPubID }} Address: {{ .Ticket.FeeAddressIndex }})
                 </td>
-            </tr>
-            <tr>
-                <th>Fee Address Index</th>
-                <td>{{ .Ticket.FeeAddressIndex }}</td>
             </tr>
             <tr>
                 <th>Fee Amount</th>
