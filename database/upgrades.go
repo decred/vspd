@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 The Decred developers
+// Copyright (c) 2021-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -30,10 +30,17 @@ const (
 	// to verify messages sent to the vspd.
 	altSignAddrVersion = 4
 
+	// xPubBucketVersion changes how the xpub key and its associated addr index
+	// are stored. Previously only a single key was supported because it was
+	// stored as a single value in the root bucket. Now a dedicated bucket which
+	// can hold multiple keys is used, enabling support for historic retired
+	// keys as well as the current key.
+	xPubBucketVersion = 5
+
 	// latestVersion is the latest version of the database that is understood by
 	// vspd. Databases with recorded versions higher than this will fail to open
 	// (meaning any upgrades prevent reverting to older software).
-	latestVersion = altSignAddrVersion
+	latestVersion = xPubBucketVersion
 )
 
 // upgrades maps between old database versions and the upgrade function to
@@ -42,6 +49,7 @@ var upgrades = []func(tx *bolt.DB, log slog.Logger) error{
 	initialVersion:        removeOldFeeTxUpgrade,
 	removeOldFeeTxVersion: ticketBucketUpgrade,
 	ticketBucketVersion:   altSignAddrUpgrade,
+	altSignAddrVersion:    xPubBucketUpgrade,
 }
 
 // v1Ticket has the json tags required to unmarshal tickets stored in the

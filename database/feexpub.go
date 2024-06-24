@@ -5,14 +5,20 @@
 package database
 
 import (
+	"encoding/json"
 	"fmt"
 
 	bolt "go.etcd.io/bbolt"
 )
 
+// FeeXPub is serialized to json and stored in bbolt db.
 type FeeXPub struct {
-	Key         string
-	LastUsedIdx uint32
+	ID          uint32 `json:"id"`
+	Key         string `json:"key"`
+	LastUsedIdx uint32 `json:"lastusedidx"`
+	// Retired is a unix timestamp representing the moment the key was retired,
+	// or zero for the currently active key.
+	Retired int64 `json:"retired"`
 }
 
 // insertFeeXPub stores the provided pubkey in the database, regardless of
@@ -20,43 +26,74 @@ type FeeXPub struct {
 func insertFeeXPub(tx *bolt.Tx, xpub FeeXPub) error {
 	vspBkt := tx.Bucket(vspBktK)
 
-	err := vspBkt.Put(feeXPubK, []byte(xpub.Key))
+	keyBkt, err := vspBkt.CreateBucketIfNotExists(xPubBktK)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get %s bucket: %w", string(xPubBktK), err)
 	}
 
-	return vspBkt.Put(lastAddressIndexK, uint32ToBytes(xpub.LastUsedIdx))
+	keyBytes, err := json.Marshal(xpub)
+	if err != nil {
+		return fmt.Errorf("could not marshal xpub: %w", err)
+	}
+
+	err = keyBkt.Put(uint32ToBytes(xpub.ID), keyBytes)
+	if err != nil {
+		return fmt.Errorf("could not store xpub: %w", err)
+	}
+
+	return nil
 }
 
-// FeeXPub retrieves the extended pubkey used for generating fee addresses
-// from the database.
+// FeeXPub retrieves the currently active extended pubkey used for generating
+// fee addresses from the database.
 func (vdb *VspDatabase) FeeXPub() (FeeXPub, error) {
-	var feeXPub string
-	var idx uint32
+	xpubs, err := vdb.AllXPubs()
+	if err != nil {
+		return FeeXPub{}, err
+	}
+
+	// Find the active xpub - the one with the highest ID.
+	var highest uint32
+	for id := range xpubs {
+		if id > highest {
+			highest = id
+		}
+	}
+
+	return xpubs[highest], nil
+}
+
+// AllXPubs retrieves the current and any retired extended pubkeys from the
+// database.
+func (vdb *VspDatabase) AllXPubs() (map[uint32]FeeXPub, error) {
+	xpubs := make(map[uint32]FeeXPub)
+
 	err := vdb.db.View(func(tx *bolt.Tx) error {
-		vspBkt := tx.Bucket(vspBktK)
+		bkt := tx.Bucket(vspBktK).Bucket(xPubBktK)
 
-		// Get the key.
-		xpubBytes := vspBkt.Get(feeXPubK)
-		if xpubBytes == nil {
-			return nil
+		if bkt == nil {
+			return fmt.Errorf("%s bucket doesn't exist", string(xPubBktK))
 		}
-		feeXPub = string(xpubBytes)
 
-		// Get the last used address index.
-		idxBytes := vspBkt.Get(lastAddressIndexK)
-		if idxBytes == nil {
+		err := bkt.ForEach(func(k, v []byte) error {
+			var xpub FeeXPub
+			err := json.Unmarshal(v, &xpub)
+			if err != nil {
+				return fmt.Errorf("could not unmarshal xpub key: %w", err)
+			}
+
+			xpubs[bytesToUint32(k)] = xpub
+
 			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("error iterating over %s bucket: %w", string(xPubBktK), err)
 		}
-		idx = bytesToUint32(idxBytes)
 
 		return nil
 	})
-	if err != nil {
-		return FeeXPub{}, fmt.Errorf("could not retrieve fee xpub: %w", err)
-	}
 
-	return FeeXPub{Key: feeXPub, LastUsedIdx: idx}, nil
+	return xpubs, err
 }
 
 // SetLastAddressIndex updates the last index used to derive a new fee address

@@ -39,14 +39,13 @@ var (
 	voteChangeBktK = []byte("votechangebkt")
 	// version is the current database version.
 	versionK = []byte("version")
-	// feeXPub is the extended public key used for collecting VSP fees.
-	feeXPubK = []byte("feeXPub")
+	// xPubBktK stores current and historic extended public keys used for
+	// collecting VSP fees.
+	xPubBktK = []byte("xpubbkt")
 	// cookieSecret is the secret key for initializing the cookie store.
 	cookieSecretK = []byte("cookieSecret")
 	// privatekey is the private key.
 	privateKeyK = []byte("privatekey")
-	// lastaddressindex is the index of the last address used for fees.
-	lastAddressIndexK = []byte("lastaddressindex")
 	// altSignAddrBktK stores alternate signing addresses.
 	altSignAddrBktK = []byte("altsigbkt")
 )
@@ -137,12 +136,14 @@ func CreateNew(dbFile, feeXPub string) error {
 			return err
 		}
 
-		// Store fee xpub.
-		xpub := FeeXPub{
+		// Insert the initial fee xpub with ID 0.
+		newKey := FeeXPub{
+			ID:          0,
 			Key:         feeXPub,
 			LastUsedIdx: 0,
+			Retired:     0,
 		}
-		err = insertFeeXPub(tx, xpub)
+		err = insertFeeXPub(tx, newKey)
 		if err != nil {
 			return err
 		}

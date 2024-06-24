@@ -17,6 +17,7 @@ func exampleTicket() Ticket {
 		Hash:              randString(64, hexCharset),
 		CommitmentAddress: randString(35, addrCharset),
 		FeeAddressIndex:   12345,
+		FeeAddressXPubID:  10,
 		FeeAddress:        randString(35, addrCharset),
 		FeeAmount:         10000000,
 		FeeExpiration:     4,
@@ -129,6 +130,7 @@ func testUpdateTicket(t *testing.T) {
 	ticket.FeeAmount = ticket.FeeAmount + 1
 	ticket.FeeExpiration = ticket.FeeExpiration + 1
 	ticket.VoteChoices = map[string]string{"New agenda": "New value"}
+	ticket.FeeAddressXPubID = 20
 
 	err = db.UpdateTicket(ticket)
 	if err != nil {
