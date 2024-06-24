@@ -50,6 +50,7 @@ var (
 	hashK              = []byte("Hash")
 	purchaseHeightK    = []byte("PurchaseHeight")
 	commitmentAddressK = []byte("CommitmentAddress")
+	feeAddressXPubIDK  = []byte("FeeAddressXPubID")
 	feeAddressIndexK   = []byte("FeeAddressIndex")
 	feeAddressK        = []byte("FeeAddress")
 	feeAmountK         = []byte("FeeAmount")
@@ -69,6 +70,7 @@ type Ticket struct {
 	Hash              string
 	PurchaseHeight    int64
 	CommitmentAddress string
+	FeeAddressXPubID  uint32
 	FeeAddressIndex   uint32
 	FeeAddress        string
 	FeeAmount         int64
@@ -184,6 +186,9 @@ func putTicketInBucket(bkt *bolt.Bucket, ticket Ticket) error {
 	if err = bkt.Put(feeAddressIndexK, uint32ToBytes(ticket.FeeAddressIndex)); err != nil {
 		return err
 	}
+	if err = bkt.Put(feeAddressXPubIDK, uint32ToBytes(ticket.FeeAddressXPubID)); err != nil {
+		return err
+	}
 	if err = bkt.Put(feeAmountK, int64ToBytes(ticket.FeeAmount)); err != nil {
 		return err
 	}
@@ -216,6 +221,7 @@ func getTicketFromBkt(bkt *bolt.Bucket) (Ticket, error) {
 	ticket.Outcome = TicketOutcome(bkt.Get(outcomeK))
 
 	ticket.PurchaseHeight = bytesToInt64(bkt.Get(purchaseHeightK))
+	ticket.FeeAddressXPubID = bytesToUint32(bkt.Get(feeAddressXPubIDK))
 	ticket.FeeAddressIndex = bytesToUint32(bkt.Get(feeAddressIndexK))
 	ticket.FeeAmount = bytesToInt64(bkt.Get(feeAmountK))
 	ticket.FeeExpiration = bytesToInt64(bkt.Get(feeExpirationK))

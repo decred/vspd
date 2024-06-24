@@ -195,6 +195,7 @@ func (w *WebAPI) feeAddress(c *gin.Context) {
 		PurchaseHeight:    purchaseHeight,
 		CommitmentAddress: commitmentAddress,
 		FeeAddressIndex:   newAddressIdx,
+		FeeAddressXPubID:  w.addrGen.xPubID(),
 		FeeAddress:        newAddress,
 		Confirmed:         confirmed,
 		FeeAmount:         int64(fee),

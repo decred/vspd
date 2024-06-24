@@ -18,6 +18,7 @@ type addressGenerator struct {
 	external      *hdkeychain.ExtendedKey
 	netParams     *chaincfg.Params
 	lastUsedIndex uint32
+	feeXPubID     uint32
 	log           slog.Logger
 }
 
@@ -41,8 +42,13 @@ func newAddressGenerator(xPub database.FeeXPub, netParams *chaincfg.Params, log 
 		external:      external,
 		netParams:     netParams,
 		lastUsedIndex: xPub.LastUsedIdx,
+		feeXPubID:     xPub.ID,
 		log:           log,
 	}, nil
+}
+
+func (m *addressGenerator) xPubID() uint32 {
+	return m.feeXPubID
 }
 
 // nextAddress increments the last used address counter and returns a new
