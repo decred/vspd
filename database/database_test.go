@@ -78,6 +78,7 @@ func TestDatabase(t *testing.T) {
 		"testFilterTickets":     testFilterTickets,
 		"testCountTickets":      testCountTickets,
 		"testFeeXPub":           testFeeXPub,
+		"testRetireFeeXPub":     testRetireFeeXPub,
 		"testDeleteTicket":      testDeleteTicket,
 		"testVoteChangeRecords": testVoteChangeRecords,
 		"testHTTPBackup":        testHTTPBackup,

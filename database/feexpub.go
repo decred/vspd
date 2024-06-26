@@ -6,7 +6,9 @@ package database
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"time"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -61,6 +63,49 @@ func (vdb *VspDatabase) FeeXPub() (FeeXPub, error) {
 	}
 
 	return xpubs[highest], nil
+}
+
+// RetireXPub will mark the currently active xpub key as retired and insert the
+// provided pubkey as the currently active one.
+func (vdb *VspDatabase) RetireXPub(xpub string) error {
+	// Ensure the new xpub has never been used before.
+	xpubs, err := vdb.AllXPubs()
+	if err != nil {
+		return err
+	}
+	for _, x := range xpubs {
+		if x.Key == xpub {
+			return errors.New("provided xpub has already been used")
+		}
+	}
+
+	current, err := vdb.FeeXPub()
+	if err != nil {
+		return err
+	}
+	current.Retired = time.Now().Unix()
+
+	return vdb.db.Update(func(tx *bolt.Tx) error {
+		// Store the retired xpub.
+		err := insertFeeXPub(tx, current)
+		if err != nil {
+			return err
+		}
+
+		// Insert new xpub.
+		newKey := FeeXPub{
+			ID:          current.ID + 1,
+			Key:         xpub,
+			LastUsedIdx: 0,
+			Retired:     0,
+		}
+		err = insertFeeXPub(tx, newKey)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 // AllXPubs retrieves the current and any retired extended pubkeys from the

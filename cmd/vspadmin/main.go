@@ -12,6 +12,7 @@ import (
 
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/dcrd/hdkeychain/v3"
+	"github.com/decred/slog"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/internal/config"
 	"github.com/decred/vspd/internal/vspd"
@@ -45,6 +46,21 @@ func fileExists(name string) bool {
 	return true
 }
 
+// validatePubkey returns an error if the provided key is invalid, not for the
+// expected network, or it is public instead of private.
+func validatePubkey(key string, network *config.Network) error {
+	parsedKey, err := hdkeychain.NewKeyFromString(key, network.Params)
+	if err != nil {
+		return fmt.Errorf("failed to parse feexpub: %w", err)
+	}
+
+	if parsedKey.IsPrivate() {
+		return errors.New("feexpub is a private key, should be public")
+	}
+
+	return nil
+}
+
 func createDatabase(homeDir string, feeXPub string, network *config.Network) error {
 	dataDir := filepath.Join(homeDir, "data", network.Name)
 	dbFile := filepath.Join(dataDir, dbFilename)
@@ -55,14 +71,9 @@ func createDatabase(homeDir string, feeXPub string, network *config.Network) err
 	}
 
 	// Ensure provided xpub is a valid key for the selected network.
-	feeXpub, err := hdkeychain.NewKeyFromString(feeXPub, network.Params)
+	err := validatePubkey(feeXPub, network)
 	if err != nil {
-		return fmt.Errorf("failed to parse feexpub: %w", err)
-	}
-
-	// Ensure key is public.
-	if feeXpub.IsPrivate() {
-		return errors.New("feexpub is a private key, should be public")
+		return err
 	}
 
 	// Ensure the data directory exists.
@@ -101,6 +112,29 @@ func writeConfig(homeDir string) error {
 		flags.IniIncludeComments|flags.IniIncludeDefaults)
 	if err != nil {
 		return fmt.Errorf("failed to create config file: %w", err)
+	}
+
+	return nil
+}
+
+func retireXPub(homeDir string, feeXPub string, network *config.Network) error {
+	dataDir := filepath.Join(homeDir, "data", network.Name)
+	dbFile := filepath.Join(dataDir, dbFilename)
+
+	// Ensure provided xpub is a valid key for the selected network.
+	err := validatePubkey(feeXPub, network)
+	if err != nil {
+		return err
+	}
+
+	db, err := database.Open(dbFile, slog.Disabled, 999)
+	if err != nil {
+		return fmt.Errorf("error opening db file %s: %w", dbFile, err)
+	}
+
+	err = db.RetireXPub(feeXPub)
+	if err != nil {
+		return fmt.Errorf("db.RetireXPub failed: %w", err)
 	}
 
 	return nil
@@ -160,6 +194,22 @@ func run() int {
 
 		log("Config file with default values written to %s", cfg.HomeDir)
 		log("Edit the file and fill in values specific to your vspd deployment")
+
+	case "retirexpub":
+		if len(remainingArgs) != 2 {
+			log("retirexpub has one required argument, fee xpub")
+			return 1
+		}
+
+		feeXPub := remainingArgs[1]
+
+		err = retireXPub(cfg.HomeDir, feeXPub, network)
+		if err != nil {
+			log("retirexpub failed: %v", err)
+			return 1
+		}
+
+		log("Xpub successfully retired, all future tickets will use the new xpub")
 
 	default:
 		log("%q is not a valid command", remainingArgs[0])
