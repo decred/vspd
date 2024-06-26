@@ -57,3 +57,61 @@ func testFeeXPub(t *testing.T) {
 		t.Fatalf("expected xpub retirement 0, got %d", retrievedXPub.Retired)
 	}
 }
+
+func testRetireFeeXPub(t *testing.T) {
+	// Increment the last used index to simulate some usage.
+	idx := uint32(99)
+	err := db.SetLastAddressIndex(idx)
+	if err != nil {
+		t.Fatalf("error setting address index: %v", err)
+	}
+
+	// Ensure a previously used xpub is rejected.
+	err = db.RetireXPub(feeXPub)
+	if err == nil {
+		t.Fatalf("previous xpub was not rejected")
+	}
+
+	const expectedErr = "provided xpub has already been used"
+	if err == nil || err.Error() != expectedErr {
+		t.Fatalf("incorrect error, expected %q, got %q",
+			expectedErr, err.Error())
+	}
+
+	// An unused xpub should be accepted.
+	const feeXPub2 = "feexpub2"
+	err = db.RetireXPub(feeXPub2)
+	if err != nil {
+		t.Fatalf("retiring xpub failed: %v", err)
+	}
+
+	// Retrieve the new xpub. Index should be incremented, last addr should be
+	// reset to 0, key should not be retired.
+	retrievedXPub, err := db.FeeXPub()
+	if err != nil {
+		t.Fatalf("error getting fee xpub: %v", err)
+	}
+
+	if retrievedXPub.Key != feeXPub2 {
+		t.Fatalf("expected fee xpub %q, got %q", feeXPub2, retrievedXPub.Key)
+	}
+	if retrievedXPub.ID != 1 {
+		t.Fatalf("expected xpub ID 1, got %d", retrievedXPub.ID)
+	}
+	if retrievedXPub.LastUsedIdx != 0 {
+		t.Fatalf("expected xpub last used 0, got %d", retrievedXPub.LastUsedIdx)
+	}
+	if retrievedXPub.Retired != 0 {
+		t.Fatalf("expected xpub retirement 0, got %d", retrievedXPub.Retired)
+	}
+
+	// Old xpub should have retired field set.
+	xpubs, err := db.AllXPubs()
+	if err != nil {
+		t.Fatalf("error getting all fee xpubs: %v", err)
+	}
+
+	if xpubs[0].Retired == 0 {
+		t.Fatalf("old xpub retired field not set")
+	}
+}

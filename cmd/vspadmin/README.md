@@ -38,3 +38,17 @@ Example:
 ```no-highlight
 $ go run ./cmd/vspadmin writeconfig
 ```
+
+### `retirexpub`
+
+Replaces the currently used xpub with a new one. Once an xpub key has been
+retired it can not be used by the VSP again.
+
+**Note:** vspd must be stopped before this command can be used because it
+modifies values in the vspd database.
+
+Example:
+
+```no-highlight
+$ go run ./cmd/vspadmin retirexpub <xpub>
+```
