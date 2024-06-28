@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 The Decred developers
+// Copyright (c) 2021-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -56,7 +56,7 @@ func (d *dcrdataClient) txns(ctx context.Context, txnHashes []string, spends boo
 	}
 
 	url := fmt.Sprintf("%s/api/txs?spends=%t", d.URL, spends)
-	request, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, err
 	}
