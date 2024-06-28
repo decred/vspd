@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"decred.org/dcrwallet/v3/wallet/txrules"
+	"decred.org/dcrwallet/v4/wallet/txrules"
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/vspd/database"
 	"github.com/decred/vspd/rpc"
@@ -58,9 +58,10 @@ func (w *WebAPI) getCurrentFee(dcrdClient *rpc.DcrdRPC) (dcrutil.Amount, error) 
 
 	height := int64(bestBlock.Height)
 	isDCP0010Active := w.cfg.Network.DCP10Active(height)
+	isDCP0012Active := w.cfg.Network.DCP12Active(height)
 
 	fee := txrules.StakePoolTicketFee(sDiff, defaultMinRelayTxFee, int32(bestBlock.Height),
-		w.cfg.VSPFee, w.cfg.Network.Params, isDCP0010Active)
+		w.cfg.VSPFee, w.cfg.Network.Params, isDCP0010Active, isDCP0012Active)
 
 	return fee, nil
 }
