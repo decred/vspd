@@ -8,8 +8,6 @@ require (
 	github.com/decred/vspd/types/v3 v3.0.0
 )
 
-replace github.com/decred/vspd/types/v3 => ../types
-
 require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/dchest/siphash v1.2.3 // indirect
