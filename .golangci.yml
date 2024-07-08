@@ -35,4 +35,3 @@ linters:
     - unconvert
     - unparam
     - unused
-    - vetshadow
