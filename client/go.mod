@@ -19,7 +19,7 @@ require (
 	github.com/decred/dcrd/dcrec/edwards/v2 v2.0.3 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/decred/dcrd/wire v1.7.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
-	golang.org/x/sys v0.12.0 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
