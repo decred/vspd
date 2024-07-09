@@ -28,8 +28,6 @@ require (
 	go.etcd.io/bbolt v1.3.9
 )
 
-replace github.com/decred/vspd/client/v4 => ./client
-
 require (
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
