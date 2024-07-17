@@ -144,6 +144,13 @@ func run() int {
 			if errors.Is(err, context.Canceled) {
 				return 0
 			}
+
+			// Continue to the next ticket if this one already has a paid fee.
+			var apiErr types.ErrorResponse
+			if errors.As(err, &apiErr) && apiErr.Code == types.ErrFeeAlreadyReceived {
+				continue
+			}
+
 			log.Errorf("getFeeAddress error: %v", err)
 			return 1
 		}
