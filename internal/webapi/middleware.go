@@ -290,7 +290,7 @@ func (w *WebAPI) broadcastTicket(c *gin.Context) {
 
 				txBroadcast := func() bool {
 					// Wait for 1 second and try again, max 7 attempts.
-					for i := 0; i < 7; i++ {
+					for range 7 {
 						time.Sleep(1 * time.Second)
 						err := dcrdClient.SendRawTransaction(request.ParentHex)
 						if err == nil {

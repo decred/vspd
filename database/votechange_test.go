@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -39,7 +39,7 @@ func testVoteChangeRecords(t *testing.T) {
 	}
 
 	// Insert some more records, giving us one greater than the limit.
-	for i := 0; i < maxVoteChangeRecords; i++ {
+	for range maxVoteChangeRecords {
 		err = db.SaveVoteChange(hash, record)
 		if err != nil {
 			t.Fatalf("error storing vote change record in database: %v", err)
