@@ -1,6 +1,6 @@
 module github.com/decred/vspd/client/v4
 
-go 1.19
+go 1.22
 
 require (
 	github.com/decred/dcrd/txscript/v4 v4.1.1

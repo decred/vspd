@@ -39,7 +39,6 @@ func TestIndentJSON(t *testing.T) {
 	}
 
 	for testName, test := range tests {
-		test := test
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
 			actual := indentJSONFunc(test.input)
