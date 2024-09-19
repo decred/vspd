@@ -7,13 +7,13 @@ linters:
     - asciicheck
     - bidichk
     - containedctx
+    - copyloopvar
     - dupword
     - durationcheck
     - errcheck
     - errchkjson
     - errorlint
     - exhaustive
-    - exportloopref
     - fatcontext
     - goconst
     - godot
@@ -21,6 +21,7 @@ linters:
     - goimports
     - gosimple
     - govet
+    - grouper
     - ineffassign
     - makezero
     - mirror
@@ -32,6 +33,8 @@ linters:
     - predeclared
     - reassign
     - revive
+    - rowserrcheck
+    - sqlclosecheck
     - staticcheck
     - tparallel
     - typecheck
