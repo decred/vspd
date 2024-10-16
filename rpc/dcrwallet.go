@@ -34,7 +34,7 @@ type WalletConnect struct {
 func SetupWallet(user, pass, addrs []string, cert [][]byte, params *chaincfg.Params, log slog.Logger) WalletConnect {
 	clients := make([]*client, len(addrs))
 
-	for i := 0; i < len(addrs); i++ {
+	for i := range len(addrs) {
 		clients[i] = setup(user[i], pass[i], addrs[i], cert[i], log)
 	}
 
