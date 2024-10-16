@@ -3,7 +3,7 @@ module github.com/decred/vspd
 go 1.20
 
 require (
-	decred.org/dcrwallet/v4 v4.1.2
+	decred.org/dcrwallet/v4 v4.1.3
 	github.com/decred/dcrd/blockchain/stake/v5 v5.0.1
 	github.com/decred/dcrd/blockchain/standalone/v2 v2.2.1
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.4
@@ -20,10 +20,10 @@ require (
 	github.com/decred/vspd/types/v3 v3.0.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-gonic/gin v1.10.0
-	github.com/gorilla/sessions v1.2.2
-	github.com/jessevdk/go-flags v1.5.0
+	github.com/gorilla/sessions v1.3.0
+	github.com/jessevdk/go-flags v1.6.1
 	github.com/jrick/bitset v1.0.0
-	github.com/jrick/logrotate v1.0.0
+	github.com/jrick/logrotate v1.1.2
 	github.com/jrick/wsrpc/v2 v2.3.5
 	go.etcd.io/bbolt v1.3.9
 )
@@ -62,10 +62,10 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/crypto v0.26.0 // indirect
+	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/sys v0.23.0 // indirect
+	golang.org/x/text v0.17.0 // indirect
 	golang.org/x/time v0.3.0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
