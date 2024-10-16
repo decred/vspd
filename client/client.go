@@ -66,6 +66,15 @@ func (c *Client) FeeAddress(ctx context.Context, req types.FeeAddressRequest,
 func (c *Client) PayFee(ctx context.Context, req types.PayFeeRequest,
 	commitmentAddr stdaddr.Address) (*types.PayFeeResponse, error) {
 
+	// TSpendPolicy and TreasuryPolicy are optional but must be an empty map
+	// rather than nil.
+	if req.TSpendPolicy == nil {
+		req.TSpendPolicy = map[string]string{}
+	}
+	if req.TreasuryPolicy == nil {
+		req.TreasuryPolicy = map[string]string{}
+	}
+
 	requestBody, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -109,6 +118,15 @@ func (c *Client) TicketStatus(ctx context.Context, req types.TicketStatusRequest
 
 func (c *Client) SetVoteChoices(ctx context.Context, req types.SetVoteChoicesRequest,
 	commitmentAddr stdaddr.Address) (*types.SetVoteChoicesResponse, error) {
+
+	// TSpendPolicy and TreasuryPolicy are optional but must be an empty map
+	// rather than nil.
+	if req.TSpendPolicy == nil {
+		req.TSpendPolicy = map[string]string{}
+	}
+	if req.TreasuryPolicy == nil {
+		req.TreasuryPolicy = map[string]string{}
+	}
 
 	requestBody, err := json.Marshal(req)
 	if err != nil {
