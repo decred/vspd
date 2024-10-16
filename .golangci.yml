@@ -33,6 +33,7 @@ linters:
     - reassign
     - revive
     - staticcheck
+    - tenv
     - tparallel
     - typecheck
     - unconvert
