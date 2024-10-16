@@ -1,6 +1,6 @@
 module github.com/decred/vspd
 
-go 1.20
+go 1.22
 
 require (
 	decred.org/dcrwallet/v4 v4.1.3
@@ -25,7 +25,7 @@ require (
 	github.com/jrick/bitset v1.0.0
 	github.com/jrick/logrotate v1.1.2
 	github.com/jrick/wsrpc/v2 v2.3.5
-	go.etcd.io/bbolt v1.3.9
+	go.etcd.io/bbolt v1.3.11
 )
 
 require (
