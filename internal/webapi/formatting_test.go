@@ -1,3 +1,7 @@
+// Copyright (c) 2023-2024 The Decred developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package webapi
 
 import (
@@ -39,7 +43,6 @@ func TestIndentJSON(t *testing.T) {
 	}
 
 	for testName, test := range tests {
-		test := test
 		t.Run(testName, func(t *testing.T) {
 			t.Parallel()
 			actual := indentJSONFunc(test.input)

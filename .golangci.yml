@@ -7,13 +7,13 @@ linters:
     - asciicheck
     - bidichk
     - containedctx
+    - copyloopvar
     - dupword
     - durationcheck
     - errcheck
     - errchkjson
     - errorlint
     - exhaustive
-    - exportloopref
     - fatcontext
     - goconst
     - godot
