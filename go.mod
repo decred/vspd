@@ -16,7 +16,7 @@ require (
 	github.com/decred/dcrd/txscript/v4 v4.1.1
 	github.com/decred/dcrd/wire v1.7.0
 	github.com/decred/slog v1.2.0
-	github.com/decred/vspd/client/v4 v4.0.0
+	github.com/decred/vspd/client/v4 v4.0.1
 	github.com/decred/vspd/types/v3 v3.0.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/gin-gonic/gin v1.10.0
