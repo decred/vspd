@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023 The Decred developers
+// Copyright (c) 2020-2024 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -34,7 +34,7 @@ type cacheData struct {
 	// the first time.
 	Initialized bool
 
-	UpdateTime          string
+	UpdateTime          time.Time
 	PubKey              string
 	DatabaseSize        string
 	Voting              int64
@@ -118,7 +118,7 @@ func (c *cache) update() error {
 	defer c.mtx.Unlock()
 
 	c.data.Initialized = true
-	c.data.UpdateTime = dateTime(time.Now().Unix())
+	c.data.UpdateTime = time.Now()
 	c.data.DatabaseSize = humanize.Bytes(dbSize)
 	c.data.Voting = voting
 	c.data.Voted = voted
