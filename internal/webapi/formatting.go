@@ -1,3 +1,7 @@
+// Copyright (c) 2020-2024 The Decred developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
 package webapi
 
 import (
@@ -9,6 +13,7 @@ import (
 
 	"github.com/decred/dcrd/dcrutil/v4"
 	"github.com/decred/slog"
+	"github.com/dustin/go-humanize"
 )
 
 func addressURL(blockExplorerURL string) func(string) string {
@@ -29,8 +34,17 @@ func blockURL(blockExplorerURL string) func(int64) string {
 	}
 }
 
+// dateTime returns a human readable representation of the provided unix
+// timestamp. It includes the local timezone of the server so use on public
+// webpages is not recommended.
 func dateTime(t int64) string {
 	return time.Unix(t, 0).Format("2 Jan 2006 15:04:05 MST")
+}
+
+// timeAgo compares the provided unix timestamp to the current time to return a
+// string like "3 minutes ago".
+func timeAgo(t time.Time) string {
+	return humanize.Time(t)
 }
 
 func stripWss(input string) string {
