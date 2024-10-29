@@ -1,6 +1,7 @@
 html, body {
     height: 100%;
 }
+
 body {
     background-color: #F3F5F6;
     color: #3D5873;
@@ -15,95 +16,8 @@ input[type="search"] {
     appearance: auto;
 }
 
-.navbar {
-    background-color: #F9FAFA;
-}
-
-.navbar a {
-    text-decoration: none;
-}
-
 .page-content {
     flex: 1 0 auto;
-}
-
-.logo--logo {
-    padding-right: 5px;
-    border-right: 0.3px solid #091440;
-}
-.logo--text {
-    padding: 0 5px;
-    font-size: 15px;
-    line-height: 1;
-    color: #091440;
-}
-
-.vsp-overview {
-    color: #8997A5;
-    background-color: #ffffff;
-    font-size: 16px;
-}
-
-.vsp-overview h1 {
-    color: #3D5873;
-    font-size: 28px;
-}
-
-.vsp-stats .vsp-stat-title {
-    font-size: 14px;
-    color: #596D81;
-}
-
-.vsp-stats .vsp-stat-value {
-    font-size: 24px;
-    color: #091440;
-}
-
-.vsp-stats .vsp-stat-value .text-muted{
-    font-size: 18px;
-    color: #8997A5;
-}
-
-.orange {
-    color: #ed6d47;
-}
-
-footer {
-    flex-shrink: 0;
-    font-size: 0.8rem;
-    background-color: #091440;
-    color: #8997a5;
-    width: 100%;
-}
-
-footer .code {
-    word-break: break-word;
-}
-
-.footer__credit {
-    background-color: rgba(237,239,241,.1);
-    text-align: right;
-    color: #8997a5;
-}
-
-@media (max-width: 768px) {
-  .footer__credit {
-        text-align: center;
-    }
-}
-
-.btn-primary, .btn-secondary {
-    outline: 0;
-    -webkit-box-shadow: 1px 3px 14px 0px rgba(0,0,0,0.19);
-            box-shadow: 1px 3px 14px 0px rgba(0,0,0,0.19);
-}
-
-.btn:focus, .btn:active,
-.btn-primary:not(:disabled):not(.disabled):active:focus,
-.btn-primary:not(:disabled):not(.disabled).active:focus {
-    -webkit-box-shadow: none;
-    box-shadow: none;
-    border-color: transparent;
 }
 
 .block__content h1 {
@@ -137,38 +51,190 @@ footer .code {
     background-color: #edeff1;
 }
 
-
-#ticket-table th,
-#ticket-table td {
-    border-top: 1px solid #dee2e6;
+.orange {
+    color: #ed6d47;
 }
 
-#ticket-table th {
-    text-align: right;
+.navbar {
+    background-color: #F9FAFA;
 }
-#ticket-table td {
+
+.navbar a {
+    text-decoration: none;
+}
+
+.logo--logo {
+    padding-right: 5px;
+    border-right: 0.3px solid #091440;
+}
+
+.logo--text {
+    padding: 0 5px;
+    font-size: 15px;
+    line-height: 1;
+    color: #091440;
+}
+
+.vsp-overview {
+    color: #8997A5;
+    background-color: #ffffff;
+    font-size: 16px;
+}
+
+.vsp-overview h1 {
+    color: #3D5873;
+    font-size: 28px;
+}
+
+/* 
+    VSP stats bar
+ */
+
+.vsp-stats .vsp-stat-title {
     font-size: 14px;
-    text-align: left;
-    padding-right: 0;
+    color: #596D81;
+}
+
+.vsp-stats .vsp-stat-value {
+    font-size: 24px;
+    color: #091440;
+}
+
+.vsp-stats .vsp-stat-value .text-muted{
+    font-size: 18px;
+    color: #8997A5;
+}
+
+/*
+    Page footer
+ */
+
+footer {
+    flex-shrink: 0;
+    font-size: 0.8rem;
+    background-color: #091440;
+    color: #8997a5;
     width: 100%;
 }
 
-#ticket-table details table td {
-    font-size: 12px;
+footer .code {
+    word-break: break-word;
 }
 
-#ticket-table .small-text {
-    padding: 10px 16px;
-    font-size: 12px;
+.footer__credit {
+    background-color: rgba(237,239,241,.1);
+    text-align: right;
+    color: #8997a5;
 }
 
-#ticket-table pre {
-    color: #3D5873;
-    font-size: 12px;
-    white-space: pre-wrap;
+@media (max-width: 768px) {
+    .footer__credit {
+        text-align: center;
+    }
 }
 
-.vsp-status-tab {
+/* 
+    Buttons
+ */
+
+.btn-primary, .btn-secondary {
+    outline: 0;
+    -webkit-box-shadow: 1px 3px 14px 0px rgba(0,0,0,0.19);
+            box-shadow: 1px 3px 14px 0px rgba(0,0,0,0.19);
+}
+
+.btn:focus, .btn:active,
+.btn-primary:not(:disabled):not(.disabled):active:focus,
+.btn-primary:not(:disabled):not(.disabled).active:focus {
+    -webkit-box-shadow: none;
+    box-shadow: none;
+    border-color: transparent;
+}
+
+/*
+    Admin page collapsible tabset
+ */
+
+ .vsp-tabset > input {
+    display:block; /* "enable" hidden elements in IE/edge */
+    position:absolute; /* then hide them off-screen */
+    left:-100%;
+}
+
+.vsp-tabset > ul {
+    position:relative;
+    z-index:999;
+    list-style:none;
+    display:flex;
+    padding: 0;
+    margin: 0 0 25px;
+}
+
+.vsp-tabset > ul label {
+    display:inline-block;
+    padding: 10px 20px;
+}
+
+.vsp-tabset > div {
+    position:relative;
+}
+
+/* Highlight labels on hover/focus to indicate they are clickable */
+.vsp-tabset > input:nth-child(1):focus ~ ul li:nth-child(1) label,
+.vsp-tabset > input:nth-child(1):hover ~ ul li:nth-child(1) label,
+.vsp-tabset > input:nth-child(2):focus ~ ul li:nth-child(2) label,
+.vsp-tabset > input:nth-child(2):hover ~ ul li:nth-child(2) label,
+.vsp-tabset > input:nth-child(3):focus ~ ul li:nth-child(3) label,
+.vsp-tabset > input:nth-child(3):hover ~ ul li:nth-child(3) label,
+.vsp-tabset > input:nth-child(4):focus ~ ul li:nth-child(4) label,
+.vsp-tabset > input:nth-child(4):hover ~ ul li:nth-child(4) label,
+.vsp-tabset > input:nth-child(5):focus ~ ul li:nth-child(5) label,
+.vsp-tabset > input:nth-child(5):hover ~ ul li:nth-child(5) label,
+.vsp-tabset > input:nth-child(6):focus ~ ul li:nth-child(6) label,
+.vsp-tabset > input:nth-child(6):hover ~ ul li:nth-child(6) label {
+    cursor: pointer;
+    color: #091440;
+}
+
+/* Highlight the label of the currently selected tab */
+.vsp-tabset > input:nth-child(1):checked ~ ul li:nth-child(1) label,
+.vsp-tabset > input:nth-child(2):checked ~ ul li:nth-child(2) label,
+.vsp-tabset > input:nth-child(3):checked ~ ul li:nth-child(3) label,
+.vsp-tabset > input:nth-child(4):checked ~ ul li:nth-child(4) label,
+.vsp-tabset > input:nth-child(5):checked ~ ul li:nth-child(5) label,
+.vsp-tabset > input:nth-child(6):checked ~ ul li:nth-child(6) label {
+    border-bottom: 5px solid #2ed8a3;
+    color: #091440;
+    cursor: default;
+}
+
+/* By default the collapsible tabs should all be hidden */
+.vsp-tabset > div > section,
+.vsp-tabset > div > section h2 {
+    position:absolute;
+    top:-999em;
+    left:-999em;
+}
+
+.vsp-tabset > div > section {
+    padding: 0 10px 10px 10px;
+}
+
+/* Show tab when its corresponding radio is checked */
+.vsp-tabset > input:nth-child(1):checked ~ div > section:nth-child(1),
+.vsp-tabset > input:nth-child(2):checked ~ div > section:nth-child(2),
+.vsp-tabset > input:nth-child(3):checked ~ div > section:nth-child(3),
+.vsp-tabset > input:nth-child(4):checked ~ div > section:nth-child(4),
+.vsp-tabset > input:nth-child(5):checked ~ div > section:nth-child(5),
+.vsp-tabset > input:nth-child(6):checked ~ div > section:nth-child(6) {
+    position:static;
+}
+
+/* 
+    VSP Status tab
+ */
+ 
+ .vsp-status-tab {
     padding: 10px;
 }
 
@@ -206,79 +272,48 @@ footer .code {
     padding-left: 40px;
 }
 
+
+/* 
+    Ticket Search tab
+ */
+
+#ticket-table th,
+#ticket-table td {
+    border-top: 1px solid #dee2e6;
+}
+
+#ticket-table th {
+    text-align: right;
+}
+#ticket-table td {
+    font-size: 14px;
+    text-align: left;
+    padding-right: 0;
+    width: 100%;
+}
+
+#ticket-table details table td {
+    font-size: 12px;
+}
+
+#ticket-table .small-text {
+    padding: 10px 16px;
+    font-size: 12px;
+}
+
+#ticket-table pre {
+    color: #3D5873;
+    font-size: 12px;
+    white-space: pre-wrap;
+}
+
+/* 
+    Missed tickets tab
+ */
+
 table.missed-tickets th,
 table.missed-tickets td {
     border: 1px solid #edeff1;
     vertical-align: middle;
     text-align: center;
-}
-
-.vsp-tabset > input {
-    display:block; /* "enable" hidden elements in IE/edge */
-    position:absolute; /* then hide them off-screen */
-    left:-100%;
-}
-
-.vsp-tabset > ul {
-    position:relative;
-    z-index:999;
-    list-style:none;
-    display:flex;
-    padding: 0;
-    margin: 0 0 25px;
-}
-
-.vsp-tabset > ul label {
-    display:inline-block;
-    padding: 10px 20px;
-}
-
-.vsp-tabset > div {
-    position:relative;
-}
-
-.vsp-tabset > input:nth-child(1):focus ~ ul li:nth-child(1) label,
-.vsp-tabset > input:nth-child(1):hover ~ ul li:nth-child(1) label,
-.vsp-tabset > input:nth-child(2):focus ~ ul li:nth-child(2) label,
-.vsp-tabset > input:nth-child(2):hover ~ ul li:nth-child(2) label,
-.vsp-tabset > input:nth-child(3):focus ~ ul li:nth-child(3) label,
-.vsp-tabset > input:nth-child(3):hover ~ ul li:nth-child(3) label,
-.vsp-tabset > input:nth-child(4):focus ~ ul li:nth-child(4) label,
-.vsp-tabset > input:nth-child(4):hover ~ ul li:nth-child(4) label,
-.vsp-tabset > input:nth-child(5):focus ~ ul li:nth-child(5) label,
-.vsp-tabset > input:nth-child(5):hover ~ ul li:nth-child(5) label,
-.vsp-tabset > input:nth-child(6):focus ~ ul li:nth-child(6) label,
-.vsp-tabset > input:nth-child(6):hover ~ ul li:nth-child(6) label {
-    cursor: pointer;
-    color: #091440;
-}
-
-.vsp-tabset > input:nth-child(1):checked ~ ul li:nth-child(1) label,
-.vsp-tabset > input:nth-child(2):checked ~ ul li:nth-child(2) label,
-.vsp-tabset > input:nth-child(3):checked ~ ul li:nth-child(3) label,
-.vsp-tabset > input:nth-child(4):checked ~ ul li:nth-child(4) label,
-.vsp-tabset > input:nth-child(5):checked ~ ul li:nth-child(5) label,
-.vsp-tabset > input:nth-child(6):checked ~ ul li:nth-child(6) label {
-    border-bottom: 5px solid #2ed8a3;
-    color: #091440;
-    cursor: default;
-}
-
-.vsp-tabset > div > section,
-.vsp-tabset > div > section h2 {
-    position:absolute;
-    top:-999em;
-    left:-999em;
-}
-.vsp-tabset > div > section {
-    padding: 0 10px 10px 10px;
-}
-
-.vsp-tabset > input:nth-child(1):checked ~ div > section:nth-child(1),
-.vsp-tabset > input:nth-child(2):checked ~ div > section:nth-child(2),
-.vsp-tabset > input:nth-child(3):checked ~ div > section:nth-child(3),
-.vsp-tabset > input:nth-child(4):checked ~ div > section:nth-child(4),
-.vsp-tabset > input:nth-child(5):checked ~ div > section:nth-child(5),
-.vsp-tabset > input:nth-child(6):checked ~ div > section:nth-child(6) {
-    position:static;
 }
