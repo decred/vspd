@@ -16,7 +16,7 @@
         <div class="vsp-stat-title">Expired tickets</div>
         <div class="vsp-stat-value">
             {{ comma .WebApiCache.Expired }}
-            <span class="text-muted">({{ float32ToPercent .WebApiCache.ExpiredProportion }})</span>
+            <span class="vsp-stat-subtext">({{ float32ToPercent .WebApiCache.ExpiredProportion }})</span>
         </div>
     </div>
 
@@ -24,7 +24,7 @@
         <div class="vsp-stat-title">Missed tickets</div>
         <div class="vsp-stat-value">
             {{ comma .WebApiCache.Missed }}
-            <span class="text-muted">({{ float32ToPercent .WebApiCache.MissedProportion }})</span>
+            <span class="vsp-stat-subtext">({{ float32ToPercent .WebApiCache.MissedProportion }})</span>
         </div>
     </div>
 

@@ -100,7 +100,7 @@ input[type="search"] {
     color: #091440;
 }
 
-.vsp-stats .vsp-stat-value .text-muted{
+.vsp-stats .vsp-stat-value .vsp-stat-subtext {
     font-size: 18px;
     color: #8997A5;
 }
