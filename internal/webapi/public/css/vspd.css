@@ -174,29 +174,29 @@ footer .code {
 }
 
 /* Highlight labels on hover/focus to indicate they are clickable */
-.vsp-tabset > input:nth-child(1):focus ~ ul li:nth-child(1) label,
-.vsp-tabset > input:nth-child(1):hover ~ ul li:nth-child(1) label,
-.vsp-tabset > input:nth-child(2):focus ~ ul li:nth-child(2) label,
-.vsp-tabset > input:nth-child(2):hover ~ ul li:nth-child(2) label,
-.vsp-tabset > input:nth-child(3):focus ~ ul li:nth-child(3) label,
-.vsp-tabset > input:nth-child(3):hover ~ ul li:nth-child(3) label,
-.vsp-tabset > input:nth-child(4):focus ~ ul li:nth-child(4) label,
-.vsp-tabset > input:nth-child(4):hover ~ ul li:nth-child(4) label,
-.vsp-tabset > input:nth-child(5):focus ~ ul li:nth-child(5) label,
-.vsp-tabset > input:nth-child(5):hover ~ ul li:nth-child(5) label,
-.vsp-tabset > input:nth-child(6):focus ~ ul li:nth-child(6) label,
-.vsp-tabset > input:nth-child(6):hover ~ ul li:nth-child(6) label {
+.vsp-tabset > input[type="radio"]:nth-child(1):focus ~ ul li:nth-child(1) label,
+.vsp-tabset > input[type="radio"]:nth-child(1):hover ~ ul li:nth-child(1) label,
+.vsp-tabset > input[type="radio"]:nth-child(2):focus ~ ul li:nth-child(2) label,
+.vsp-tabset > input[type="radio"]:nth-child(2):hover ~ ul li:nth-child(2) label,
+.vsp-tabset > input[type="radio"]:nth-child(3):focus ~ ul li:nth-child(3) label,
+.vsp-tabset > input[type="radio"]:nth-child(3):hover ~ ul li:nth-child(3) label,
+.vsp-tabset > input[type="radio"]:nth-child(4):focus ~ ul li:nth-child(4) label,
+.vsp-tabset > input[type="radio"]:nth-child(4):hover ~ ul li:nth-child(4) label,
+.vsp-tabset > input[type="radio"]:nth-child(5):focus ~ ul li:nth-child(5) label,
+.vsp-tabset > input[type="radio"]:nth-child(5):hover ~ ul li:nth-child(5) label,
+.vsp-tabset > input[type="radio"]:nth-child(6):focus ~ ul li:nth-child(6) label,
+.vsp-tabset > input[type="radio"]:nth-child(6):hover ~ ul li:nth-child(6) label {
     cursor: pointer;
     color: #091440;
 }
 
 /* Highlight the label of the currently selected tab */
-.vsp-tabset > input:nth-child(1):checked ~ ul li:nth-child(1) label,
-.vsp-tabset > input:nth-child(2):checked ~ ul li:nth-child(2) label,
-.vsp-tabset > input:nth-child(3):checked ~ ul li:nth-child(3) label,
-.vsp-tabset > input:nth-child(4):checked ~ ul li:nth-child(4) label,
-.vsp-tabset > input:nth-child(5):checked ~ ul li:nth-child(5) label,
-.vsp-tabset > input:nth-child(6):checked ~ ul li:nth-child(6) label {
+.vsp-tabset > input[type="radio"]:nth-child(1):checked ~ ul li:nth-child(1) label,
+.vsp-tabset > input[type="radio"]:nth-child(2):checked ~ ul li:nth-child(2) label,
+.vsp-tabset > input[type="radio"]:nth-child(3):checked ~ ul li:nth-child(3) label,
+.vsp-tabset > input[type="radio"]:nth-child(4):checked ~ ul li:nth-child(4) label,
+.vsp-tabset > input[type="radio"]:nth-child(5):checked ~ ul li:nth-child(5) label,
+.vsp-tabset > input[type="radio"]:nth-child(6):checked ~ ul li:nth-child(6) label {
     border-bottom: 5px solid #2ed8a3;
     color: #091440;
     cursor: default;
@@ -215,12 +215,12 @@ footer .code {
 }
 
 /* Show tab when its corresponding radio is checked */
-.vsp-tabset > input:nth-child(1):checked ~ div > section:nth-child(1),
-.vsp-tabset > input:nth-child(2):checked ~ div > section:nth-child(2),
-.vsp-tabset > input:nth-child(3):checked ~ div > section:nth-child(3),
-.vsp-tabset > input:nth-child(4):checked ~ div > section:nth-child(4),
-.vsp-tabset > input:nth-child(5):checked ~ div > section:nth-child(5),
-.vsp-tabset > input:nth-child(6):checked ~ div > section:nth-child(6) {
+.vsp-tabset > input[type="radio"]:nth-child(1):checked ~ div > section:nth-child(1),
+.vsp-tabset > input[type="radio"]:nth-child(2):checked ~ div > section:nth-child(2),
+.vsp-tabset > input[type="radio"]:nth-child(3):checked ~ div > section:nth-child(3),
+.vsp-tabset > input[type="radio"]:nth-child(4):checked ~ div > section:nth-child(4),
+.vsp-tabset > input[type="radio"]:nth-child(5):checked ~ div > section:nth-child(5),
+.vsp-tabset > input[type="radio"]:nth-child(6):checked ~ div > section:nth-child(6) {
     position:static;
 }
 
