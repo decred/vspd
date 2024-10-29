@@ -155,12 +155,6 @@ footer .code {
     Admin page collapsible tabset
  */
 
- .vsp-tabset > input {
-    display:block; /* "enable" hidden elements in IE/edge */
-    position:absolute; /* then hide them off-screen */
-    left:-100%;
-}
-
 .vsp-tabset > ul {
     position:relative;
     z-index:999;
