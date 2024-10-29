@@ -2,18 +2,18 @@
 
   </div> <!-- page-content -->
 
-  <footer class="row m-0">
-        <div class="col-md-8 col-12 d-flex justify-content-center align-items-center">
+  <footer class="vsp-footer">
+        <div class="vsp-footer-left col-md-8 col-12">
             <p class="py-4 m-0">
               <strong>Stats&nbsp;updated:</strong>&nbsp;{{ timeAgo .WebApiCache.UpdateTime }}
               <br />
               <strong>Support:</strong>&nbsp;<a href="mailto:{{ .WebApiCfg.SupportEmail }}" rel="noopener noreferrer">{{ .WebApiCfg.SupportEmail }}</a>
               <br />
-              <strong>VSP&nbsp;public&nbsp;key:</strong>&nbsp;<span class="code">{{ .WebApiCache.PubKey }}</span>
+              <strong>VSP&nbsp;public&nbsp;key:</strong>&nbsp;<span class="code text-break">{{ .WebApiCache.PubKey }}</span>
             </p>
         </div>
 
-        <div class="col-md-4 col-12 footer__credit d-flex justify-content-center align-items-center">
+        <div class="vsp-footer-right col-md-4 col-12 text-center text-md-right">
             <p class="py-4 m-0">
                 Decred Developers | 2020-2024
                 <br />

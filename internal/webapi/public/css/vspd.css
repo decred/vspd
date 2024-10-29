@@ -109,7 +109,13 @@ input[type="search"] {
     Page footer
  */
 
-footer {
+.vsp-footer {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 0;
+    font-size: 0.8rem;
+    background-color: #091440;
     flex-shrink: 0;
     font-size: 0.8rem;
     background-color: #091440;
@@ -117,20 +123,17 @@ footer {
     width: 100%;
 }
 
-footer .code {
-    word-break: break-word;
+.vsp-footer-left,
+.vsp-footer-right {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.footer__credit {
+.vsp-footer-right {
     background-color: rgba(237,239,241,.1);
     text-align: right;
     color: #8997a5;
-}
-
-@media (max-width: 768px) {
-    .footer__credit {
-        text-align: center;
-    }
 }
 
 /* 
