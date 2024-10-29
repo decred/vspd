@@ -197,8 +197,8 @@
                         </section>
                         
                         <section>
-                            <form class="mt-2 mb-4" action="/admin/ticket" method="post">
-                                <input type="search" name="hash" size="64" minlength="64" maxlength="64" spellcheck="false" required placeholder="Ticket hash" autocomplete="off"
+                            <form class="form-inline" action="/admin/ticket" method="post">
+                                <input class="form-control mx-3" type="search" name="hash" size="64" minlength="64" maxlength="64" spellcheck="false" required placeholder="Ticket hash" autocomplete="off"
                                 {{ with .SearchResult }}
                                 value="{{ .Ticket.Hash }}"
                                 {{ end }}>
