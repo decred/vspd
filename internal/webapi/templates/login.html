@@ -6,7 +6,7 @@
 
         <input type="password" name="password" autofocus required placeholder="Enter password">
         
-        <p class="my-1 orange" style="visibility:{{ if .FailedLoginMsg }}visible{{ else }}hidden{{ end }};">{{ .FailedLoginMsg }}</p>
+        <p class="my-1 vsp-text-orange" style="visibility:{{ if .FailedLoginMsg }}visible{{ else }}hidden{{ end }};">{{ .FailedLoginMsg }}</p>
 
         <button class="btn btn-primary" type="submit">Login</button>
     </form>
