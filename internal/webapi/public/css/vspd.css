@@ -49,17 +49,17 @@ input[type="search"] {
     font-size: 28px;
 }
 
-.vsp-stats .stat-title {
+.vsp-stats .vsp-stat-title {
     font-size: 14px;
     color: #596D81;
 }
 
-.vsp-stats .stat-value {
+.vsp-stats .vsp-stat-value {
     font-size: 24px;
     color: #091440;
 }
 
-.vsp-stats .stat-value .text-muted{
+.vsp-stats .vsp-stat-value .text-muted{
     font-size: 18px;
     color: #8997A5;
 }
@@ -168,41 +168,41 @@ footer .code {
     white-space: pre-wrap;
 }
 
-.vsp-status {
+.vsp-status-tab {
     padding: 10px;
 }
 
-.vsp-status table {
+.vsp-status-tab table {
     margin-bottom: 28px;
 }
 
-.vsp-status table th,
-.vsp-status table td {
+.vsp-status-tab table th,
+.vsp-status-tab table td {
     border: 1px solid #edeff1;
     vertical-align: middle;
     text-align: center;
 }
 
-.vsp-status table .center {
+.vsp-status-tab table .center {
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.vsp-status table .status {
+.vsp-status-tab table .status {
     height: 30px;
     padding-left: 30px;
 }
 
-.vsp-status table .good {
+.vsp-status-tab table .good {
     background: url(/public/images/success-icon.svg) no-repeat center center;
 }
 
-.vsp-status table .bad {
+.vsp-status-tab table .bad {
     background: url(/public/images/error-icon.svg) no-repeat left center;
 }
 
-.vsp-status table .with-text {
+.vsp-status-tab table .with-text {
     padding-left: 40px;
 }
 
@@ -213,13 +213,13 @@ table.missed-tickets td {
     text-align: center;
 }
 
-.tabset > input {
+.vsp-tabset > input {
     display:block; /* "enable" hidden elements in IE/edge */
     position:absolute; /* then hide them off-screen */
     left:-100%;
 }
 
-.tabset > ul {
+.vsp-tabset > ul {
     position:relative;
     z-index:999;
     list-style:none;
@@ -228,57 +228,57 @@ table.missed-tickets td {
     margin: 0 0 25px;
 }
 
-.tabset > ul label {
+.vsp-tabset > ul label {
     display:inline-block;
     padding: 10px 20px;
 }
 
-.tabset > div {
+.vsp-tabset > div {
     position:relative;
 }
 
-.tabset > input:nth-child(1):focus ~ ul li:nth-child(1) label,
-.tabset > input:nth-child(1):hover ~ ul li:nth-child(1) label,
-.tabset > input:nth-child(2):focus ~ ul li:nth-child(2) label,
-.tabset > input:nth-child(2):hover ~ ul li:nth-child(2) label,
-.tabset > input:nth-child(3):focus ~ ul li:nth-child(3) label,
-.tabset > input:nth-child(3):hover ~ ul li:nth-child(3) label,
-.tabset > input:nth-child(4):focus ~ ul li:nth-child(4) label,
-.tabset > input:nth-child(4):hover ~ ul li:nth-child(4) label,
-.tabset > input:nth-child(5):focus ~ ul li:nth-child(5) label,
-.tabset > input:nth-child(5):hover ~ ul li:nth-child(5) label,
-.tabset > input:nth-child(6):focus ~ ul li:nth-child(6) label,
-.tabset > input:nth-child(6):hover ~ ul li:nth-child(6) label {
+.vsp-tabset > input:nth-child(1):focus ~ ul li:nth-child(1) label,
+.vsp-tabset > input:nth-child(1):hover ~ ul li:nth-child(1) label,
+.vsp-tabset > input:nth-child(2):focus ~ ul li:nth-child(2) label,
+.vsp-tabset > input:nth-child(2):hover ~ ul li:nth-child(2) label,
+.vsp-tabset > input:nth-child(3):focus ~ ul li:nth-child(3) label,
+.vsp-tabset > input:nth-child(3):hover ~ ul li:nth-child(3) label,
+.vsp-tabset > input:nth-child(4):focus ~ ul li:nth-child(4) label,
+.vsp-tabset > input:nth-child(4):hover ~ ul li:nth-child(4) label,
+.vsp-tabset > input:nth-child(5):focus ~ ul li:nth-child(5) label,
+.vsp-tabset > input:nth-child(5):hover ~ ul li:nth-child(5) label,
+.vsp-tabset > input:nth-child(6):focus ~ ul li:nth-child(6) label,
+.vsp-tabset > input:nth-child(6):hover ~ ul li:nth-child(6) label {
     cursor: pointer;
     color: #091440;
 }
 
-.tabset > input:nth-child(1):checked ~ ul li:nth-child(1) label,
-.tabset > input:nth-child(2):checked ~ ul li:nth-child(2) label,
-.tabset > input:nth-child(3):checked ~ ul li:nth-child(3) label,
-.tabset > input:nth-child(4):checked ~ ul li:nth-child(4) label,
-.tabset > input:nth-child(5):checked ~ ul li:nth-child(5) label,
-.tabset > input:nth-child(6):checked ~ ul li:nth-child(6) label {
+.vsp-tabset > input:nth-child(1):checked ~ ul li:nth-child(1) label,
+.vsp-tabset > input:nth-child(2):checked ~ ul li:nth-child(2) label,
+.vsp-tabset > input:nth-child(3):checked ~ ul li:nth-child(3) label,
+.vsp-tabset > input:nth-child(4):checked ~ ul li:nth-child(4) label,
+.vsp-tabset > input:nth-child(5):checked ~ ul li:nth-child(5) label,
+.vsp-tabset > input:nth-child(6):checked ~ ul li:nth-child(6) label {
     border-bottom: 5px solid #2ed8a3;
     color: #091440;
     cursor: default;
 }
 
-.tabset > div > section,
-.tabset > div > section h2 {
+.vsp-tabset > div > section,
+.vsp-tabset > div > section h2 {
     position:absolute;
     top:-999em;
     left:-999em;
 }
-.tabset > div > section {
+.vsp-tabset > div > section {
     padding: 0 10px 10px 10px;
 }
 
-.tabset > input:nth-child(1):checked ~ div > section:nth-child(1),
-.tabset > input:nth-child(2):checked ~ div > section:nth-child(2),
-.tabset > input:nth-child(3):checked ~ div > section:nth-child(3),
-.tabset > input:nth-child(4):checked ~ div > section:nth-child(4),
-.tabset > input:nth-child(5):checked ~ div > section:nth-child(5),
-.tabset > input:nth-child(6):checked ~ div > section:nth-child(6) {
+.vsp-tabset > input:nth-child(1):checked ~ div > section:nth-child(1),
+.vsp-tabset > input:nth-child(2):checked ~ div > section:nth-child(2),
+.vsp-tabset > input:nth-child(3):checked ~ div > section:nth-child(3),
+.vsp-tabset > input:nth-child(4):checked ~ div > section:nth-child(4),
+.vsp-tabset > input:nth-child(5):checked ~ div > section:nth-child(5),
+.vsp-tabset > input:nth-child(6):checked ~ div > section:nth-child(6) {
     position:static;
 }
