@@ -55,20 +55,20 @@ input[type="search"] {
     color: #ed6d47;
 }
 
-.navbar {
+/* 
+    Navbar
+ */
+
+.vsp-navbar {
     background-color: #F9FAFA;
 }
 
-.navbar a {
-    text-decoration: none;
-}
-
-.logo--logo {
+.vsp-logo-logo {
     padding-right: 5px;
     border-right: 0.3px solid #091440;
 }
 
-.logo--text {
+.vsp-logo-text {
     padding: 0 5px;
     font-size: 15px;
     line-height: 1;
