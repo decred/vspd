@@ -215,12 +215,12 @@ footer .code {
 }
 
 /* Show tab when its corresponding radio is checked */
-.vsp-tabset > input[type="radio"]:nth-child(1):checked ~ div > section:nth-child(1),
-.vsp-tabset > input[type="radio"]:nth-child(2):checked ~ div > section:nth-child(2),
-.vsp-tabset > input[type="radio"]:nth-child(3):checked ~ div > section:nth-child(3),
-.vsp-tabset > input[type="radio"]:nth-child(4):checked ~ div > section:nth-child(4),
-.vsp-tabset > input[type="radio"]:nth-child(5):checked ~ div > section:nth-child(5),
-.vsp-tabset > input[type="radio"]:nth-child(6):checked ~ div > section:nth-child(6) {
+.vsp-tabset > input[type="radio"]:nth-child(1):checked ~ .collapsible-tab-wrapper > section:nth-child(1),
+.vsp-tabset > input[type="radio"]:nth-child(2):checked ~ .collapsible-tab-wrapper > section:nth-child(2),
+.vsp-tabset > input[type="radio"]:nth-child(3):checked ~ .collapsible-tab-wrapper > section:nth-child(3),
+.vsp-tabset > input[type="radio"]:nth-child(4):checked ~ .collapsible-tab-wrapper > section:nth-child(4),
+.vsp-tabset > input[type="radio"]:nth-child(5):checked ~ .collapsible-tab-wrapper > section:nth-child(5),
+.vsp-tabset > input[type="radio"]:nth-child(6):checked ~ .collapsible-tab-wrapper > section:nth-child(6) {
     position:static;
 }
 
