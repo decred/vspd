@@ -74,7 +74,7 @@
                     
                     <div class="collapsible-tab-wrapper">
 
-                        <section class="d-flex row justify-content-center">
+                        <section class="collapsible-tab row">
 
                             <div class="vsp-status-tab">
                                 <h1>Local dcrd</h1>
@@ -196,7 +196,7 @@
 
                         </section>
                         
-                        <section>
+                        <section class="collapsible-tab">
                             <form class="form-inline" action="/admin/ticket" method="post">
                                 <input class="form-control mx-3" type="search" name="hash" size="64" minlength="64" maxlength="64" spellcheck="false" required placeholder="Ticket hash" autocomplete="off"
                                 {{ with .SearchResult }}
@@ -210,7 +210,7 @@
                             {{ end }}
                         </section>
 
-                        <section>
+                        <section class="collapsible-tab">
                             <h1>{{ pluralize (len .MissedTickets) "Missed Ticket" }}</h1>
                             {{ with .MissedTickets }}
                             <table class="missed-tickets mx-auto">
@@ -235,7 +235,7 @@
                             {{ end}}
                         </section>
 
-                        <section>
+                        <section class="collapsible-tab">
                             <h1>All X Pubs</h1>
                             {{ with .XPubs }}
                             <table class="mx-auto">
@@ -259,12 +259,12 @@
                             {{ end}}
                         </section>
 
-                        <section>
+                        <section class="collapsible-tab">
                             <p>Database size: {{ .WebApiCache.DatabaseSize }}</p>
                             <a class="btn btn-primary" href="/admin/backup" download>Download Backup</a>
                         </section>
 
-                        <section>
+                        <section class="collapsible-tab">
                             <form action="/admin/logout" method="post">
                                 <button type="submit" class="btn btn-primary">Logout</button>
                             </form>

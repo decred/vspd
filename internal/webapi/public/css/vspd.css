@@ -193,24 +193,24 @@ body {
 }
 
 /* By default the collapsible tabs should all be hidden */
-.vsp-tabset > div > section,
-.vsp-tabset > div > section h2 {
+.vsp-tabset .collapsible-tab,
+.vsp-tabset .collapsible-tab h2 {
     position:absolute;
     top:-999em;
     left:-999em;
 }
 
-.vsp-tabset > div > section {
+.vsp-tabset .collapsible-tab {
     padding: 0 10px 10px 10px;
 }
 
 /* Show tab when its corresponding radio is checked */
-.vsp-tabset > input[type="radio"]:nth-child(1):checked ~ .collapsible-tab-wrapper > section:nth-child(1),
-.vsp-tabset > input[type="radio"]:nth-child(2):checked ~ .collapsible-tab-wrapper > section:nth-child(2),
-.vsp-tabset > input[type="radio"]:nth-child(3):checked ~ .collapsible-tab-wrapper > section:nth-child(3),
-.vsp-tabset > input[type="radio"]:nth-child(4):checked ~ .collapsible-tab-wrapper > section:nth-child(4),
-.vsp-tabset > input[type="radio"]:nth-child(5):checked ~ .collapsible-tab-wrapper > section:nth-child(5),
-.vsp-tabset > input[type="radio"]:nth-child(6):checked ~ .collapsible-tab-wrapper > section:nth-child(6) {
+.vsp-tabset > input[type="radio"]:nth-child(1):checked ~ .collapsible-tab-wrapper > .collapsible-tab:nth-child(1),
+.vsp-tabset > input[type="radio"]:nth-child(2):checked ~ .collapsible-tab-wrapper > .collapsible-tab:nth-child(2),
+.vsp-tabset > input[type="radio"]:nth-child(3):checked ~ .collapsible-tab-wrapper > .collapsible-tab:nth-child(3),
+.vsp-tabset > input[type="radio"]:nth-child(4):checked ~ .collapsible-tab-wrapper > .collapsible-tab:nth-child(4),
+.vsp-tabset > input[type="radio"]:nth-child(5):checked ~ .collapsible-tab-wrapper > .collapsible-tab:nth-child(5),
+.vsp-tabset > input[type="radio"]:nth-child(6):checked ~ .collapsible-tab-wrapper > .collapsible-tab:nth-child(6) {
     position:static;
 }
 
