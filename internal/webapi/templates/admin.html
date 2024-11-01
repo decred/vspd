@@ -251,8 +251,26 @@
                     <div class="collapsible-tab-content">
 
                         <div class="p-2">
-                            <h1>All X Pubs</h1>
-                            {{ with .XPubs }}
+                            <h1>Current X Pub</h1>
+                            <table class="mx-auto">
+                                <thead>
+                                    <th>ID</th>
+                                    <th>Key</th>
+                                    <th>Last Address Index</th>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>{{ .CurrentXPub.ID }}</td>
+                                        <td>{{ .CurrentXPub.Key }}</td>
+                                        <td>{{ .CurrentXPub.LastUsedIdx }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {{ with .OldXPubs }}
+                        <div class="p-2">
+                            <h1>Old X Pubs</h1>
                             <table class="mx-auto">
                                 <thead>
                                     <th>ID</th>
@@ -271,8 +289,8 @@
                                 {{ end }}
                                 </tbody>
                             </table>
-                            {{ end}}
                         </div>
+                        {{ end }}
 
                     </div>
                 </section>

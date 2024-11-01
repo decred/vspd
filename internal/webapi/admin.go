@@ -160,12 +160,22 @@ func (w *WebAPI) renderAdmin(c *gin.Context, searchResult *searchResult) {
 
 	missed.SortByPurchaseHeight()
 
-	xpubs, err := w.db.AllXPubs()
+	currentXPub, err := w.db.FeeXPub()
 	if err != nil {
-		w.log.Errorf("db.AllXPubs error: %v", err)
-		c.String(http.StatusInternalServerError, "Error getting xpubs from db")
+		w.log.Errorf("db.FeeXPub error: %v", err)
+		c.String(http.StatusInternalServerError, "Error getting current xpub from db")
 		return
 	}
+
+	oldXPubs, err := w.db.AllXPubs()
+	if err != nil {
+		w.log.Errorf("db.AllXPubs error: %v", err)
+		c.String(http.StatusInternalServerError, "Error getting all xpubs from db")
+		return
+	}
+
+	// Remove current xpub from the list of old xpubs.
+	delete(oldXPubs, currentXPub.ID)
 
 	c.HTML(http.StatusOK, "admin.html", gin.H{
 		"SearchResult":  searchResult,
@@ -174,7 +184,8 @@ func (w *WebAPI) renderAdmin(c *gin.Context, searchResult *searchResult) {
 		"WalletStatus":  w.walletStatus(c),
 		"DcrdStatus":    w.dcrdStatus(c),
 		"MissedTickets": missed,
-		"XPubs":         xpubs,
+		"CurrentXPub":   currentXPub,
+		"OldXPubs":      oldXPubs,
 	})
 }
 
