@@ -105,6 +105,13 @@ body {
     }
 }
 
+.vsp-footer-left,
+.vsp-footer-right {
+    display: flex;
+    padding-left: 0;
+    padding-right: 0;
+}
+
 .vsp-footer-left {
     background-color: #091440;
 }

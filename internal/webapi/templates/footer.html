@@ -3,12 +3,13 @@
   </div> <!-- vsp-page-content -->
 
   <footer class="vsp-footer flex-md-row flex-row-reverse">
-    <div class="vsp-footer-bg-left d-none d-sm-block col-md-6 col-12"></div>
-    <div class="vsp-footer-bg-right d-none d-sm-block col-md-6 col-12"></div>
+    <div class="vsp-footer-bg-left col-md-6 col-12"></div>
+    <div class="vsp-footer-bg-right col-md-6 col-12"></div>
 
-    <div class="container d-flex flex-wrap px-0 px-sm-2 mx-0 mx-sm-auto">
+    <div class="container d-flex flex-wrap">
 
-        <div class="vsp-footer-left col-md-8 col-12 justify-content-center justify-content-md-start px-0">
+        <div class="vsp-footer-left col-md-8 col-12 justify-content-center justify-content-md-start">
+          <div class="d-inline-block text-left">
             <p class="py-4 m-0">
               <strong>Stats&nbsp;updated:</strong>&nbsp;{{ timeAgo .WebApiCache.UpdateTime }}
               <br />
@@ -16,14 +17,17 @@
               <br />
               <strong>VSP&nbsp;public&nbsp;key:</strong>&nbsp;<span class="code text-break">{{ .WebApiCache.PubKey }}</span>
             </p>
+          </div>
         </div>
 
-        <div class="vsp-footer-right col-md-4 col-12 justify-content-center justify-content-md-end text-center text-md-right px-0">
+        <div class="vsp-footer-right col-md-4 col-12 justify-content-center justify-content-md-end">
+          <div class="d-block text-center text-md-right">
             <p class="py-4 m-0">
-                Decred Developers | 2020-2024
-                <br />
-                The source code is available on <a href="https://github.com/decred/vspd" target="_blank" rel="noopener noreferrer">GitHub</a>
+              Decred Developers | 2020-2024
+              <br />
+              The source code is available on <a href="https://github.com/decred/vspd" target="_blank" rel="noopener noreferrer">GitHub</a>
             </p>
+          </div>
         </div>
   
     </div>
