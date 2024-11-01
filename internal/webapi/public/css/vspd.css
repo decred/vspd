@@ -79,30 +79,42 @@ body {
  */
 
 .vsp-footer {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    margin: 0;
+    line-height: 1.2rem;
     font-size: 0.8rem;
-    background-color: #091440;
-    flex-shrink: 0;
-    font-size: 0.8rem;
+    position: relative;
     background-color: #091440;
     color: #8997a5;
-    width: 100%;
 }
 
-.vsp-footer-left,
-.vsp-footer-right {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+.vsp-footer-bg-left,
+.vsp-footer-bg-right {
+    position: absolute;
+    height: 100%;
+}
+
+.vsp-footer-bg-right {
+    right: 0;
+    bottom: 0;
+    background-color: #202a52;
+}
+
+@media (max-width: 768px) {
+    .vsp-footer-bg-left,
+    .vsp-footer-bg-right {
+        height: 50%;
+    }
+}
+
+.vsp-footer-left {
+    background-color: #091440;
 }
 
 .vsp-footer-right {
-    background-color: rgba(237,239,241,.1);
-    text-align: right;
-    color: #8997a5;
+    background-color: #202a52;
+    /* Top & bottom padding to ensure right is same height as left despite
+    having one less line of text */
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
 }
 
 /* 
