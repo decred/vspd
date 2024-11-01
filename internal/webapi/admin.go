@@ -144,6 +144,11 @@ func (w *WebAPI) statusJSON(c *gin.Context) {
 
 // adminPage is the handler for "GET /admin".
 func (w *WebAPI) adminPage(c *gin.Context) {
+	// Render the admin template with no search result.
+	w.renderAdmin(c, nil)
+}
+
+func (w *WebAPI) renderAdmin(c *gin.Context, searchResult *searchResult) {
 	cacheData := c.MustGet(cacheKey).(cacheData)
 
 	missed, err := w.db.GetMissedTickets()
@@ -163,6 +168,7 @@ func (w *WebAPI) adminPage(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "admin.html", gin.H{
+		"SearchResult":  searchResult,
 		"WebApiCache":   cacheData,
 		"WebApiCfg":     w.cfg,
 		"WalletStatus":  w.walletStatus(c),
@@ -175,8 +181,6 @@ func (w *WebAPI) adminPage(c *gin.Context) {
 // ticketSearch is the handler for "POST /admin/ticket". The hash param will be
 // used to retrieve a ticket from the database.
 func (w *WebAPI) ticketSearch(c *gin.Context) {
-	cacheData := c.MustGet(cacheKey).(cacheData)
-
 	hash := c.PostForm("hash")
 
 	ticket, found, err := w.db.GetTicketByHash(hash)
@@ -230,38 +234,14 @@ func (w *WebAPI) ticketSearch(c *gin.Context) {
 		feeTxDecoded = string(decoded)
 	}
 
-	missed, err := w.db.GetMissedTickets()
-	if err != nil {
-		w.log.Errorf("db.GetMissedTickets error: %v", err)
-		c.String(http.StatusInternalServerError, "Error getting missed tickets from db")
-		return
-	}
-
-	missed.SortByPurchaseHeight()
-
-	xpubs, err := w.db.AllXPubs()
-	if err != nil {
-		w.log.Errorf("db.AllXPubs error: %v", err)
-		c.String(http.StatusInternalServerError, "Error getting xpubs from db")
-		return
-	}
-
-	c.HTML(http.StatusOK, "admin.html", gin.H{
-		"SearchResult": searchResult{
-			Hash:            hash,
-			Found:           found,
-			Ticket:          ticket,
-			FeeTxDecoded:    feeTxDecoded,
-			AltSignAddrData: altSignAddrData,
-			VoteChanges:     voteChanges,
-			MaxVoteChanges:  w.cfg.MaxVoteChangeRecords,
-		},
-		"WebApiCache":   cacheData,
-		"WebApiCfg":     w.cfg,
-		"WalletStatus":  w.walletStatus(c),
-		"DcrdStatus":    w.dcrdStatus(c),
-		"MissedTickets": missed,
-		"XPubs":         xpubs,
+	w.renderAdmin(c, &searchResult{
+		Hash:            hash,
+		Found:           found,
+		Ticket:          ticket,
+		FeeTxDecoded:    feeTxDecoded,
+		AltSignAddrData: altSignAddrData,
+		VoteChanges:     voteChanges,
+		MaxVoteChanges:  w.cfg.MaxVoteChangeRecords,
 	})
 }
 
