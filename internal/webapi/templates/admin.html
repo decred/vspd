@@ -15,205 +15,214 @@
 <div class="container">
     <div class="row">
 
-        <div class="col-12 pt-2 pb-4">
-            <div class="block__content">
+        <div class="vsp-tabset">
+            <input
+                class="d-none"
+                type="radio"
+                name="tabset_1"
+                id="tabset_1_1"
+                hidden
+                {{ with .SearchResult }}{{ else }}checked{{ end }}
+            >
+            <input
+                class="d-none"
+                type="radio"
+                name="tabset_1"
+                id="tabset_1_2"
+                hidden
+                {{ with .SearchResult }}checked{{ end }}
+            >
+            <input
+                class="d-none"
+                type="radio"
+                name="tabset_1"
+                id="tabset_1_3"
+                hidden
+            >
+            <input
+                class="d-none"
+                type="radio"
+                name="tabset_1"
+                id="tabset_1_4"
+                hidden
+            >
+            <input
+                class="d-none"
+                type="radio"
+                name="tabset_1"
+                id="tabset_1_5"
+                hidden
+            >
+            <input
+                class="d-none"
+                type="radio"
+                name="tabset_1"
+                id="tabset_1_6"
+                hidden
+            >
+            <ul class="d-flex p-0 list-unstyled">
+                <li><label for="tabset_1_1">VSP Status</label></li>
+                <li><label for="tabset_1_2">Ticket Search</label></li>
+                <li><label for="tabset_1_3">Missed Tickets</label></li>
+                <li><label for="tabset_1_4">Fee X Pubs</label></li>
+                <li><label for="tabset_1_5">Database</label></li>
+                <li><label for="tabset_1_6">Logout</label></li>
+            </ul>
+            
+            <div class="collapsible-tab-wrapper">
 
-                <div class="vsp-tabset">
-                    <input
-                        class="d-none"
-                        type="radio"
-                        name="tabset_1"
-                        id="tabset_1_1"
-                        hidden
-                        {{ with .SearchResult }}{{ else }}checked{{ end }}
-                    >
-                    <input
-                        class="d-none"
-                        type="radio"
-                        name="tabset_1"
-                        id="tabset_1_2"
-                        hidden
-                        {{ with .SearchResult }}checked{{ end }}
-                    >
-                    <input
-                        class="d-none"
-                        type="radio"
-                        name="tabset_1"
-                        id="tabset_1_3"
-                        hidden
-                    >
-                    <input
-                        class="d-none"
-                        type="radio"
-                        name="tabset_1"
-                        id="tabset_1_4"
-                        hidden
-                    >
-                    <input
-                        class="d-none"
-                        type="radio"
-                        name="tabset_1"
-                        id="tabset_1_5"
-                        hidden
-                    >
-                    <input
-                        class="d-none"
-                        type="radio"
-                        name="tabset_1"
-                        id="tabset_1_6"
-                        hidden
-                    >
-                    <ul class="d-flex p-0 list-unstyled">
-                        <li><label for="tabset_1_1">VSP Status</label></li>
-                        <li><label for="tabset_1_2">Ticket Search</label></li>
-                        <li><label for="tabset_1_3">Missed Tickets</label></li>
-                        <li><label for="tabset_1_4">Fee X Pubs</label></li>
-                        <li><label for="tabset_1_5">Database</label></li>
-                        <li><label for="tabset_1_6">Logout</label></li>
-                    </ul>
-                    
-                    <div class="collapsible-tab-wrapper">
+                <section class="collapsible-tab">
+                    <div class="vsp-status-tab collapsible-tab-content">
 
-                        <section class="collapsible-tab row">
+                        <div class="p-2">
+                            <h1>Local dcrd</h1>
 
-                            <div class="vsp-status-tab">
-                                <h1>Local dcrd</h1>
-
-                                <table class="vsp-status-tab">
-                                    <thead>
-                                        <th>URL</th>
-                                        <th>Height</th>
-                                    </thead>
-                                    <tbody>
-                                        <tr>
-                                            <td>{{ stripWss .DcrdStatus.Host }}</td>
-                                            
-                                            {{ if .DcrdStatus.Connected }}
-                    
-                                                {{ if .DcrdStatus.BestBlockError }}
-                                                    <td>
-                                                        <div class="center">
-                                                            <div class="status bad center with-text">
-                                                                Error
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                {{ else }}
-                                                    <td>{{ .DcrdStatus.BestBlockHeight }}</td>
-                                                {{ end }}
-                    
-                                            {{else}}
+                            <table>
+                                <thead>
+                                    <th>URL</th>
+                                    <th>Height</th>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>{{ stripWss .DcrdStatus.Host }}</td>
+                                        
+                                        {{ if .DcrdStatus.Connected }}
+                
+                                            {{ if .DcrdStatus.BestBlockError }}
                                                 <td>
                                                     <div class="center">
                                                         <div class="status bad center with-text">
-                                                            Cannot connect
+                                                            Error
                                                         </div>
                                                     </div>
                                                 </td>
-                                            {{end}}
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <div class="vsp-status-tab">
-                                <h1>Voting Wallets</h1>
+                                            {{ else }}
+                                                <td>{{ .DcrdStatus.BestBlockHeight }}</td>
+                                            {{ end }}
+                
+                                        {{else}}
+                                            <td>
+                                                <div class="center">
+                                                    <div class="status bad center with-text">
+                                                        Cannot connect
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        {{end}}
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="p-2">
+                            <h1>Voting Wallets</h1>
 
-                                <table class="vsp-status-tab">
-                                    <thead>
-                                        <th>URL</th>
-                                        <th>Height</th>
-                                        <th>Connected<br />to dcrd</th>
-                                        <th>Unlocked</th>
-                                        <th>Voting</th>
-                                        <th>Vote<br />Version</th>
-                                    </thead>
-                                    <tbody>
-                                        {{ range $host, $status := .WalletStatus }}
-                                        <tr>
-                                            <td>{{ stripWss $host }}</td>
-                                        
-                                            {{ if $status.Connected }}
-                
-                                                {{ if $status.BestBlockError }}
-                                                    <td>
-                                                        <div class="center">
-                                                            <div class="status bad center with-text">
-                                                                Error
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                {{ else }}
-                                                    <td>{{ $status.BestBlockHeight }}</td>
-                                                {{ end }}
-                
-                                                {{ if $status.InfoError }}
-                                                    <td colspan="4">
-                                                        <div class="center">
-                                                            <div class="status bad center with-text">
-                                                                Error getting wallet info
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                {{ else }}
-                                                    <td>
-                                                        <div class="center">
-                                                            <div class="status {{ if $status.DaemonConnected }}good{{else}}bad{{end}}"></div>
-                                                        </div>
-                                                    </td>
-                                                
-                                                
-                                                    <td>
-                                                        <div class="center">
-                                                            <div class="status {{ if $status.Unlocked }}good{{else}}bad{{end}}"></div>
-                                                        </div>
-                                                    </td>
-                                                
-                                                
-                                                    <td>
-                                                        <div class="center">
-                                                            <div class="status {{ if $status.Voting }}good{{else}}bad{{end}}"></div>
-                                                        </div>
-                                                    </td>
-                                                
-                                                    <td>{{ $status.VoteVersion }}</td>
-                                                {{ end }}
-                
-                                            {{else}}
-                                                <td colspan="5">
+                            <table>
+                                <thead>
+                                    <th>URL</th>
+                                    <th>Height</th>
+                                    <th>Connected<br />to dcrd</th>
+                                    <th>Unlocked</th>
+                                    <th>Voting</th>
+                                    <th>Vote<br />Version</th>
+                                </thead>
+                                <tbody>
+                                    {{ range $host, $status := .WalletStatus }}
+                                    <tr>
+                                        <td>{{ stripWss $host }}</td>
+                                    
+                                        {{ if $status.Connected }}
+            
+                                            {{ if $status.BestBlockError }}
+                                                <td>
                                                     <div class="center">
                                                         <div class="status bad center with-text">
-                                                            Cannot connect to wallet
+                                                            Error
                                                         </div>
                                                     </div>
                                                 </td>
-                                            {{end}}
-                                        </tr>
+                                            {{ else }}
+                                                <td>{{ $status.BestBlockHeight }}</td>
+                                            {{ end }}
+            
+                                            {{ if $status.InfoError }}
+                                                <td colspan="4">
+                                                    <div class="center">
+                                                        <div class="status bad center with-text">
+                                                            Error getting wallet info
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            {{ else }}
+                                                <td>
+                                                    <div class="center">
+                                                        <div class="status {{ if $status.DaemonConnected }}good{{else}}bad{{end}}"></div>
+                                                    </div>
+                                                </td>
+                                            
+                                            
+                                                <td>
+                                                    <div class="center">
+                                                        <div class="status {{ if $status.Unlocked }}good{{else}}bad{{end}}"></div>
+                                                    </div>
+                                                </td>
+                                            
+                                            
+                                                <td>
+                                                    <div class="center">
+                                                        <div class="status {{ if $status.Voting }}good{{else}}bad{{end}}"></div>
+                                                    </div>
+                                                </td>
+                                            
+                                                <td>{{ $status.VoteVersion }}</td>
+                                            {{ end }}
+            
+                                        {{else}}
+                                            <td colspan="5">
+                                                <div class="center">
+                                                    <div class="status bad center with-text">
+                                                        Cannot connect to wallet
+                                                    </div>
+                                                </div>
+                                            </td>
                                         {{end}}
-                                    </tbody>
-                                </table>
-                            </div>
+                                    </tr>
+                                    {{end}}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="collapsible-tab">
+                    <div class="ticket-search-tab collapsible-tab-content">
 
-                        </section>
-                        
-                        <section class="collapsible-tab">
+                        <div class="p-2">
                             <form class="form-inline" action="/admin/ticket" method="post">
                                 <input class="form-control mx-3" type="search" name="hash" size="64" minlength="64" maxlength="64" spellcheck="false" required placeholder="Ticket hash" autocomplete="off"
                                 {{ with .SearchResult }}
                                 value="{{ .Ticket.Hash }}"
                                 {{ end }}>
-                                <button class="btn btn-primary d-block my-2" type="submit">Search</button>
+                                <button class="btn btn-primary" type="submit">Search</button>
                             </form>
-            
-                            {{ with .SearchResult }}
-                                {{ template "ticket-search-result" . }}
-                            {{ end }}
-                        </section>
+                        </div>
 
-                        <section class="collapsible-tab">
+                        <div class="p-2">
+                            {{ with .SearchResult }}
+                            {{ template "ticket-search-result" . }}
+                            {{ end }}
+                        </div>
+
+                    </div>
+                </section>
+
+                <section class="collapsible-tab">
+                    <div class="missed-tickets-tab collapsible-tab-content">
+                        
+                        <div class="p-2">
                             <h1>{{ pluralize (len .MissedTickets) "Missed Ticket" }}</h1>
                             {{ with .MissedTickets }}
-                            <table class="missed-tickets mx-auto">
+                            <table class="mx-auto">
                                 <thead>
                                     <th>Purchase Height</th>
                                     <th>Ticket Hash</th>
@@ -233,9 +242,15 @@
                                 </tbody>
                             </table>
                             {{ end}}
-                        </section>
+                        </div>
 
-                        <section class="collapsible-tab">
+                    </div>
+                </section>
+
+                <section class="collapsible-tab">
+                    <div class="collapsible-tab-content">
+
+                        <div class="p-2">
                             <h1>All X Pubs</h1>
                             {{ with .XPubs }}
                             <table class="mx-auto">
@@ -257,23 +272,36 @@
                                 </tbody>
                             </table>
                             {{ end}}
-                        </section>
+                        </div>
 
-                        <section class="collapsible-tab">
+                    </div>
+                </section>
+
+                <section class="collapsible-tab">
+                    <div class="collapsible-tab-content">
+                        
+                        <div class="p-2">
                             <p>Database size: {{ .WebApiCache.DatabaseSize }}</p>
                             <a class="btn btn-primary" href="/admin/backup" download>Download Backup</a>
-                        </section>
+                        </div>
 
-                        <section class="collapsible-tab">
+                    </div>
+                </section>
+
+                <section class="collapsible-tab">
+                    <div class="collapsible-tab-content">
+                        
+                        <div class="p-2">
                             <form action="/admin/logout" method="post">
                                 <button type="submit" class="btn btn-primary">Logout</button>
                             </form>
-                        </section>
+                        </div>
 
                     </div>
-                </div>
+                </section>
 
             </div>
+
         </div>
 
     </div>

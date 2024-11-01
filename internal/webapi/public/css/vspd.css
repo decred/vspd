@@ -1,47 +1,19 @@
-html, body {
+html {
     height: 100%;
+    overflow-x: hidden;
 }
 
 body {
     background-color: #F3F5F6;
-    color: #3D5873;
+    width: 100vw;
+    height: 100%;
     display: flex;
     flex-direction: column;
 }
 
-.page-content {
+.vsp-page-content {
     flex: 1 0 auto;
-}
-
-.block__content h1 {
-    color: #091440;
-    font-size: 24px;
-    padding-bottom: 10px;
-}
-
-.block__content {
-    background-color: #ffffff;
-    padding: 20px 30px; 
     color: #3D5873;
-    line-height: 1.4;
-}
-
-
-.block__content table td ,
-.block__content table th {
-    padding: 10px 16px;
-}
-.block__content table td {
-    word-break: break-word;
-    font-family: "vspd-code";
-}
-
-.block__content table th {
-    white-space: nowrap;
-    font-family: "vspd";
-    vertical-align: top;
-    font-weight: normal;
-    background-color: #edeff1;
 }
 
 .vsp-text-orange {
@@ -68,6 +40,10 @@ body {
     color: #091440;
 }
 
+/* 
+    Text above stats
+ */
+ 
 .vsp-overview {
     color: #8997A5;
     background-color: #ffffff;
@@ -151,6 +127,16 @@ body {
     Admin page collapsible tabset
  */
 
+.vsp-tabset {
+    background-color: #ffffff;
+    padding: 20px 30px;
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+    color: #3D5873;
+    line-height: 1.4;
+    width: 100%;
+}
+
 .vsp-tabset > ul {
     margin: 0 0 25px;
 }
@@ -159,8 +145,18 @@ body {
     padding: 10px 20px;
 }
 
-.vsp-tabset > div {
-    position:relative;
+.vsp-tabset h1 {
+    color: #091440;
+    font-size: 24px;
+    padding-bottom: 10px;
+}
+
+.vsp-tabset .collapsible-tab-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    padding: 0 10px 10px 10px;
 }
 
 /* Highlight labels on hover/focus to indicate they are clickable */
@@ -193,15 +189,8 @@ body {
 }
 
 /* By default the collapsible tabs should all be hidden */
-.vsp-tabset .collapsible-tab,
-.vsp-tabset .collapsible-tab h2 {
-    position:absolute;
-    top:-999em;
-    left:-999em;
-}
-
 .vsp-tabset .collapsible-tab {
-    padding: 0 10px 10px 10px;
+    display: none;
 }
 
 /* Show tab when its corresponding radio is checked */
@@ -211,19 +200,38 @@ body {
 .vsp-tabset > input[type="radio"]:nth-child(4):checked ~ .collapsible-tab-wrapper > .collapsible-tab:nth-child(4),
 .vsp-tabset > input[type="radio"]:nth-child(5):checked ~ .collapsible-tab-wrapper > .collapsible-tab:nth-child(5),
 .vsp-tabset > input[type="radio"]:nth-child(6):checked ~ .collapsible-tab-wrapper > .collapsible-tab:nth-child(6) {
-    position:static;
+    display: flex;
+}
+
+.vsp-tabset table td ,
+.vsp-tabset table th {
+    padding: 10px 16px;
+}
+
+.vsp-tabset table td,
+.vsp-tabset table .btn-link {
+    font-size: 14px;
+}
+
+.vsp-tabset table td {
+    word-break: break-word;
+    font-family: "vspd-code";
+}
+
+.vsp-tabset table th {
+    white-space: nowrap;
+    font-family: "vspd";
+    vertical-align: top;
+    font-weight: normal;
+    background-color: #edeff1;
 }
 
 /* 
     VSP Status tab
  */
- 
- .vsp-status-tab {
-    padding: 10px;
-}
 
-.vsp-status-tab table {
-    margin-bottom: 28px;
+.vsp-status-tab {
+    flex-direction: row;
 }
 
 .vsp-status-tab table th,
@@ -256,45 +264,50 @@ body {
     padding-left: 40px;
 }
 
-
 /* 
     Ticket Search tab
  */
 
-input[type="search"] {
+.ticket-search-tab input[type="search"] {
     font-size: 14px;
     font-family: "vspd-code";
 }
 
-input[type="search"]::placeholder {
+.ticket-search-tab input[type="search"]::placeholder {
     font-family: "vspd";
 }
 
-#ticket-table th,
-#ticket-table td {
+.ticket-search-tab table {
+    width: 100%;
+    margin-top: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.ticket-search-tab table th,
+.ticket-search-tab table td {
     border-top: 1px solid #dee2e6;
 }
 
-#ticket-table th {
+.ticket-search-tab table th {
     text-align: right;
 }
-#ticket-table td {
-    font-size: 14px;
+
+.ticket-search-tab table td {
     text-align: left;
     padding-right: 0;
     width: 100%;
 }
 
-#ticket-table details table td {
+.ticket-search-tab table details table td {
     font-size: 12px;
 }
 
-#ticket-table .small-text {
+.ticket-search-tab table .small-text {
     padding: 10px 16px;
     font-size: 12px;
 }
 
-#ticket-table pre {
+.ticket-search-tab table pre {
     color: #3D5873;
     font-size: 12px;
     white-space: pre-wrap;
@@ -304,8 +317,8 @@ input[type="search"]::placeholder {
     Missed tickets tab
  */
 
-table.missed-tickets th,
-table.missed-tickets td {
+.missed-tickets-tab table th,
+.missed-tickets-tab table td {
     border: 1px solid #edeff1;
     vertical-align: middle;
     text-align: center;
