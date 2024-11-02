@@ -100,3 +100,5 @@ the VSP will not be interrupted.
   ([#477](https://github.com/decred/vspd/pull/477)).
 - Don't initialize databases with private keys, only public
   ([#478](https://github.com/decred/vspd/pull/478)).
+- Various minor GUI improvements and bugfixes
+  ([#495](https://github.com/decred/vspd/pull/495)).
