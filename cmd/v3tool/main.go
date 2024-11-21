@@ -107,7 +107,7 @@ func run() int {
 		log.Infof("    %s", tkt)
 	}
 
-	for i := 0; i < len(tickets.Hashes); i++ {
+	for i := range len(tickets.Hashes) {
 		// Stop if shutdown requested.
 		if ctx.Err() != nil {
 			return 0

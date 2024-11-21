@@ -379,7 +379,7 @@ func LoadConfig() (*Config, error) {
 
 	// Load dcrwallet RPC certificate(s).
 	walletCerts := make([][]byte, numCert)
-	for i := 0; i < numCert; i++ {
+	for i := range numCert {
 		certs[i] = cleanAndExpandPath(certs[i])
 		walletCerts[i], err = os.ReadFile(certs[i])
 		if err != nil {
@@ -394,7 +394,7 @@ func LoadConfig() (*Config, error) {
 	}
 
 	// Add default port for the active network if there is no port specified.
-	for i := 0; i < numHost; i++ {
+	for i := range numHost {
 		walletHosts[i] = normalizeAddress(walletHosts[i], cfg.network.WalletRPCServerPort)
 	}
 
