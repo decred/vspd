@@ -18,8 +18,8 @@ in order to enable rolling back to a previous version of the software if require
 
 vspd 1.4.0 must be built with go 1.22 or later, and requires:
 
-- dcrd 2.0.4
-- dcrwallet 2.0.4
+- dcrd 2.0.5
+- dcrwallet 2.0.5
 
 Always use release versions of all binaries when deploying vspd to production.
 Neither vspd nor its dependencies should be built from master when handling
@@ -34,7 +34,7 @@ announce downtime in public channels. Voting on tickets already registered with
 the VSP will not be interrupted.
 
 1. Build vspd from the `release-v1.4.0` tag, and build dcrwallet and dcrd from
-   their `release-v2.0.4` tags.
+   their `release-v2.0.5` tags.
 1. Stop vspd.
 1. **Make a backup of the vspd database file in case rollback is required.**
 1. Stop the instance of dcrd running on the vspd server.
