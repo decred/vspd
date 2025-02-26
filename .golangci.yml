@@ -33,10 +33,10 @@ linters:
     - reassign
     - revive
     - staticcheck
-    - tenv
     - tparallel
     - typecheck
     - unconvert
     - usestdlibvars
+    - usetesting
     - unparam
     - unused
