@@ -29,8 +29,8 @@ func (r *results) writeFile(path string) (bool, error) {
 		return false, fmt.Errorf("opening log file failed: %w", err)
 	}
 
-	write := func(f *os.File, str string, a ...any) {
-		_, err := f.WriteString(fmt.Sprintf(str+"\n", a...))
+	write := func(f *os.File, format string, a ...any) {
+		_, err := fmt.Fprintf(f, format+"\n", a...)
 		if err != nil {
 			f.Close()
 			panic(fmt.Sprintf("writing to log file failed: %v", err))
