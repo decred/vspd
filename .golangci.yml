@@ -1,8 +1,8 @@
+version: "2"
 run:
-  deadline: 10m
-
+  timeout: 10m
 linters:
-  disable-all: true
+  default: none
   enable:
     - asciicheck
     - bidichk
@@ -17,9 +17,6 @@ linters:
     - fatcontext
     - goconst
     - godot
-    - gofmt
-    - goimports
-    - gosimple
     - govet
     - ineffassign
     - makezero
@@ -34,9 +31,16 @@ linters:
     - revive
     - staticcheck
     - tparallel
-    - typecheck
     - unconvert
-    - usestdlibvars
-    - usetesting
     - unparam
     - unused
+    - usestdlibvars
+    - usetesting
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+formatters:
+  enable:
+    - gofmt
+    - goimports
