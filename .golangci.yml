@@ -40,6 +40,10 @@ linters:
     presets:
       - comments
       - std-error-handling
+    rules:
+      # Ignore revive linter complaining about the name of the "types" package.
+      - path: types/*
+        text: 'var-naming: avoid meaningless package names'
 formatters:
   enable:
     - gofmt
