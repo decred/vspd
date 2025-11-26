@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 The Decred developers
+// Copyright (c) 2021-2025 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	requiredDcrdVersion = semver{Major: 8, Minor: 0, Patch: 0}
+	requiredDcrdVersion = semver{Major: 8, Minor: 3, Patch: 0}
 )
 
 const (
