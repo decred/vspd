@@ -19,7 +19,7 @@ require (
 	github.com/decred/vspd/client/v4 v4.0.1
 	github.com/decred/vspd/types/v3 v3.0.0
 	github.com/dustin/go-humanize v1.0.1
-	github.com/gin-gonic/gin v1.10.0
+	github.com/gin-gonic/gin v1.10.1
 	github.com/gorilla/sessions v1.4.0
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jrick/bitset v1.0.0
