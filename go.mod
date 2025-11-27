@@ -3,7 +3,7 @@ module github.com/decred/vspd
 go 1.24.0
 
 require (
-	decred.org/dcrwallet/v5 v5.0.0
+	decred.org/dcrwallet/v5 v5.0.1
 	github.com/decred/dcrd/blockchain/stake/v5 v5.0.2
 	github.com/decred/dcrd/blockchain/standalone/v2 v2.2.2
 	github.com/decred/dcrd/chaincfg/chainhash v1.0.5
