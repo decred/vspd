@@ -1,4 +1,4 @@
-// Copyright (c) 2020 The Decred developers
+// Copyright (c) 2020-2025 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -26,7 +26,7 @@ const (
 // so it can be modified at link time (e.g.
 // `-ldflags "-X decred.org/vspd/version.preRelease=rc1"`).
 // It must only contain characters from the semantic version alphabet.
-var preRelease = "pre"
+var preRelease = ""
 
 func IsPreRelease() bool {
 	return preRelease != ""
