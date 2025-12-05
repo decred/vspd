@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2024 The Decred developers
+// Copyright (c) 2022-2025 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -66,8 +66,11 @@ func (c *Client) FeeAddress(ctx context.Context, req types.FeeAddressRequest,
 func (c *Client) PayFee(ctx context.Context, req types.PayFeeRequest,
 	commitmentAddr stdaddr.Address) (*types.PayFeeResponse, error) {
 
-	// TSpendPolicy and TreasuryPolicy are optional but must be an empty map
-	// rather than nil.
+	// VoteChoices, TSpendPolicy and TreasuryPolicy are optional but must be an
+	// empty map rather than nil.
+	if req.VoteChoices == nil {
+		req.VoteChoices = map[string]string{}
+	}
 	if req.TSpendPolicy == nil {
 		req.TSpendPolicy = map[string]string{}
 	}
@@ -119,8 +122,11 @@ func (c *Client) TicketStatus(ctx context.Context, req types.TicketStatusRequest
 func (c *Client) SetVoteChoices(ctx context.Context, req types.SetVoteChoicesRequest,
 	commitmentAddr stdaddr.Address) (*types.SetVoteChoicesResponse, error) {
 
-	// TSpendPolicy and TreasuryPolicy are optional but must be an empty map
-	// rather than nil.
+	// VoteChoices, TSpendPolicy and TreasuryPolicy are optional but must be an
+	// empty map rather than nil.
+	if req.VoteChoices == nil {
+		req.VoteChoices = map[string]string{}
+	}
 	if req.TSpendPolicy == nil {
 		req.TSpendPolicy = map[string]string{}
 	}
