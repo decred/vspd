@@ -56,8 +56,8 @@ github.com/decred/dcrd/wire v1.7.1 h1:kDuHBiY1Qv9rBxYKgC2RgyPy7IOA2WRf00jqHwpr16
 github.com/decred/dcrd/wire v1.7.1/go.mod h1:eP9XRsMloy+phlntkTAaAm611JgLv8NqY1YJoRxkNKU=
 github.com/decred/slog v1.2.0 h1:soHAxV52B54Di3WtKLfPum9OFfWqwtf/ygf9njdfnPM=
 github.com/decred/slog v1.2.0/go.mod h1:kVXlGnt6DHy2fV5OjSeuvCJ0OmlmTF6LFpEPMu/fOY0=
-github.com/decred/vspd/client/v4 v4.0.1 h1:eoFWCoaqEMLBODRQrVABGcpFrFdOSPLiMWpPO+RVvi0=
-github.com/decred/vspd/client/v4 v4.0.1/go.mod h1:jhqu4KGGOskQcPVZ3XZLVZ1Wgkc9GQo+oEipr3gGODg=
+github.com/decred/vspd/client/v4 v4.0.2 h1:yvQaJFy3UdQMcRzjAyvuKPpr2G2Rn6Bbha+HH4TwItQ=
+github.com/decred/vspd/client/v4 v4.0.2/go.mod h1:jhqu4KGGOskQcPVZ3XZLVZ1Wgkc9GQo+oEipr3gGODg=
 github.com/decred/vspd/types/v3 v3.0.0 h1:jHlQIpp6aCjIcFs8WE3AaVCJe1kgepNTq+nkBKAyQxk=
 github.com/decred/vspd/types/v3 v3.0.0/go.mod h1:hwifRZu6tpkbhSg2jZCUwuPaO/oETgbSCWCYJd4XepY=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
