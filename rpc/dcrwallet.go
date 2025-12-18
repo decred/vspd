@@ -6,6 +6,7 @@ package rpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	wallettypes "decred.org/dcrwallet/v5/rpc/jsonrpc/types"
@@ -13,10 +14,6 @@ import (
 	dcrdtypes "github.com/decred/dcrd/rpc/jsonrpc/types/v4"
 	"github.com/decred/dcrd/wire"
 	"github.com/decred/slog"
-)
-
-var (
-	requiredWalletVersion = semver{Major: 11, Minor: 0, Patch: 0}
 )
 
 // WalletRPC provides methods for calling dcrwallet JSON-RPCs without exposing the details
@@ -77,18 +74,10 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 			continue
 		}
 
-		// Verify dcrwallet is at the required api version.
-		ver, err := walletRPC.version()
+		// Verify dcrwallet and dcrd are at the required versions.
+		err = walletRPC.checkVersions()
 		if err != nil {
-			w.log.Errorf("dcrwallet.Version error (wallet=%s): %v", c.String(), err)
-			failedConnections = append(failedConnections, connect.addr)
-			connect.Close()
-			continue
-		}
-
-		if !semverCompatible(requiredWalletVersion, *ver) {
-			w.log.Errorf("dcrwallet has incompatible JSON-RPC version (wallet=%s): got %s, expected %s",
-				c.String(), ver, requiredWalletVersion)
+			w.log.Errorf("Version check failed (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
 			connect.Close()
 			continue
@@ -143,19 +132,22 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 	return walletClients, failedConnections
 }
 
-// version uses version RPC to retrieve the API version of dcrwallet.
-func (c *WalletRPC) version() (*semver, error) {
+// checkVersion uses version RPC to retrieve the binary and API versions
+// dcrwallet and its backing dcrd. An error is returned if there is not semver
+// compatibility with the minimum expected versions.
+func (c *WalletRPC) checkVersions() error {
 	var verMap map[string]dcrdtypes.VersionResult
 	err := c.Call(context.TODO(), "version", &verMap)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if ver, ok := verMap["dcrwalletjsonrpcapi"]; ok {
-		return &semver{ver.Major, ver.Minor, ver.Patch}, nil
-	}
-
-	return nil, fmt.Errorf("response missing %q", "dcrwalletjsonrpcapi")
+	return errors.Join(
+		checkVersion(verMap, "dcrd"),
+		checkVersion(verMap, "dcrdjsonrpcapi"),
+		checkVersion(verMap, "dcrwallet"),
+		checkVersion(verMap, "dcrwalletjsonrpcapi"),
+	)
 }
 
 // getCurrentNet returns the Decred network the wallet is connected to.

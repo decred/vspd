@@ -24,10 +24,6 @@ import (
 	"github.com/jrick/wsrpc/v2"
 )
 
-var (
-	requiredDcrdVersion = semver{Major: 8, Minor: 3, Patch: 0}
-)
-
 const (
 	// These numerical error codes are defined in dcrd/dcrjson. Copied here so
 	// we dont need to import the whole package.
@@ -87,17 +83,11 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 		return dcrdRPC, d.client.addr, nil
 	}
 
-	// Verify dcrd is at the required api version.
-	ver, err := dcrdRPC.version()
+	// Verify dcrd is at the required version.
+	err = dcrdRPC.checkVersion()
 	if err != nil {
 		d.client.Close()
 		return nil, d.client.addr, fmt.Errorf("dcrd version check failed: %w", err)
-	}
-
-	if !semverCompatible(requiredDcrdVersion, *ver) {
-		d.client.Close()
-		return nil, d.client.addr, fmt.Errorf("dcrd has incompatible JSON-RPC version: got %s, expected %s",
-			ver, requiredDcrdVersion)
 	}
 
 	// Verify dcrd is on the correct network.
@@ -135,19 +125,20 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 	return &DcrdRPC{c}, d.client.addr, nil
 }
 
-// version uses version RPC to retrieve the API version of dcrd.
-func (c *DcrdRPC) version() (*semver, error) {
+// checkVersion uses version RPC to retrieve the binary and API version of dcrd.
+// An error is returned if there is not semver compatibility with the minimum
+// expected versions.
+func (c *DcrdRPC) checkVersion() error {
 	var verMap map[string]dcrdtypes.VersionResult
 	err := c.Call(context.TODO(), "version", &verMap)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	if ver, ok := verMap["dcrdjsonrpcapi"]; ok {
-		return &semver{ver.Major, ver.Minor, ver.Patch}, nil
-	}
-
-	return nil, fmt.Errorf("response missing %q", "dcrdjsonrpcapi")
+	return errors.Join(
+		checkVersion(verMap, "dcrd"),
+		checkVersion(verMap, "dcrdjsonrpcapi"),
+	)
 }
 
 // getCurrentNet uses getcurrentnet RPC to return the Decred network the wallet
