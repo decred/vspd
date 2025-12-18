@@ -56,29 +56,29 @@ func (w *WalletConnect) Close() {
 // increments a count of failed connections if a connection cannot be
 // established, or if the wallet is misconfigured.
 func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
-	ctx := context.TODO()
 	walletClients := make([]*WalletRPC, 0)
 	failedConnections := make([]string, 0)
 
 	for _, connect := range w.clients {
 
-		c, newConnection, err := connect.dial(ctx)
+		c, newConnection, err := connect.dial(context.TODO())
 		if err != nil {
 			w.log.Errorf("dcrwallet dial error: %v", err)
 			failedConnections = append(failedConnections, connect.addr)
 			continue
 		}
 
+		walletRPC := &WalletRPC{c}
+
 		// If this is a reused connection, we don't need to validate the
 		// dcrwallet config again.
 		if !newConnection {
-			walletClients = append(walletClients, &WalletRPC{c})
+			walletClients = append(walletClients, walletRPC)
 			continue
 		}
 
 		// Verify dcrwallet is at the required api version.
-		var verMap map[string]dcrdtypes.VersionResult
-		err = c.Call(ctx, "version", &verMap)
+		ver, err := walletRPC.version()
 		if err != nil {
 			w.log.Errorf("dcrwallet.Version error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
@@ -86,27 +86,16 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 			continue
 		}
 
-		ver, exists := verMap["dcrwalletjsonrpcapi"]
-		if !exists {
-			w.log.Errorf("dcrwallet.Version response missing 'dcrwalletjsonrpcapi' (wallet=%s)",
-				c.String())
-			failedConnections = append(failedConnections, connect.addr)
-			connect.Close()
-			continue
-		}
-
-		sVer := semver{ver.Major, ver.Minor, ver.Patch}
-		if !semverCompatible(requiredWalletVersion, sVer) {
+		if !semverCompatible(requiredWalletVersion, *ver) {
 			w.log.Errorf("dcrwallet has incompatible JSON-RPC version (wallet=%s): got %s, expected %s",
-				c.String(), sVer, requiredWalletVersion)
+				c.String(), ver, requiredWalletVersion)
 			failedConnections = append(failedConnections, connect.addr)
 			connect.Close()
 			continue
 		}
 
 		// Verify dcrwallet is on the correct network.
-		var netID wire.CurrencyNet
-		err = c.Call(ctx, "getcurrentnet", &netID)
+		netID, err := walletRPC.getCurrentNet()
 		if err != nil {
 			w.log.Errorf("dcrwallet.GetCurrentNet error (wallet=%s): %v", c.String(), err)
 			failedConnections = append(failedConnections, connect.addr)
@@ -122,7 +111,6 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 		}
 
 		// Verify dcrwallet is voting and unlocked.
-		walletRPC := &WalletRPC{c}
 		walletInfo, err := walletRPC.WalletInfo()
 		if err != nil {
 			w.log.Errorf("dcrwallet.WalletInfo error (wallet=%s): %v", c.String(), err)
@@ -153,6 +141,31 @@ func (w *WalletConnect) Clients() ([]*WalletRPC, []string) {
 	}
 
 	return walletClients, failedConnections
+}
+
+// version uses version RPC to retrieve the API version of dcrwallet.
+func (c *WalletRPC) version() (*semver, error) {
+	var verMap map[string]dcrdtypes.VersionResult
+	err := c.Call(context.TODO(), "version", &verMap)
+	if err != nil {
+		return nil, err
+	}
+
+	if ver, ok := verMap["dcrwalletjsonrpcapi"]; ok {
+		return &semver{ver.Major, ver.Minor, ver.Patch}, nil
+	}
+
+	return nil, fmt.Errorf("response missing %q", "dcrwalletjsonrpcapi")
+}
+
+// getCurrentNet returns the Decred network the wallet is connected to.
+func (c *WalletRPC) getCurrentNet() (wire.CurrencyNet, error) {
+	var netID wire.CurrencyNet
+	err := c.Call(context.TODO(), "getcurrentnet", &netID)
+	if err != nil {
+		return 0, err
+	}
+	return netID, nil
 }
 
 // WalletInfo uses walletinfo RPC to retrieve information about how the
