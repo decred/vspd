@@ -1,10 +1,12 @@
-// Copyright (c) 2020-2024 The Decred developers
+// Copyright (c) 2020-2025 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
 package webapi
 
 import (
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/json"
 	"net/http"
 
@@ -263,7 +265,11 @@ func (w *WebAPI) adminLogin(c *gin.Context) {
 
 	password := c.PostForm("password")
 
-	if password != w.cfg.AdminPass {
+	// subtle.ConstantTimeCompare returns immediately if the params are not the
+	// same length. Avoid this by comparing hashes (which will be fixed length)
+	// instead of the raw passwords.
+	passwordHash := sha256.Sum256([]byte(password))
+	if subtle.ConstantTimeCompare(passwordHash[:], w.adminPassHash[:]) != 1 {
 		w.log.Warnf("Failed login attempt from %s", c.ClientIP())
 		c.HTML(http.StatusUnauthorized, "login.html", gin.H{
 			"WebApiCache":    cacheData,

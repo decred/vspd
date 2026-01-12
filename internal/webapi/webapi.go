@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024 The Decred developers
+// Copyright (c) 2020-2025 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,6 +7,7 @@ package webapi
 import (
 	"context"
 	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -67,15 +68,16 @@ const (
 )
 
 type WebAPI struct {
-	cfg         Config
-	db          *database.VspDatabase
-	log         slog.Logger
-	addrGen     *addressGenerator
-	cache       *cache
-	signPrivKey ed25519.PrivateKey
-	signPubKey  ed25519.PublicKey
-	server      *http.Server
-	listener    net.Listener
+	cfg           Config
+	db            *database.VspDatabase
+	log           slog.Logger
+	addrGen       *addressGenerator
+	cache         *cache
+	adminPassHash [sha256.Size]byte
+	signPrivKey   ed25519.PrivateKey
+	signPubKey    ed25519.PublicKey
+	server        *http.Server
+	listener      net.Listener
 }
 
 func New(vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
@@ -121,14 +123,15 @@ func New(vdb *database.VspDatabase, log slog.Logger, dcrd rpc.DcrdConnect,
 	}
 
 	w := &WebAPI{
-		cfg:         cfg,
-		db:          vdb,
-		log:         log,
-		addrGen:     addrGen,
-		cache:       cache,
-		signPrivKey: signPrivKey,
-		signPubKey:  signPubKey,
-		listener:    listener,
+		cfg:           cfg,
+		db:            vdb,
+		log:           log,
+		addrGen:       addrGen,
+		cache:         cache,
+		adminPassHash: sha256.Sum256([]byte(cfg.AdminPass)),
+		signPrivKey:   signPrivKey,
+		signPubKey:    signPubKey,
+		listener:      listener,
 	}
 
 	w.server = &http.Server{
