@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -6,9 +6,7 @@ package webapi
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
@@ -33,32 +31,29 @@ var (
 func recovery(log slog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
-			if err := recover(); err != nil {
+			if rec := recover(); rec != nil {
 				// Check for a broken connection, as it is not really a
 				// condition that warrants a panic stack trace.
 				var brokenPipe bool
-				if ne, ok := err.(*net.OpError); ok {
-					var se *os.SyscallError
-					if errors.As(ne, &se) {
-						seStr := strings.ToLower(se.Error())
-						if strings.Contains(seStr, "broken pipe") ||
-							strings.Contains(seStr, "connection reset by peer") {
-							brokenPipe = true
-						}
-					}
+				err, ok := rec.(error)
+				if ok {
+					errMsg := strings.ToLower(err.Error())
+					brokenPipe = strings.Contains(errMsg, "broken pipe") ||
+						strings.Contains(errMsg, "connection reset by peer") ||
+						strings.Contains(errMsg, "net/http: abort handler")
 				}
 
 				httpRequest, _ := httputil.DumpRequest(c.Request, true)
 				if brokenPipe {
-					log.Errorf("%s\n%s", err, httpRequest)
+					log.Errorf("%s\n%s", rec, httpRequest)
 				} else {
 					log.Errorf("panic recovered: %s\n\n%s\n\n%s",
-						err, formattedStack(), httpRequest)
+						rec, formattedStack(), httpRequest)
 				}
 
 				if brokenPipe {
 					// If the connection is dead, we can't write a status to it.
-					_ = c.Error(err.(error))
+					_ = c.Error(err)
 					c.Abort()
 				} else {
 					c.AbortWithStatus(http.StatusInternalServerError)
