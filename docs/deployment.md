@@ -69,17 +69,16 @@ A vspd deployment should have a minimum of three remote voting wallets. The
 servers hosting these wallets should ideally be in geographically separate
 locations.
 
-Each voting server should be running an instance of dcrd and dcrwallet. The
-wallet on these servers should be completely empty and not used for any purpose
-other than voting tickets added by vspd.
-dcrwallet should be permanently unlocked and have voting enabled
-(`--enablevoting`). dcrwallet is also required to have the manual tickets
-option (`--manualtickets`) enabled which disables dcrwallet adding tickets
-arriving over the network.
-This prevents a user from reusing a voting address and the VSP voting multiple
-tickets with only a single fee payment.
-vspd on the front-end server must be able to reach each instance of dcrwallet
-over RPC.
+Each voting server should be running an instance of dcrwallet backed by an
+instance of dcrd (dcrwallet in SPV mode is not supported).
+The wallet on these servers should be completely empty and not
+used for any purpose other than voting tickets added by vspd. dcrwallet should
+be permanently unlocked and have voting enabled (`--enablevoting`). dcrwallet is
+also required to have the manual tickets option (`--manualtickets`) enabled
+which disables dcrwallet adding tickets arriving over the network. This prevents
+a user from reusing a voting address and the VSP voting multiple tickets with
+only a single fee payment. vspd on the front-end server must be able to reach
+each instance of dcrwallet over RPC.
 
 ## Front-end Server
 
