@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -161,7 +161,9 @@ func (w *WebAPI) withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 // drainAndReplaceBody will read and return the body of the provided request. It
 // replaces the request reader with an identical one so it can be used again.
 func drainAndReplaceBody(req *http.Request) ([]byte, error) {
-	reqBytes, err := io.ReadAll(req.Body)
+	const readLimit = 1 << 22 // 2 MiB
+	bodyReader := io.LimitReader(req.Body, readLimit)
+	reqBytes, err := io.ReadAll(bodyReader)
 	if err != nil {
 		return nil, err
 	}
