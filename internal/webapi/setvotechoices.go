@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -108,6 +108,7 @@ func (w *WebAPI) setVoteChoices(c *gin.Context) {
 		w.log.Warnf("%s: Invalid treasury policy (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 		w.sendErrorWithMsg(err.Error(), types.ErrInvalidVoteChoices, c)
+		return
 	}
 
 	err = validTSpendPolicy(request.TSpendPolicy)
@@ -115,6 +116,7 @@ func (w *WebAPI) setVoteChoices(c *gin.Context) {
 		w.log.Warnf("%s: Invalid tspend policy (clientIP=%s, ticketHash=%s): %v",
 			funcName, c.ClientIP(), ticket.Hash, err)
 		w.sendErrorWithMsg(err.Error(), types.ErrInvalidVoteChoices, c)
+		return
 	}
 
 	// Update voting preferences in the database before updating the wallets. DB
