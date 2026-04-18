@@ -325,6 +325,20 @@ func (c *DcrdRPC) GetBlockHash(height int64) (string, error) {
 	return resp, nil
 }
 
+// GetTxOut returns the transaction output info if it's unspent and nil
+// otherwise.
+func (c *DcrdRPC) GetTxOut(hash chainhash.Hash, index uint32,
+	tree int8) (*dcrdtypes.GetTxOutResult, error) {
+	var resp *dcrdtypes.GetTxOutResult
+	const includeMempool = true
+	err := c.Call(context.TODO(), "gettxout", &resp, hash.String(), index, tree,
+		includeMempool)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 // GetCFilterV2 retrieves the GCS filter for the provided block header,
 // optionally verifies the inclusion proof, then returns the filter along with
 // its key.
