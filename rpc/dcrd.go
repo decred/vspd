@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2025 The Decred developers
+// Copyright (c) 2021-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -302,6 +302,20 @@ func (c *DcrdRPC) GetBlockHash(height int64) (string, error) {
 	err := c.Call(context.TODO(), "getblockhash", &resp, height)
 	if err != nil {
 		return "", err
+	}
+	return resp, nil
+}
+
+// GetTxOut returns the transaction output info if it's unspent and nil
+// otherwise.
+func (c *DcrdRPC) GetTxOut(hash chainhash.Hash, index uint32,
+	tree int8) (*dcrdtypes.GetTxOutResult, error) {
+	var resp *dcrdtypes.GetTxOutResult
+	const includeMempool = true
+	err := c.Call(context.TODO(), "gettxout", &resp, hash.String(), index, tree,
+		includeMempool)
+	if err != nil {
+		return nil, err
 	}
 	return resp, nil
 }
