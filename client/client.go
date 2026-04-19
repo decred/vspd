@@ -1,4 +1,4 @@
-// Copyright (c) 2022-2025 The Decred developers
+// Copyright (c) 2022-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -210,7 +210,7 @@ func (c *Client) do(ctx context.Context, method, path string, addr stdaddr.Addre
 		}
 	}
 
-	respBody, err := io.ReadAll(reply.Body)
+	respBody, err := io.ReadAll(io.LimitReader(reply.Body, 1<<22)) // 4 MiB limit
 	if err != nil {
 		return fmt.Errorf("read response body: %w", err)
 	}
