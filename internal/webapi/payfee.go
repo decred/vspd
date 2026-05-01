@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024 The Decred developers
+// Copyright (c) 2021-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -141,6 +141,29 @@ func (w *WebAPI) payFee(c *gin.Context) {
 			funcName, c.ClientIP(), ticket.Hash, err)
 		w.sendError(types.ErrInvalidFeeTx, c)
 		return
+	}
+
+	// Confirm all inputs of the fee transaction exist.
+	for _, input := range feeTx.TxIn {
+		prevOut := input.PreviousOutPoint
+		txOut, err := dcrdClient.GetTxOut(prevOut.Hash, prevOut.Index, prevOut.Tree)
+		if err != nil {
+			w.log.Errorf("%s: dcrd.GetTxOut for fee tx input failed "+
+				"(ticketHash=%s, output=%s:%d:%d, clientIP=%s): %v",
+				funcName, ticket.Hash, prevOut.Hash, prevOut.Index, prevOut.Tree,
+				c.ClientIP(), err)
+			w.sendError(types.ErrInternalError, c)
+			return
+		}
+		if txOut == nil {
+			w.log.Warnf("%s: Fee tx contains non-existent input "+
+				"(ticketHash=%s, output=%s:%d:%d, clientIP=%s)",
+				funcName, ticket.Hash, prevOut.Hash, prevOut.Index, prevOut.Tree,
+				c.ClientIP())
+			w.sendErrorWithMsg("fee tx includes non-existent input",
+				types.ErrInvalidFeeTx, c)
+			return
+		}
 	}
 
 	// Decode fee address to get its payment script details.
