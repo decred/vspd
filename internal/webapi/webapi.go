@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -153,7 +153,11 @@ func (w *WebAPI) Run(ctx context.Context) {
 		<-ctx.Done()
 
 		w.log.Debug("Stopping webserver...")
-		_ = w.server.Shutdown(ctx)
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		_ = w.server.Shutdown(shutdownCtx)
+		cancel()
+
 		w.log.Debug("Webserver stopped")
 
 		wg.Done()
