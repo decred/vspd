@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2025 The Decred developers
+// Copyright (c) 2021-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -340,7 +340,7 @@ func (c *DcrdRPC) GetCFilterV2(header *wire.BlockHeader, verifyProof bool) ([gcs
 		}
 
 		if !standalone.VerifyInclusionProof(&header.StakeRoot, &filterHash, resp.ProofIndex, proofHashes) {
-			return key, nil, fmt.Errorf("failed to verify inclusion proof: %w", err)
+			return key, nil, errors.New("failed to verify inclusion proof")
 		}
 	}
 
