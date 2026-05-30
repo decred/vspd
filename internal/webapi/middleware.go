@@ -111,6 +111,26 @@ func (w *WebAPI) requireWebCache(c *gin.Context) {
 	c.Set(cacheKey, w.cache.getData())
 }
 
+// csrf provides protection against Cross-Site Request Forgery (CSRF) attacks.
+func (w *WebAPI) csrf() gin.HandlerFunc {
+	// The protection offered by http.CrossOriginProtection is not as robust as
+	// traditional token based solutions, however it is good enough for the vspd
+	// website which has no particularly sensitive form actions.
+	//
+	// Alex Edwards's blog has a good overview of the limitations:
+	// https://www.alexedwards.net/blog/preventing-csrf-in-go
+	csrf := http.NewCrossOriginProtection()
+	return func(c *gin.Context) {
+		err := csrf.Check(c.Request)
+		if err != nil {
+			w.log.Warnf("CSRF failure (clientIP=%s): %v", c.ClientIP(), err)
+			c.String(http.StatusBadRequest, "CSRF failure")
+			c.Abort()
+			return
+		}
+	}
+}
+
 // requireAdmin will only allow the request to proceed if the current session is
 // authenticated as an admin, otherwise it will render the login template.
 func (w *WebAPI) requireAdmin(c *gin.Context) {
