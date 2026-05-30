@@ -232,6 +232,8 @@ func (w *WebAPI) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 		router.Use(gin.Logger())
 	}
 
+	router.Use(w.csrf())
+
 	// Serve static web resources
 	router.Static("/public", "internal/webapi/public/")
 
