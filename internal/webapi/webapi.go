@@ -147,8 +147,7 @@ func (w *WebAPI) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 
 	// Add the graceful shutdown to the waitgroup.
-	wg.Add(1)
-	go func() {
+	wg.Go(func() {
 		// Wait until context is canceled before shutting down the server.
 		<-ctx.Done()
 
@@ -159,13 +158,10 @@ func (w *WebAPI) Run(ctx context.Context) {
 		cancel()
 
 		w.log.Debug("Webserver stopped")
-
-		wg.Done()
-	}()
+	})
 
 	// Start webserver.
-	wg.Add(1)
-	go func() {
+	wg.Go(func() {
 		w.log.Infof("Listening on %s", w.listener.Addr())
 		err := w.server.Serve(w.listener)
 		// ErrServerClosed is expected from a graceful server shutdown, it can
@@ -173,12 +169,10 @@ func (w *WebAPI) Run(ctx context.Context) {
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			w.log.Errorf("Unexpected webserver error: %v", err)
 		}
-		wg.Done()
-	}()
+	})
 
 	// Periodically update cached VSP stats.
-	wg.Add(1)
-	go func() {
+	wg.Go(func() {
 		refresh := 1 * time.Minute
 		if w.cfg.Debug {
 			refresh = 1 * time.Second
@@ -186,7 +180,6 @@ func (w *WebAPI) Run(ctx context.Context) {
 		for {
 			select {
 			case <-ctx.Done():
-				wg.Done()
 				return
 			case <-time.After(refresh):
 				err := w.cache.update()
@@ -195,7 +188,7 @@ func (w *WebAPI) Run(ctx context.Context) {
 				}
 			}
 		}
-	}()
+	})
 
 	wg.Wait()
 }
