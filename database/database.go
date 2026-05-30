@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -126,11 +126,10 @@ func CreateNew(dbFile, feeXPub string) error {
 		}
 
 		// Generate a secret key for initializing the cookie store.
+		// Since go 1.24, crypto/rand.Read will never return an error.
 		secret := make([]byte, 32)
-		_, err = rand.Read(secret)
-		if err != nil {
-			return err
-		}
+		_, _ = rand.Read(secret)
+
 		err = vspBkt.Put(cookieSecretK, secret)
 		if err != nil {
 			return err
