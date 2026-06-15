@@ -10,7 +10,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strings"
+	"regexp"
 
 	"github.com/decred/dcrd/blockchain/standalone/v2"
 	"github.com/decred/dcrd/chaincfg/chainhash"
@@ -29,10 +29,11 @@ const (
 	// we dont need to import the whole package.
 	ErrRPCDuplicateTx = -40
 	ErrNoTxInfo       = -5
-	// This error string is defined in dcrd/internal/mempool. Copied here
-	// because it is not exported.
-	ErrUnknownOutputs = "references outputs of unknown or fully-spent transaction"
 )
+
+// ErrOrphan error string is defined in dcrd/internal/mempool. Copied here
+// because it is not exported.
+var ErrOrphan = regexp.MustCompile(`orphan transaction \w+ references output \w+:\d+ of unknown or fully-spent transaction`)
 
 // DcrdRPC provides methods for calling dcrd JSON-RPCs without exposing the details
 // of JSON encoding.
@@ -204,7 +205,7 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 
 		// Errors about orphan/spent outputs indicate that dcrd *might* already
 		// have this transaction. Use getrawtransaction to confirm.
-		if strings.Contains(err.Error(), ErrUnknownOutputs) {
+		if ErrOrphan.MatchString(err.Error()) {
 			_, getErr := c.GetRawTransaction(txHex)
 			if getErr == nil {
 				return nil
