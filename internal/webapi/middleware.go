@@ -273,70 +273,71 @@ func (w *WebAPI) broadcastTicket() gin.HandlerFunc {
 
 		_, err = dcrdClient.GetRawTransaction(parentHash.String())
 		if err != nil {
+			// Return error to the client if the error is not ErrNoTxInfo.
 			var e *wsrpc.Error
-			if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
-				// ErrNoTxInfo means local dcrd is not aware of the parent. We have
-				// the hex, so we can broadcast it here.
-
-				// Before broadcasting, check that the provided parent hex is
-				// actually the parent of the ticket.
-				var found bool
-				for _, txIn := range msgTx.TxIn {
-					if !txIn.PreviousOutPoint.Hash.IsEqual(&parentHash) {
-						continue
-					}
-					found = true
-					break
-				}
-
-				if !found {
-					w.log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
-					w.sendErrorWithMsg("invalid ticket parent", types.ErrBadRequest, c)
-					return
-				}
-
-				w.log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
-				err = dcrdClient.SendRawTransaction(request.ParentHex)
-				if err != nil {
-					// Unknown output errors have special handling because they
-					// could be resolved by waiting for network propagation. Any
-					// other errors are returned to client immediately.
-					if !strings.Contains(err.Error(), rpc.ErrUnknownOutputs) {
-						w.log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
-							funcName, request.TicketHash, err)
-						w.sendError(types.ErrCannotBroadcastTicket, c)
-						return
-					}
-
-					w.log.Debugf("%s: Parent tx references an unknown output, waiting for it in mempool (ticketHash=%s)",
-						funcName, request.TicketHash)
-
-					txBroadcast := func() bool {
-						// Wait for 1 second and try again, max 7 attempts.
-						for range 7 {
-							time.Sleep(1 * time.Second)
-							err := dcrdClient.SendRawTransaction(request.ParentHex)
-							if err == nil {
-								return true
-							}
-						}
-						return false
-					}()
-
-					if !txBroadcast {
-						w.log.Errorf("%s: Failed to broadcast parent tx, waiting didn't help (ticketHash=%s)",
-							funcName, request.TicketHash)
-						w.sendError(types.ErrCannotBroadcastTicket, c)
-						return
-					}
-				}
-
-			} else {
+			if !errors.As(err, &e) || e.Code != rpc.ErrNoTxInfo {
 				w.log.Errorf("%s: dcrd.GetRawTransaction for ticket parent failed (ticketHash=%s): %v",
 					funcName, request.TicketHash, err)
 				w.sendError(types.ErrInternalError, c)
 				return
 			}
+
+			// ErrNoTxInfo means local dcrd is not aware of the parent. We have
+			// the hex, so we can broadcast it here.
+
+			// Before broadcasting, check that the provided parent hex is
+			// actually the parent of the ticket.
+			var found bool
+			for _, txIn := range msgTx.TxIn {
+				if !txIn.PreviousOutPoint.Hash.IsEqual(&parentHash) {
+					continue
+				}
+				found = true
+				break
+			}
+
+			if !found {
+				w.log.Errorf("%s: Invalid ticket parent (ticketHash=%s)", funcName, request.TicketHash)
+				w.sendErrorWithMsg("invalid ticket parent", types.ErrBadRequest, c)
+				return
+			}
+
+			w.log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
+			err = dcrdClient.SendRawTransaction(request.ParentHex)
+			if err != nil {
+				// Unknown output errors have special handling because they
+				// could be resolved by waiting for network propagation. Any
+				// other errors are returned to client immediately.
+				if !strings.Contains(err.Error(), rpc.ErrUnknownOutputs) {
+					w.log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
+						funcName, request.TicketHash, err)
+					w.sendError(types.ErrCannotBroadcastTicket, c)
+					return
+				}
+
+				w.log.Debugf("%s: Parent tx references an unknown output, waiting for it in mempool (ticketHash=%s)",
+					funcName, request.TicketHash)
+
+				txBroadcast := func() bool {
+					// Wait for 1 second and try again, max 7 attempts.
+					for range 7 {
+						time.Sleep(1 * time.Second)
+						err := dcrdClient.SendRawTransaction(request.ParentHex)
+						if err == nil {
+							return true
+						}
+					}
+					return false
+				}()
+
+				if !txBroadcast {
+					w.log.Errorf("%s: Failed to broadcast parent tx, waiting didn't help (ticketHash=%s)",
+						funcName, request.TicketHash)
+					w.sendError(types.ErrCannotBroadcastTicket, c)
+					return
+				}
+			}
+
 		}
 
 		// Check if local dcrd already knows the ticket.
