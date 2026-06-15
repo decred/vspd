@@ -185,6 +185,9 @@ func (w *WebAPI) vspMustBeOpen(c *gin.Context) {
 // validated. They are broadcast to the network using SendRawTransaction if dcrd
 // is not aware of them.
 func (w *WebAPI) broadcastTicket() gin.HandlerFunc {
+	// broadcastSem limits the number of concurrent transaction broadcasts.
+	broadcastSem := make(chan struct{}, 16)
+
 	return func(c *gin.Context) {
 		const funcName = "broadcastTicket"
 
@@ -295,10 +298,23 @@ func (w *WebAPI) broadcastTicket() gin.HandlerFunc {
 					return
 				}
 
+				// Only proceed with broadcast if semaphore slot is available.
+				// This reduces the impact of a malicious client sending
+				// requests which deliberately enter the txBroadcast loop.
+				select {
+				case broadcastSem <- struct{}{}:
+				default:
+					w.log.Warnf("%s: Too many pending broadcasts (ticketHash=%s)",
+						funcName, request.TicketHash)
+					w.sendError(types.ErrCannotBroadcastTicket, c)
+					return
+				}
+
 				w.log.Debugf("%s: Parent tx references an unknown output, waiting for it in mempool (ticketHash=%s)",
 					funcName, request.TicketHash)
 
 				txBroadcast := func() bool {
+					defer func() { <-broadcastSem }()
 					// Wait for 1 second and try again, max 7 attempts.
 					for range 7 {
 						time.Sleep(1 * time.Second)
