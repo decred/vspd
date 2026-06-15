@@ -291,7 +291,7 @@ func (w *WebAPI) broadcastTicket() gin.HandlerFunc {
 				// Unknown output errors have special handling because they
 				// could be resolved by waiting for network propagation. Any
 				// other errors are returned to client immediately.
-				if !strings.Contains(err.Error(), rpc.ErrUnknownOutputs) {
+				if !rpc.ErrOrphan.MatchString(err.Error()) {
 					w.log.Errorf("%s: dcrd.SendRawTransaction for parent tx failed (ticketHash=%s): %v",
 						funcName, request.TicketHash, err)
 					w.sendError(types.ErrCannotBroadcastTicket, c)

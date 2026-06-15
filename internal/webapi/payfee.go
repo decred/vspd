@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2024 The Decred developers
+// Copyright (c) 2021-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -7,7 +7,6 @@ package webapi
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"time"
 
 	blockchain "github.com/decred/dcrd/blockchain/standalone/v2"
@@ -258,7 +257,7 @@ func (w *WebAPI) payFee(c *gin.Context) {
 			ticket.FeeTxStatus = database.FeeError
 
 			// Send the client an explicit error if the issue is unknown outputs.
-			if strings.Contains(err.Error(), rpc.ErrUnknownOutputs) {
+			if rpc.ErrOrphan.MatchString(err.Error()) {
 				w.sendError(types.ErrCannotBroadcastFeeUnknownOutputs, c)
 			} else {
 				w.sendError(types.ErrCannotBroadcastFee, c)
