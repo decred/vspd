@@ -241,11 +241,12 @@ func (w *WebAPI) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	cookieStore := sessions.NewCookieStore(cookieSecret)
 
 	// API routes.
+	broadcastTicket := w.broadcastTicket()
 
 	api := router.Group("/api/v3")
 	api.GET("/vspinfo", w.requireWebCache, w.vspInfo)
-	api.POST("/setaltsignaddr", w.vspMustBeOpen, w.withDcrdClient(dcrd), w.broadcastTicket, w.vspAuth, w.setAltSignAddr)
-	api.POST("/feeaddress", w.vspMustBeOpen, w.withDcrdClient(dcrd), w.broadcastTicket, w.vspAuth, w.feeAddress)
+	api.POST("/setaltsignaddr", w.vspMustBeOpen, w.withDcrdClient(dcrd), broadcastTicket, w.vspAuth, w.setAltSignAddr)
+	api.POST("/feeaddress", w.vspMustBeOpen, w.withDcrdClient(dcrd), broadcastTicket, w.vspAuth, w.feeAddress)
 	api.POST("/ticketstatus", w.withDcrdClient(dcrd), w.vspAuth, w.ticketStatus)
 	api.POST("/payfee", w.vspMustBeOpen, w.withDcrdClient(dcrd), w.vspAuth, w.payFee)
 	api.POST("/setvotechoices", w.withDcrdClient(dcrd), w.withWalletClients(wallets), w.vspAuth, w.setVoteChoices)
