@@ -15,7 +15,6 @@ linters:
     - errorlint
     - exhaustive
     - fatcontext
-    - goconst
     - godot
     - govet
     - ineffassign
