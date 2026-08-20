@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -309,11 +309,19 @@ func (vdb *VspDatabase) Size() (uint64, error) {
 	return size, err
 }
 
-// CountTickets returns the total number of voted, expired, missed, and
+// TicketStats holds aggregate information about the tickets in the database.
+type TicketStats struct {
+	Voting  int64
+	Voted   int64
+	Expired int64
+	Missed  int64
+}
+
+// TicketStats returns the total number of voted, expired, missed, and
 // currently voting tickets. This func iterates over every ticket so should be
 // used sparingly.
-func (vdb *VspDatabase) CountTickets() (int64, int64, int64, int64, error) {
-	var voting, voted, expired, missed int64
+func (vdb *VspDatabase) TicketStats() (TicketStats, error) {
+	var stats TicketStats
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
 
@@ -323,18 +331,18 @@ func (vdb *VspDatabase) CountTickets() (int64, int64, int64, int64, error) {
 			if FeeStatus(tBkt.Get(feeTxStatusK)) == FeeConfirmed {
 				switch TicketOutcome(tBkt.Get(outcomeK)) {
 				case Voted:
-					voted++
+					stats.Voted++
 				case Expired:
-					expired++
+					stats.Expired++
 				case Missed:
-					missed++
+					stats.Missed++
 				case Revoked:
 					// There shouldn't be any revoked tickets in the db, they
 					// should have been updated to expired/missed. Give benefit
 					// of doubt to VSP admin and count these as expired.
-					expired++
+					stats.Expired++
 				default:
-					voting++
+					stats.Voting++
 				}
 			}
 
@@ -342,7 +350,7 @@ func (vdb *VspDatabase) CountTickets() (int64, int64, int64, int64, error) {
 		})
 	})
 
-	return voting, voted, expired, missed, err
+	return stats, err
 }
 
 // GetUnconfirmedTickets returns tickets which are not yet confirmed.

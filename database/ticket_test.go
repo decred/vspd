@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -229,28 +229,28 @@ func testFilterTickets(t *testing.T) {
 	}
 }
 
-func testCountTickets(t *testing.T) {
+func testTicketStats(t *testing.T) {
 	count := func(test string, expectedVoting, expectedVoted, expectedExpired, expectedMissed int64) {
-		voting, voted, expired, missed, err := db.CountTickets()
+		stats, err := db.TicketStats()
 		if err != nil {
-			t.Fatalf("error counting tickets: %v", err)
+			t.Fatalf("error getting ticket stats: %v", err)
 		}
 
-		if voting != expectedVoting {
+		if stats.Voting != expectedVoting {
 			t.Fatalf("test %s: expected %d voting tickets, got %d",
-				test, expectedVoting, voting)
+				test, expectedVoting, stats.Voting)
 		}
-		if voted != expectedVoted {
+		if stats.Voted != expectedVoted {
 			t.Fatalf("test %s: expected %d voted tickets, got %d",
-				test, expectedVoted, voted)
+				test, expectedVoted, stats.Voted)
 		}
-		if expired != expectedExpired {
+		if stats.Expired != expectedExpired {
 			t.Fatalf("test %s: expected %d expired tickets, got %d",
-				test, expectedExpired, expired)
+				test, expectedExpired, stats.Expired)
 		}
-		if missed != expectedMissed {
+		if stats.Missed != expectedMissed {
 			t.Fatalf("test %s: expected %d missed tickets, got %d",
-				test, expectedMissed, missed)
+				test, expectedMissed, stats.Missed)
 		}
 	}
 

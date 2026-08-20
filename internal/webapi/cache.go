@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -86,7 +86,7 @@ func (c *cache) update() error {
 	}
 
 	// Get latest counts of voting, voted, expired and missed tickets.
-	voting, voted, expired, missed, err := c.db.CountTickets()
+	stats, err := c.db.TicketStats()
 	if err != nil {
 		return err
 	}
@@ -120,24 +120,24 @@ func (c *cache) update() error {
 	c.data.Initialized = true
 	c.data.UpdateTime = time.Now()
 	c.data.DatabaseSize = humanize.Bytes(dbSize)
-	c.data.Voting = voting
-	c.data.Voted = voted
+	c.data.Voting = stats.Voting
+	c.data.Voted = stats.Voted
 	c.data.TotalVotingWallets = int64(len(clients) + len(failedConnections))
 	c.data.VotingWalletsOnline = int64(len(clients))
-	c.data.Expired = expired
-	c.data.Missed = missed
+	c.data.Expired = stats.Expired
+	c.data.Missed = stats.Missed
 	c.data.BlockHeight = bestBlock.Height
-	c.data.NetworkProportion = float32(voting) / float32(bestBlock.PoolSize)
+	c.data.NetworkProportion = float32(stats.Voting) / float32(bestBlock.PoolSize)
 
-	total := voted + expired + missed
+	total := stats.Voted + stats.Expired + stats.Missed
 
 	// Prevent dividing by zero when pool has no voted/expired/missed tickets.
 	if total == 0 {
 		c.data.ExpiredProportion = 0
 		c.data.MissedProportion = 0
 	} else {
-		c.data.ExpiredProportion = float32(expired) / float32(total)
-		c.data.MissedProportion = float32(missed) / float32(total)
+		c.data.ExpiredProportion = float32(stats.Expired) / float32(total)
+		c.data.MissedProportion = float32(stats.Missed) / float32(total)
 	}
 
 	return nil
