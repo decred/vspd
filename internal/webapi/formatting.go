@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -69,8 +69,12 @@ func indentJSON(log slog.Logger) func(string) string {
 	}
 }
 
-func atomsToDCR(atoms int64) string {
+func atomsToDCRString(atoms int64) string {
 	return dcrutil.Amount(atoms).String()
+}
+
+func atomsToDCRCoin(atoms int64) string {
+	return fmt.Sprintf("%f", dcrutil.Amount(atoms).ToCoin())
 }
 
 func float32ToPercent(input float32) string {

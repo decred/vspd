@@ -19,7 +19,7 @@ func exampleTicket() Ticket {
 		FeeAddressIndex:   12345,
 		FeeAddressXPubID:  10,
 		FeeAddress:        randString(35, addrCharset),
-		FeeAmount:         10000000,
+		FeeAmount:         1e7,
 		FeeExpiration:     4,
 		Confirmed:         false,
 		VoteChoices:       map[string]string{"AgendaID": "yes"},
@@ -229,9 +229,10 @@ func testFilterTickets(t *testing.T) {
 	}
 }
 
-func testTicketStats(t *testing.T) {
+func testTicketStatsCounts(t *testing.T) {
 	count := func(test string, expectedVoting, expectedVoted, expectedExpired, expectedMissed int64) {
-		stats, err := db.TicketStats()
+		t.Helper()
+		stats, err := db.TicketStats(69420)
 		if err != nil {
 			t.Fatalf("error getting ticket stats: %v", err)
 		}
@@ -326,4 +327,79 @@ func testTicketStats(t *testing.T) {
 	}
 
 	count("revoked", 1, 1, 2, 1)
+}
+
+func testTicketStatsRevenue(t *testing.T) {
+	const blockHeight = 69420
+
+	const (
+		within24Hours = blockHeight - 1
+		within28Days  = blockHeight - blocksIn24Hours - 1
+		before28Days  = blockHeight - blocksIn28Days - 1
+	)
+
+	checkRevenue := func(test string, expectedLifetime, expected28Days, expected24Hours int64) {
+		t.Helper()
+		stats, err := db.TicketStats(blockHeight)
+		if err != nil {
+			t.Fatalf("error getting ticket stats: %v", err)
+		}
+
+		if stats.RevenueLifetime != expectedLifetime {
+			t.Fatalf("test %s: expected lifetime revenue of %d, got %d",
+				test, expectedLifetime, stats.RevenueLifetime)
+		}
+		if stats.Revenue28Days != expected28Days {
+			t.Fatalf("test %s: expected 28 day revenue of %d, got %d",
+				test, expected28Days, stats.Revenue28Days)
+		}
+		if stats.Revenue24Hours != expected24Hours {
+			t.Fatalf("test %s: expected 24 hour revenue of %d, got %d",
+				test, expected24Hours, stats.Revenue24Hours)
+		}
+	}
+
+	insertTicket := func(status FeeStatus, purchaseHeight int64) {
+		t.Helper()
+		ticket := exampleTicket()
+		ticket.FeeTxStatus = status
+		ticket.PurchaseHeight = purchaseHeight
+
+		err := db.InsertNewTicket(ticket)
+		if err != nil {
+			t.Fatalf("error storing ticket in database: %v", err)
+		}
+	}
+
+	// An empty database has earned no revenue.
+	checkRevenue("empty db", 0, 0, 0)
+
+	// A ticket without a confirmed fee tx has not earned any revenue.
+	insertTicket(NoFee, within24Hours)
+	checkRevenue("no fee", 0, 0, 0)
+	insertTicket(FeeReceieved, within24Hours)
+	checkRevenue("received fee", 0, 0, 0)
+	insertTicket(FeeBroadcast, within24Hours)
+	checkRevenue("broadcast fee", 0, 0, 0)
+	insertTicket(FeeError, within24Hours)
+	checkRevenue("errored fee", 0, 0, 0)
+
+	// A fee confirmed within the last 24 hours contributes to every period.
+	insertTicket(FeeConfirmed, within24Hours)
+	checkRevenue("within 24 hours", 1e7, 1e7, 1e7)
+
+	// A fee confirmed within the last 28 days does not contribute to the 24
+	// hour period.
+	insertTicket(FeeConfirmed, within28Days)
+	checkRevenue("within 28 days", 2e7, 2e7, 1e7)
+
+	// A fee confirmed before both periods only contributes to lifetime
+	// revenue.
+	insertTicket(FeeConfirmed, before28Days)
+	checkRevenue("outside periods", 3e7, 2e7, 1e7)
+
+	// A ticket which is not yet confirmed on-chain has no purchase height. It's
+	// only just been purchased, so it's fee contributes to every period.
+	insertTicket(FeeConfirmed, 0)
+	checkRevenue("no purchase height", 4e7, 3e7, 2e7)
 }

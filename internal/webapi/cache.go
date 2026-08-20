@@ -41,6 +41,9 @@ type cacheData struct {
 	Voted               int64
 	Expired             int64
 	Missed              int64
+	RevenueLifetime     int64
+	Revenue28Days       int64
+	Revenue24Hours      int64
 	VotingWalletsOnline int64
 	TotalVotingWallets  int64
 	BlockHeight         uint32
@@ -85,12 +88,6 @@ func (c *cache) update() error {
 		return err
 	}
 
-	// Get latest counts of voting, voted, expired and missed tickets.
-	stats, err := c.db.TicketStats()
-	if err != nil {
-		return err
-	}
-
 	// Get latest best block height.
 	dcrdClient, _, err := c.dcrd.Client()
 	if err != nil {
@@ -104,6 +101,12 @@ func (c *cache) update() error {
 
 	if bestBlock.PoolSize == 0 {
 		return errors.New("dcr node reports a network ticket pool size of zero")
+	}
+
+	// Get latest counts of tickets and the fee revenue earned from them.
+	stats, err := c.db.TicketStats(int64(bestBlock.Height))
+	if err != nil {
+		return err
 	}
 
 	clients, failedConnections := c.wallets.Clients()
@@ -126,6 +129,9 @@ func (c *cache) update() error {
 	c.data.VotingWalletsOnline = int64(len(clients))
 	c.data.Expired = stats.Expired
 	c.data.Missed = stats.Missed
+	c.data.RevenueLifetime = stats.RevenueLifetime
+	c.data.Revenue28Days = stats.Revenue28Days
+	c.data.Revenue24Hours = stats.Revenue24Hours
 	c.data.BlockHeight = bestBlock.Height
 	c.data.NetworkProportion = float32(stats.Voting) / float32(bestBlock.PoolSize)
 
