@@ -85,7 +85,7 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 	}
 
 	// Verify dcrd is at the required version.
-	err = dcrdRPC.checkVersion()
+	version, err := dcrdRPC.checkVersion()
 	if err != nil {
 		d.client.Close()
 		return nil, d.client.addr, fmt.Errorf("dcrd version check failed: %w", err)
@@ -121,7 +121,7 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 		}
 	}
 
-	d.log.Debugf("Connected to dcrd")
+	d.log.Debugf("Connected to dcrd %s", version)
 
 	return &DcrdRPC{c}, d.client.addr, nil
 }
@@ -129,17 +129,23 @@ func (d *DcrdConnect) Client() (*DcrdRPC, string, error) {
 // checkVersion uses version RPC to retrieve the binary and API version of dcrd.
 // An error is returned if there is not semver compatibility with the minimum
 // expected versions.
-func (c *DcrdRPC) checkVersion() error {
+func (c *DcrdRPC) checkVersion() (string, error) {
 	var verMap map[string]dcrdtypes.VersionResult
 	err := c.Call(context.TODO(), "version", &verMap)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return errors.Join(
+	err = errors.Join(
 		checkVersion(verMap, "dcrd"),
 		checkVersion(verMap, "dcrdjsonrpcapi"),
 	)
+
+	if err != nil {
+		return "", err
+	}
+
+	return verMap["dcrd"].VersionString, nil
 }
 
 // getCurrentNet uses getcurrentnet RPC to return the Decred network the wallet
