@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -76,7 +76,7 @@ func TestDatabase(t *testing.T) {
 		"testUpdateTicket":      testUpdateTicket,
 		"testTicketFeeExpired":  testTicketFeeExpired,
 		"testFilterTickets":     testFilterTickets,
-		"testCountTickets":      testCountTickets,
+		"testTicketStats":       testTicketStats,
 		"testFeeXPub":           testFeeXPub,
 		"testRetireFeeXPub":     testRetireFeeXPub,
 		"testDeleteTicket":      testDeleteTicket,
