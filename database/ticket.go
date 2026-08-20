@@ -45,6 +45,13 @@ const (
 	Revoked TicketOutcome = "revoked"
 )
 
+// blocksIn24Hours and blocksIn28Days are the average number of blocks mined
+// over those periods, assuming the mainnet target block time of 5 minutes.
+const (
+	blocksIn24Hours = 24 * 60 / 5
+	blocksIn28Days  = 28 * blocksIn24Hours
+)
+
 // The keys used to store ticket values in the database.
 var (
 	hashK              = []byte("Hash")
@@ -315,12 +322,22 @@ type TicketStats struct {
 	Voted   int64
 	Expired int64
 	Missed  int64
+
+	RevenueLifetime int64
+	Revenue28Days   int64
+	Revenue24Hours  int64
 }
 
 // TicketStats returns the total number of voted, expired, missed, and
-// currently voting tickets. This func iterates over every ticket so should be
-// used sparingly.
-func (vdb *VspDatabase) TicketStats() (TicketStats, error) {
+// currently voting tickets, as well as the fee revenue earned from those
+// tickets. The provided block height is used to determine which tickets
+// were purchased in the previous 28d and 24h window.
+//
+// This func iterates over every ticket so should be used sparingly.
+func (vdb *VspDatabase) TicketStats(blockHeight int64) (TicketStats, error) {
+	height28DaysAgo := max(blockHeight-blocksIn28Days, 1)
+	height24HoursAgo := max(blockHeight-blocksIn24Hours, 1)
+
 	var stats TicketStats
 	err := vdb.db.View(func(tx *bolt.Tx) error {
 		ticketBkt := tx.Bucket(vspBktK).Bucket(ticketBktK)
@@ -329,6 +346,21 @@ func (vdb *VspDatabase) TicketStats() (TicketStats, error) {
 			tBkt := ticketBkt.Bucket(k)
 
 			if FeeStatus(tBkt.Get(feeTxStatusK)) == FeeConfirmed {
+				feeAmount := bytesToInt64(tBkt.Get(feeAmountK))
+				purchaseHeight := bytesToInt64(tBkt.Get(purchaseHeightK))
+
+				stats.RevenueLifetime += feeAmount
+
+				// Purchase height is only set when tickets have 6 confs. Zero
+				// indicates they have only just been purchased, so they must
+				// count towards 28d/24h periods.
+				if purchaseHeight >= height28DaysAgo || purchaseHeight == 0 {
+					stats.Revenue28Days += feeAmount
+				}
+				if purchaseHeight >= height24HoursAgo || purchaseHeight == 0 {
+					stats.Revenue24Hours += feeAmount
+				}
+
 				switch TicketOutcome(tBkt.Get(outcomeK)) {
 				case Voted:
 					stats.Voted++

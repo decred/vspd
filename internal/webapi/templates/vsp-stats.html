@@ -1,6 +1,6 @@
 {{ define "vsp-stats" }}
 
-<div class="row vsp-stats">
+<div class="row vsp-stats justify-content-sm-around">
     
     <div class="col-6 col-sm-4 col-lg-2 py-3">
         <div class="vsp-stat-title">Live tickets</div>
@@ -39,5 +39,35 @@
     </div>
 
 </div>
+
+{{ if .Admin }}
+<div class="row vsp-stats justify-content-sm-around">
+
+    <div class="col-6 col-sm-4 col-lg-2 py-3">
+        <div class="vsp-stat-title">24 Hour Revenue</div>
+        <div class="vsp-stat-value">
+            {{ atomsToDCRCoin .WebApiCache.Revenue24Hours }}
+            <span class="vsp-stat-subtext">DCR</span>
+        </div>
+    </div>
+
+    <div class="col-6 col-sm-4 col-lg-2 py-3">
+        <div class="vsp-stat-title">28 Day Revenue</div>
+        <div class="vsp-stat-value">
+            {{ atomsToDCRCoin .WebApiCache.Revenue28Days }}
+            <span class="vsp-stat-subtext">DCR</span>
+        </div>
+    </div>
+    
+    <div class="col-6 col-sm-4 col-lg-2 py-3">
+        <div class="vsp-stat-title">Lifetime Revenue</div>
+        <div class="vsp-stat-value">
+            {{ atomsToDCRCoin .WebApiCache.RevenueLifetime }}
+            <span class="vsp-stat-subtext">DCR</span>
+        </div>
+    </div>
+    
+</div>
+{{ end }}
 
 {{ end }}

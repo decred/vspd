@@ -70,21 +70,22 @@ func TestDatabase(t *testing.T) {
 
 	// All sub-tests to run.
 	tests := map[string]func(*testing.T){
-		"testCreateNew":         testCreateNew,
-		"testInsertNewTicket":   testInsertNewTicket,
-		"testGetTicketByHash":   testGetTicketByHash,
-		"testUpdateTicket":      testUpdateTicket,
-		"testTicketFeeExpired":  testTicketFeeExpired,
-		"testFilterTickets":     testFilterTickets,
-		"testTicketStats":       testTicketStats,
-		"testFeeXPub":           testFeeXPub,
-		"testRetireFeeXPub":     testRetireFeeXPub,
-		"testDeleteTicket":      testDeleteTicket,
-		"testVoteChangeRecords": testVoteChangeRecords,
-		"testHTTPBackup":        testHTTPBackup,
-		"testAltSignAddrData":   testAltSignAddrData,
-		"testInsertAltSignAddr": testInsertAltSignAddr,
-		"testDeleteAltSignAddr": testDeleteAltSignAddr,
+		"testCreateNew":          testCreateNew,
+		"testInsertNewTicket":    testInsertNewTicket,
+		"testGetTicketByHash":    testGetTicketByHash,
+		"testUpdateTicket":       testUpdateTicket,
+		"testTicketFeeExpired":   testTicketFeeExpired,
+		"testFilterTickets":      testFilterTickets,
+		"testTicketStatsCounts":  testTicketStatsCounts,
+		"testTicketStatsRevenue": testTicketStatsRevenue,
+		"testFeeXPub":            testFeeXPub,
+		"testRetireFeeXPub":      testRetireFeeXPub,
+		"testDeleteTicket":       testDeleteTicket,
+		"testVoteChangeRecords":  testVoteChangeRecords,
+		"testHTTPBackup":         testHTTPBackup,
+		"testAltSignAddrData":    testAltSignAddrData,
+		"testInsertAltSignAddr":  testInsertAltSignAddr,
+		"testDeleteAltSignAddr":  testDeleteAltSignAddr,
 	}
 
 	log := stdoutLogger()

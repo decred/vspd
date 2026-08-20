@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -180,6 +180,7 @@ func (w *WebAPI) renderAdmin(c *gin.Context, searchResult *searchResult) {
 	delete(oldXPubs, currentXPub.ID)
 
 	c.HTML(http.StatusOK, "admin.html", gin.H{
+		"Admin":         true,
 		"SearchResult":  searchResult,
 		"WebApiCache":   cacheData,
 		"WebApiCfg":     w.cfg,
