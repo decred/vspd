@@ -61,3 +61,45 @@ func testVoteChangeRecords(t *testing.T) {
 		t.Fatalf("oldest vote change record should have been deleted")
 	}
 }
+
+func testDeleteVoteChanges(t *testing.T) {
+	const hash = "MyHash"
+	record := exampleRecord()
+
+	// Nothing to delete.
+	err := db.DeleteVoteChanges(hash)
+	if err != nil {
+		t.Fatalf("error deleting non-existent vote change record: %v", err)
+	}
+
+	// Insert a vote change record and confirm it can be retrieved.
+	err = db.SaveVoteChange(hash, record)
+	if err != nil {
+		t.Fatalf("error storing vote change record: %v", err)
+	}
+
+	retrieved, err := db.GetVoteChanges(hash)
+	if err != nil {
+		t.Fatalf("error retrieving vote change record: %v", err)
+	}
+
+	if len(retrieved) != 1 {
+		t.Fatalf("expected 1 vote change record, got %d", len(retrieved))
+	}
+
+	// Delete and confirm it is no longer in DB.
+	err = db.DeleteVoteChanges(hash)
+	if err != nil {
+		t.Fatalf("error deleting vote change record: %v", err)
+	}
+
+	retrieved, err = db.GetVoteChanges(hash)
+	if err != nil {
+		t.Fatalf("error retrieving vote change records: %v", err)
+	}
+
+	if len(retrieved) != 0 {
+		t.Fatalf("expected 0 vote change record, got %d", len(retrieved))
+	}
+
+}
