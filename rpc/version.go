@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2025 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -13,9 +13,9 @@ import (
 // minimumVersions contains the minimum expected binary and API versions for
 // dcrd and dcrwallet.
 var minimumVersions = map[string]semver{
-	"dcrd":                {Major: 2, Minor: 1},
+	"dcrd":                {Major: 2, Minor: 1, Patch: 6},
 	"dcrdjsonrpcapi":      {Major: 8, Minor: 3},
-	"dcrwallet":           {Major: 2, Minor: 1},
+	"dcrwallet":           {Major: 2, Minor: 1, Patch: 6},
 	"dcrwalletjsonrpcapi": {Major: 11, Minor: 0},
 }
 
