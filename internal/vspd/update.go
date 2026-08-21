@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2023 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -82,6 +82,12 @@ func (v *Vspd) updateUnconfirmed(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 				err = v.db.DeleteTicket(ticket)
 				if err != nil {
 					v.log.Errorf("%s: db.DeleteTicket error (ticketHash=%s): %v",
+						funcName, ticket.Hash, err)
+				}
+
+				err = v.db.DeleteVoteChanges(ticket.Hash)
+				if err != nil {
+					v.log.Errorf("%s: db.DeleteVoteChanges error (ticketHash=%s): %v",
 						funcName, ticket.Hash, err)
 				}
 

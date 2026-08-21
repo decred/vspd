@@ -1,4 +1,4 @@
-// Copyright (c) 2020-2024 The Decred developers
+// Copyright (c) 2020-2026 The Decred developers
 // Use of this source code is governed by an ISC
 // license that can be found in the LICENSE file.
 
@@ -119,4 +119,25 @@ func (vdb *VspDatabase) GetVoteChanges(ticketHash string) (map[uint32]VoteChange
 	})
 
 	return records, err
+}
+
+// DeleteVoteChanges deletes all of the stored vote change records for the
+// provided ticket hash.
+func (vdb *VspDatabase) DeleteVoteChanges(ticketHash string) error {
+	return vdb.db.Update(func(tx *bolt.Tx) error {
+		voteChangeBkt := tx.Bucket(vspBktK).Bucket(voteChangeBktK)
+
+		// Don't attempt delete if doesn't exist.
+		bkt := voteChangeBkt.Bucket([]byte(ticketHash))
+		if bkt == nil {
+			return nil
+		}
+
+		err := voteChangeBkt.DeleteBucket([]byte(ticketHash))
+		if err != nil {
+			return fmt.Errorf("could not delete vote changes: %w", err)
+		}
+
+		return nil
+	})
 }
