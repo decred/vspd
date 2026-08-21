@@ -284,9 +284,18 @@ func (w *WebAPI) router(cookieSecret []byte, dcrd rpc.DcrdConnect, wallets rpc.W
 	admin.GET("/backup", w.downloadDatabaseBackup)
 	admin.POST("/logout", w.adminLogout)
 
+	// Limit status endpoint attempts to 3 per second.
+	statusRateLmiter := rateLimit(3, func(c *gin.Context) {
+		w.log.Warnf("Status rate limit exceeded by %s", c.ClientIP())
+		c.AbortWithStatus(http.StatusTooManyRequests)
+	})
+
 	// Require Basic HTTP Auth on /admin/status endpoint.
 	basic := router.Group("/admin").Use(
-		w.withDcrdClient(dcrd), w.withWalletClients(wallets), gin.BasicAuth(gin.Accounts{
+		statusRateLmiter,
+		w.withDcrdClient(dcrd),
+		w.withWalletClients(wallets),
+		gin.BasicAuth(gin.Accounts{
 			"admin": w.cfg.AdminPass,
 		}),
 	)
