@@ -197,6 +197,7 @@ func (w *WebAPI) setVoteChoices(c *gin.Context) {
 			ResponseSignature: respSig,
 		})
 	if err != nil {
-		w.log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v", err)
+		w.log.Errorf("%s: Failed to store vote change record (ticketHash=%s): %v",
+			funcName, ticket.Hash, err)
 	}
 }
