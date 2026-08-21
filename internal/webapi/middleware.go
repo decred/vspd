@@ -181,7 +181,7 @@ func (w *WebAPI) withWalletClients(wallets rpc.WalletConnect) gin.HandlerFunc {
 // drainAndReplaceBody will read and return the body of the provided request. It
 // replaces the request reader with an identical one so it can be used again.
 func drainAndReplaceBody(req *http.Request) ([]byte, error) {
-	const readLimit = 1 << 22 // 2 MiB
+	const readLimit = 1 << 20 // 1 MiB
 	bodyReader := io.LimitReader(req.Body, readLimit)
 	reqBytes, err := io.ReadAll(bodyReader)
 	if err != nil {
