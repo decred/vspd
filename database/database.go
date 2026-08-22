@@ -186,7 +186,12 @@ func Open(dbFile string, log slog.Logger, maxVoteChangeRecords int) (*VspDatabas
 		return nil, err
 	}
 
-	db, err := bolt.Open(dbFile, 0600, &bolt.Options{Timeout: 1 * time.Second})
+	boltOpts := &bolt.Options{
+		Timeout:      1 * time.Second,
+		NoStatistics: true,
+	}
+
+	db, err := bolt.Open(dbFile, 0600, boltOpts)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open db file: %w", err)
 	}
