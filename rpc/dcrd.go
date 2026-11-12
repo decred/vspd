@@ -194,7 +194,7 @@ func (c *DcrdRPC) DecodeRawTransaction(txHex string) (*dcrdtypes.TxRawDecodeResu
 
 // SendRawTransaction uses sendrawtransaction RPC to broadcast a transaction to
 // the network. It ignores errors caused by duplicate transactions.
-func (c *DcrdRPC) SendRawTransaction(txHex string) error {
+func (c *DcrdRPC) SendRawTransaction(txHash string, txHex string) error {
 	const allowHighFees = false
 	err := c.Call(context.TODO(), "sendrawtransaction", nil, txHex, allowHighFees)
 	if err != nil {
@@ -212,7 +212,7 @@ func (c *DcrdRPC) SendRawTransaction(txHex string) error {
 		// Errors about orphan/spent outputs indicate that dcrd *might* already
 		// have this transaction. Use getrawtransaction to confirm.
 		if ErrOrphan.MatchString(err.Error()) {
-			_, getErr := c.GetRawTransaction(txHex)
+			_, getErr := c.GetRawTransaction(txHash)
 			if getErr == nil {
 				return nil
 			}

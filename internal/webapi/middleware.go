@@ -306,7 +306,7 @@ func (w *WebAPI) broadcastTicket() gin.HandlerFunc {
 			}
 
 			w.log.Debugf("%s: Broadcasting parent tx %s (ticketHash=%s)", funcName, parentHash, request.TicketHash)
-			err = dcrdClient.SendRawTransaction(request.ParentHex)
+			err = dcrdClient.SendRawTransaction(parentHash.String(), request.ParentHex)
 			if err != nil {
 				// Unknown output errors have special handling because they
 				// could be resolved by waiting for network propagation. Any
@@ -338,7 +338,7 @@ func (w *WebAPI) broadcastTicket() gin.HandlerFunc {
 					// Wait for 1 second and try again, max 7 attempts.
 					for range 7 {
 						time.Sleep(1 * time.Second)
-						err := dcrdClient.SendRawTransaction(request.ParentHex)
+						err := dcrdClient.SendRawTransaction(parentHash.String(), request.ParentHex)
 						if err == nil {
 							return true
 						}
@@ -368,7 +368,7 @@ func (w *WebAPI) broadcastTicket() gin.HandlerFunc {
 		var e *wsrpc.Error
 		if errors.As(err, &e) && e.Code == rpc.ErrNoTxInfo {
 			w.log.Debugf("%s: Broadcasting ticket (ticketHash=%s)", funcName, request.TicketHash)
-			err = dcrdClient.SendRawTransaction(request.TicketHex)
+			err = dcrdClient.SendRawTransaction(request.TicketHash, request.TicketHex)
 			if err != nil {
 				w.log.Errorf("%s: dcrd.SendRawTransaction for ticket failed (ticketHash=%s): %v",
 					funcName, request.TicketHash, err)
