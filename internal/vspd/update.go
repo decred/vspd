@@ -136,7 +136,7 @@ func (v *Vspd) broadcastFees(ctx context.Context, dcrdClient *rpc.DcrdRPC) {
 			return
 		}
 
-		err = dcrdClient.SendRawTransaction(ticket.FeeTxHex)
+		err = dcrdClient.SendRawTransaction(ticket.FeeTxHash, ticket.FeeTxHex)
 		if err != nil {
 			v.log.Errorf("%s: dcrd.SendRawTransaction for fee tx failed (ticketHash=%s): %v",
 				funcName, ticket.Hash, err)

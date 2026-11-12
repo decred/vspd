@@ -249,7 +249,7 @@ func (w *WebAPI) payFee(c *gin.Context) {
 		funcName, minFee, feePaid, ticket.Hash)
 
 	if ticket.Confirmed {
-		err = dcrdClient.SendRawTransaction(request.FeeTx)
+		err = dcrdClient.SendRawTransaction(feeTx.TxHash().String(), request.FeeTx)
 		if err != nil {
 			w.log.Errorf("%s: dcrd.SendRawTransaction for fee tx failed (ticketHash=%s): %v",
 				funcName, ticket.Hash, err)
